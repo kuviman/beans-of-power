@@ -923,7 +923,7 @@ fn main() {
     let level_path = static_path().join("level.json");
     logger::init().unwrap();
     let geng = Geng::new_with(geng::ContextOptions {
-        title: "LD51".to_owned(),
+        title: "LD51 - Stercore Dare".to_owned(),
         fixed_delta_time: 1.0 / 200.0,
         vsync: false,
         ..default()

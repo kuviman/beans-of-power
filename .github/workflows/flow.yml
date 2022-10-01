@@ -1,0 +1,63 @@
+name: CI
+on: push
+env:
+  CONNECT: ${{ secrets.CONNECT }}
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    container: kuviman/geng
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - run: cargo geng build --release --target wasm32-unknown-unknown
+      - name: Upload artifacts (web)
+        uses: actions/upload-artifact@v2
+        with:
+          name: web
+          path: target/geng
+      - run: cargo geng build --release
+      - name: Upload artifacts (linux)
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux
+          path: target/geng
+
+  deploy:
+    name: Deploy
+    if: github.ref == 'refs/heads/main' && github.repository_owner == 'kuviman'
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+      - name: Deploy GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: web
+      - name: Upload itch.io (Web)
+        uses: josephbmanley/butler-publish-itchio-action@master
+        env:
+          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
+          CHANNEL: html5
+          ITCH_GAME: stercore-dare
+          ITCH_USER: kuviman
+          PACKAGE: web
+      # - name: Copy server files
+      #   uses: appleboy/scp-action@master
+      #   with:
+      #     host: ${{ secrets.SERVER }}
+      #     username: ${{ secrets.SSH_USERNAME }}
+      #     key: ${{ secrets.SSH_KEY }}
+      #     source: linux
+      #     target: stercore-dare
+      # - name: Deploy server
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.SERVER }}
+      #     username: ${{ secrets.SSH_USERNAME }}
+      #     key: ${{ secrets.SSH_KEY }}
+      #     script: systemctl --user restart stercore-dare
