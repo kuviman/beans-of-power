@@ -73,11 +73,13 @@ impl Game {
     }
 
     pub fn snapped_cursor_position(&self) -> Vec2<f32> {
-        self.snap_position(self.geng.window().mouse_pos().map(|x| x as f32))
+        self.snap_position(self.camera.screen_to_world(
+            self.framebuffer_size,
+            self.geng.window().mouse_pos().map(|x| x as f32),
+        ))
     }
 
     pub fn snap_position(&self, pos: Vec2<f32>) -> Vec2<f32> {
-        let pos = self.camera.screen_to_world(self.framebuffer_size, pos);
         let closest_point = self
             .level
             .surfaces
@@ -99,7 +101,10 @@ impl Game {
     }
 
     pub fn find_hovered_surface(&self) -> Option<usize> {
-        let cursor = self.geng.window().mouse_pos().map(|x| x as f32);
+        let cursor = self.camera.screen_to_world(
+            self.framebuffer_size,
+            self.geng.window().mouse_pos().map(|x| x as f32),
+        );
         self.level
             .surfaces
             .iter()
@@ -162,13 +167,21 @@ impl geng::State for Game {
                 position,
                 button: geng::MouseButton::Left,
             } => {
-                self.start_drag = Some(self.snap_position(position.map(|x| x as f32)));
+                self.start_drag = Some(
+                    self.snap_position(
+                        self.camera
+                            .screen_to_world(self.framebuffer_size, position.map(|x| x as f32)),
+                    ),
+                );
             }
             geng::Event::MouseUp {
                 position,
                 button: geng::MouseButton::Left,
             } => {
-                let p2 = self.snap_position(position.map(|x| x as f32));
+                let p2 = self.snap_position(
+                    self.camera
+                        .screen_to_world(self.framebuffer_size, position.map(|x| x as f32)),
+                );
                 if let Some(p1) = self.start_drag.take() {
                     if (p1 - p2).len() > self.config.snap_distance {
                         self.level.surfaces.push(Surface { p1, p2 });
