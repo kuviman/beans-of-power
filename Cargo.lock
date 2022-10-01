@@ -1531,6 +1531,7 @@ name = "ld51"
 version = "0.1.0"
 dependencies = [
  "geng",
+ "serde",
 ]
 
 [[package]]
