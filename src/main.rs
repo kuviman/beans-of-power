@@ -239,6 +239,7 @@ struct EditorState {
 
 struct Game {
     framebuffer_size: Vec2<f32>,
+    prev_mouse_pos: Vec2<f64>,
     geng: Geng,
     config: Config,
     assets: Rc<Assets>,
@@ -276,6 +277,7 @@ impl Game {
             my_guy: None,
             real_time: 0.0,
             noise: noise::OpenSimplex::new(),
+            prev_mouse_pos: Vec2::ZERO,
         }
     }
 
@@ -652,6 +654,11 @@ impl geng::State for Game {
     fn update(&mut self, delta_time: f64) {
         let delta_time = delta_time as f32;
         self.real_time += delta_time;
+
+        if let Some(id) = self.my_guy {
+            let guy = self.guys.get(&id).unwrap();
+            self.camera.center += (guy.pos - self.camera.center) * (delta_time * 5.0).min(1.0);
+        }
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -665,8 +672,26 @@ impl geng::State for Game {
                     self.level.surfaces.remove(index);
                 }
             }
+            geng::Event::MouseMove { position, .. }
+                if self
+                    .geng
+                    .window()
+                    .is_button_pressed(geng::MouseButton::Middle) =>
+            {
+                let old_pos = self
+                    .camera
+                    .screen_to_world(self.framebuffer_size, self.prev_mouse_pos.map(|x| x as f32));
+                let new_pos = self
+                    .camera
+                    .screen_to_world(self.framebuffer_size, position.map(|x| x as f32));
+                self.camera.center += old_pos - new_pos;
+            }
+            geng::Event::Wheel { delta } => {
+                self.camera.fov = (self.camera.fov * 1.01f32.powf(-delta as f32)).clamp(5.0, 30.0);
+            }
             _ => {}
         }
+        self.prev_mouse_pos = self.geng.window().mouse_pos();
     }
 }
 
@@ -683,6 +708,7 @@ fn main() {
     let geng = Geng::new_with(geng::ContextOptions {
         title: "LD51".to_owned(),
         fixed_delta_time: 1.0 / 200.0,
+        vsync: false,
         ..default()
     });
     let state = geng::LoadingScreen::new(
