@@ -49,6 +49,19 @@ impl geng::LoadAsset for Texture {
     const DEFAULT_EXT: Option<&'static str> = Some("png");
 }
 
+#[derive(Deserialize)]
+pub struct SurfaceParams {
+    pub bounciness: f32,
+    pub friction: f32,
+}
+
+pub struct SurfaceAssets {
+    pub name: String,
+    pub params: SurfaceParams,
+    pub front_texture: Texture,
+    pub back_texture: Texture,
+}
+
 #[derive(geng::Assets)]
 pub struct GuyAssets {
     pub body: Texture,
@@ -56,16 +69,100 @@ pub struct GuyAssets {
     pub eyes: Texture,
 }
 
+fn load_surface_assets(
+    geng: &Geng,
+    path: &std::path::Path,
+) -> geng::AssetFuture<Vec<SurfaceAssets>> {
+    let geng = geng.clone();
+    let path = path.to_owned();
+    async move {
+        let json = <String as geng::LoadAsset>::load(&geng, &path.join("config.json")).await?;
+        let config: std::collections::BTreeMap<String, SurfaceParams> =
+            serde_json::from_str(&json).unwrap();
+        future::join_all(config.into_iter().map(|(name, params)| {
+            let geng = geng.clone();
+            let path = path.clone();
+            async move {
+                let mut back_texture = <Texture as geng::LoadAsset>::load(
+                    &geng,
+                    &path.join(format!("{}_back.png", name)),
+                )
+                .await?;
+                back_texture.0.set_wrap_mode(ugli::WrapMode::Repeat);
+                let mut front_texture = <Texture as geng::LoadAsset>::load(
+                    &geng,
+                    &path.join(format!("{}_front.png", name)),
+                )
+                .await?;
+                front_texture.0.set_wrap_mode(ugli::WrapMode::Repeat);
+                Ok(SurfaceAssets {
+                    name,
+                    params,
+                    front_texture,
+                    back_texture,
+                })
+            }
+        }))
+        .await
+        .into_iter()
+        .collect::<Result<Vec<SurfaceAssets>, anyhow::Error>>()
+    }
+    .boxed_local()
+}
+
+pub struct BackgroundAssets {
+    pub name: String,
+    pub texture: Texture,
+}
+
+fn load_background_assets(
+    geng: &Geng,
+    path: &std::path::Path,
+) -> geng::AssetFuture<Vec<BackgroundAssets>> {
+    let geng = geng.clone();
+    let path = path.to_owned();
+    async move {
+        let json = <String as geng::LoadAsset>::load(&geng, &path.join("_list.json")).await?;
+        let list: Vec<String> = serde_json::from_str(&json).unwrap();
+        future::join_all(list.into_iter().map(|name| {
+            let geng = geng.clone();
+            let path = path.clone();
+            async move {
+                let mut texture =
+                    <Texture as geng::LoadAsset>::load(&geng, &path.join(format!("{}.png", name)))
+                        .await?;
+                texture.0.set_wrap_mode(ugli::WrapMode::Repeat);
+                Ok(BackgroundAssets { name, texture })
+            }
+        }))
+        .await
+        .into_iter()
+        .collect::<Result<Vec<BackgroundAssets>, anyhow::Error>>()
+    }
+    .boxed_local()
+}
+
 #[derive(geng::Assets)]
 pub struct Assets {
     pub config: Config,
     pub guy: GuyAssets,
+    #[asset(load_with = "load_surface_assets(&geng, &base_path.join(\"surfaces\"))")]
+    pub surfaces: Vec<SurfaceAssets>,
+    #[asset(load_with = "load_background_assets(&geng, &base_path.join(\"background\"))")]
+    pub background: Vec<BackgroundAssets>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Surface {
     pub p1: Vec2<f32>,
     pub p2: Vec2<f32>,
+    pub type_index: usize,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct BackgroundTile {
+    pub vertices: [Vec2<f32>; 3],
+    pub type_index: usize,
 }
 
 impl Surface {
@@ -88,11 +185,15 @@ impl Surface {
 #[asset(json)]
 pub struct Level {
     pub surfaces: Vec<Surface>,
+    pub background_tiles: Vec<BackgroundTile>,
 }
 
 impl Level {
     pub fn empty() -> Self {
-        Self { surfaces: vec![] }
+        Self {
+            surfaces: vec![],
+            background_tiles: vec![],
+        }
     }
 }
 
@@ -131,17 +232,22 @@ impl Guy {
     }
 }
 
+struct EditorState {
+    start_drag: Option<Vec2<f32>>,
+    face_points: Vec<Vec2<f32>>,
+}
+
 struct Game {
     framebuffer_size: Vec2<f32>,
     geng: Geng,
     config: Config,
     assets: Rc<Assets>,
     camera: geng::Camera2d,
-    start_drag: Option<Vec2<f32>>,
     level: Level,
+    editor: EditorState,
     guys: Collection<Guy>,
     my_guy: Option<Id>,
-    t: f32,
+    real_time: f32,
     noise: noise::OpenSimplex,
 }
 
@@ -157,11 +263,14 @@ impl Game {
                 fov: 5.0,
             },
             framebuffer_size: vec2(1.0, 1.0),
-            start_drag: None,
+            editor: EditorState {
+                start_drag: None,
+                face_points: vec![],
+            },
             level: Level::empty(),
             guys: Collection::new(),
             my_guy: None,
-            t: 0.0,
+            real_time: 0.0,
             noise: noise::OpenSimplex::new(),
         }
     }
@@ -219,14 +328,73 @@ impl Game {
         }
     }
 
-    pub fn draw_level(&self, framebuffer: &mut ugli::Framebuffer) {
+    pub fn draw_level_impl(
+        &self,
+        framebuffer: &mut ugli::Framebuffer,
+        texture: impl Fn(&SurfaceAssets) -> &Texture,
+    ) {
         for surface in &self.level.surfaces {
+            let assets = &self.assets.surfaces[surface.type_index];
+            let texture = texture(assets);
+            let normal = (surface.p2 - surface.p1).normalize().rotate_90();
+            let len = (surface.p2 - surface.p1).len();
+            let height = texture.size().y as f32 / texture.size().x as f32;
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::Segment::new(Segment::new(surface.p1, surface.p2), 0.1, Rgba::WHITE),
+                &draw_2d::TexturedPolygon::new(
+                    vec![
+                        draw_2d::TexturedVertex {
+                            a_pos: surface.p1,
+                            a_color: Rgba::WHITE,
+                            a_vt: vec2(0.0, 0.0),
+                        },
+                        draw_2d::TexturedVertex {
+                            a_pos: surface.p2,
+                            a_color: Rgba::WHITE,
+                            a_vt: vec2(len, 0.0),
+                        },
+                        draw_2d::TexturedVertex {
+                            a_pos: surface.p2 + normal * height,
+                            a_color: Rgba::WHITE,
+                            a_vt: vec2(len, 1.0),
+                        },
+                        draw_2d::TexturedVertex {
+                            a_pos: surface.p1 + normal * height,
+                            a_color: Rgba::WHITE,
+                            a_vt: vec2(0.0, 1.0),
+                        },
+                    ],
+                    texture,
+                ),
             );
         }
+    }
+
+    pub fn draw_level_back(&self, framebuffer: &mut ugli::Framebuffer) {
+        for tile in &self.level.background_tiles {
+            let assets = &self.assets.background[tile.type_index];
+            self.geng.draw_2d(
+                framebuffer,
+                &self.camera,
+                &draw_2d::TexturedPolygon::new(
+                    tile.vertices
+                        .into_iter()
+                        .map(|v| draw_2d::TexturedVertex {
+                            a_pos: v,
+                            a_color: Rgba::WHITE,
+                            a_vt: v,
+                        })
+                        .collect(),
+                    &assets.texture,
+                ),
+            );
+        }
+        self.draw_level_impl(framebuffer, |assets| &assets.back_texture);
+    }
+
+    pub fn draw_level_front(&self, framebuffer: &mut ugli::Framebuffer) {
+        self.draw_level_impl(framebuffer, |assets| &assets.front_texture);
     }
 
     pub fn find_hovered_surface(&self) -> Option<usize> {
@@ -246,7 +414,7 @@ impl Game {
     }
 
     pub fn draw_level_editor(&self, framebuffer: &mut ugli::Framebuffer) {
-        if let Some(p1) = self.start_drag {
+        if let Some(p1) = self.editor.start_drag {
             let p2 = self.snapped_cursor_position();
             self.geng.draw_2d(
                 framebuffer,
@@ -263,6 +431,16 @@ impl Game {
                     Segment::new(surface.p1, surface.p2),
                     0.2,
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
+                ),
+            );
+        }
+        for &p in &self.editor.face_points {
+            self.geng.draw_2d(
+                framebuffer,
+                &self.camera,
+                &draw_2d::Quad::new(
+                    AABB::point(p).extend_uniform(0.1),
+                    Rgba::new(0.0, 1.0, 0.0, 0.5),
                 ),
             );
         }
@@ -334,6 +512,7 @@ impl Game {
             struct Collision {
                 penetration: f32,
                 normal: Vec2<f32>,
+                surface_type: usize,
             }
 
             let mut collision_to_resolve = None;
@@ -344,6 +523,7 @@ impl Game {
                     let collision = Collision {
                         penetration,
                         normal: -v.normalize_or_zero(),
+                        surface_type: surface.type_index,
                     };
                     collision_to_resolve =
                         std::cmp::max_by_key(collision_to_resolve, Some(collision), |collision| {
@@ -355,14 +535,13 @@ impl Game {
                 }
             }
             if let Some(collision) = collision_to_resolve {
+                let surface_params = &self.assets.surfaces[collision.surface_type].params;
                 guy.pos += collision.normal * collision.penetration;
                 let normal_vel = Vec2::dot(guy.vel, collision.normal);
                 let tangent = collision.normal.rotate_90();
                 let tangent_vel = Vec2::dot(guy.vel, tangent) - guy.w * self.config.guy_radius;
-                let bounciness = 0.1; // TODO
-                guy.vel -= collision.normal * normal_vel * (1.0 + bounciness);
-                let friction = 1.0; // TODO
-                let max_friction_impulse = normal_vel.abs() * friction;
+                guy.vel -= collision.normal * normal_vel * (1.0 + surface_params.bounciness);
+                let max_friction_impulse = normal_vel.abs() * surface_params.friction;
                 let friction_impulse = -tangent_vel.clamp_abs(max_friction_impulse);
                 guy.vel += tangent * friction_impulse;
                 guy.w -= friction_impulse / self.config.guy_radius;
@@ -374,25 +553,30 @@ impl Game {
     pub fn noise(&self, frequency: f32) -> f32 {
         let caller = std::panic::Location::caller();
         let phase = caller.line() as f64 * 1000.0 + caller.column() as f64;
-        self.noise.get([(self.t * frequency) as f64, phase]) as f32
+        self.noise.get([(self.real_time * frequency) as f64, phase]) as f32
     }
 }
 
 impl geng::State for Game {
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size().map(|x| x as f32);
-        ugli::clear(framebuffer, Some(Rgba::BLACK), None, None);
+        ugli::clear(framebuffer, Some(Rgba::new(0.8, 0.8, 1.0, 1.0)), None, None);
 
-        self.draw_level(framebuffer);
+        self.draw_level_back(framebuffer);
         self.draw_guys(framebuffer);
+        self.draw_level_front(framebuffer);
         self.draw_level_editor(framebuffer);
+    }
+
+    fn fixed_update(&mut self, delta_time: f64) {
+        let delta_time = delta_time as f32;
+        self.update_my_guy_input();
+        self.update_guys(delta_time);
     }
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = delta_time as f32;
-        self.t += delta_time;
-        self.update_my_guy_input();
-        self.update_guys(delta_time);
+        self.real_time += delta_time;
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -401,7 +585,7 @@ impl geng::State for Game {
                 position,
                 button: geng::MouseButton::Left,
             } => {
-                self.start_drag = Some(
+                self.editor.start_drag = Some(
                     self.snap_position(
                         self.camera
                             .screen_to_world(self.framebuffer_size, position.map(|x| x as f32)),
@@ -416,9 +600,13 @@ impl geng::State for Game {
                     self.camera
                         .screen_to_world(self.framebuffer_size, position.map(|x| x as f32)),
                 );
-                if let Some(p1) = self.start_drag.take() {
+                if let Some(p1) = self.editor.start_drag.take() {
                     if (p1 - p2).len() > self.config.snap_distance {
-                        self.level.surfaces.push(Surface { p1, p2 });
+                        self.level.surfaces.push(Surface {
+                            p1,
+                            p2,
+                            type_index: 0,
+                        });
                     }
                 }
             }
@@ -431,6 +619,18 @@ impl geng::State for Game {
                 }
             }
             geng::Event::KeyDown { key } => match key {
+                geng::Key::F => {
+                    self.editor.face_points.push(self.snapped_cursor_position());
+                    if self.editor.face_points.len() == 3 {
+                        self.level.background_tiles.push(BackgroundTile {
+                            vertices: mem::take(&mut self.editor.face_points).try_into().unwrap(),
+                            type_index: 0,
+                        });
+                    }
+                }
+                geng::Key::C => {
+                    self.editor.face_points.clear();
+                }
                 geng::Key::R => {
                     if let Some(id) = self.my_guy.take() {
                         self.guys.remove(&id);
@@ -456,7 +656,11 @@ impl geng::State for Game {
 fn main() {
     logger::init().unwrap();
     geng::setup_panic_handler();
-    let geng = Geng::new("LD51");
+    let geng = Geng::new_with(geng::ContextOptions {
+        title: "LD51".to_owned(),
+        fixed_delta_time: 1.0 / 200.0,
+        ..default()
+    });
     let state = geng::LoadingScreen::new(
         &geng,
         geng::EmptyLoadingScreen,
