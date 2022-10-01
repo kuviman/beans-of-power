@@ -244,7 +244,7 @@ struct Game {
     assets: Rc<Assets>,
     camera: geng::Camera2d,
     level: Level,
-    editor: EditorState,
+    editor: Option<EditorState>,
     guys: Collection<Guy>,
     my_guy: Option<Id>,
     real_time: f32,
@@ -252,7 +252,7 @@ struct Game {
 }
 
 impl Game {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>, opt: Opt) -> Self {
         Self {
             geng: geng.clone(),
             config: assets.config.clone(),
@@ -263,9 +263,13 @@ impl Game {
                 fov: 5.0,
             },
             framebuffer_size: vec2(1.0, 1.0),
-            editor: EditorState {
-                start_drag: None,
-                face_points: vec![],
+            editor: if opt.editor {
+                Some(EditorState {
+                    start_drag: None,
+                    face_points: vec![],
+                })
+            } else {
+                None
             },
             level: Level::empty(),
             guys: Collection::new(),
@@ -414,44 +418,50 @@ impl Game {
     }
 
     pub fn draw_level_editor(&self, framebuffer: &mut ugli::Framebuffer) {
-        if let Some(p1) = self.editor.start_drag {
-            let p2 = self.snapped_cursor_position();
-            self.geng.draw_2d(
-                framebuffer,
-                &self.camera,
-                &draw_2d::Segment::new(Segment::new(p1, p2), 0.1, Rgba::new(1.0, 1.0, 1.0, 0.5)),
-            );
-        }
-        if let Some(index) = self.find_hovered_surface() {
-            let surface = &self.level.surfaces[index];
-            self.geng.draw_2d(
-                framebuffer,
-                &self.camera,
-                &draw_2d::Segment::new(
-                    Segment::new(surface.p1, surface.p2),
-                    0.2,
-                    Rgba::new(1.0, 0.0, 0.0, 0.5),
-                ),
-            );
-        }
-        for &p in &self.editor.face_points {
+        if let Some(editor) = &self.editor {
+            if let Some(p1) = editor.start_drag {
+                let p2 = self.snapped_cursor_position();
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::Segment::new(
+                        Segment::new(p1, p2),
+                        0.1,
+                        Rgba::new(1.0, 1.0, 1.0, 0.5),
+                    ),
+                );
+            }
+            if let Some(index) = self.find_hovered_surface() {
+                let surface = &self.level.surfaces[index];
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::Segment::new(
+                        Segment::new(surface.p1, surface.p2),
+                        0.2,
+                        Rgba::new(1.0, 0.0, 0.0, 0.5),
+                    ),
+                );
+            }
+            for &p in &editor.face_points {
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::Quad::new(
+                        AABB::point(p).extend_uniform(0.1),
+                        Rgba::new(0.0, 1.0, 0.0, 0.5),
+                    ),
+                );
+            }
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
                 &draw_2d::Quad::new(
-                    AABB::point(p).extend_uniform(0.1),
-                    Rgba::new(0.0, 1.0, 0.0, 0.5),
+                    AABB::point(self.snapped_cursor_position()).extend_uniform(0.1),
+                    Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );
         }
-        self.geng.draw_2d(
-            framebuffer,
-            &self.camera,
-            &draw_2d::Quad::new(
-                AABB::point(self.snapped_cursor_position()).extend_uniform(0.1),
-                Rgba::new(1.0, 0.0, 0.0, 0.5),
-            ),
-        );
     }
 
     pub fn update_my_guy_input(&mut self) {
@@ -555,6 +565,71 @@ impl Game {
         let phase = caller.line() as f64 * 1000.0 + caller.column() as f64;
         self.noise.get([(self.real_time * frequency) as f64, phase]) as f32
     }
+
+    pub fn handle_event_editor(&mut self, event: &geng::Event) {
+        if self.editor.is_none() {
+            return;
+        }
+        let cursor_pos = self.snapped_cursor_position();
+        let editor = self.editor.as_mut().unwrap();
+        match event {
+            geng::Event::MouseDown {
+                button: geng::MouseButton::Left,
+                ..
+            } => {
+                if let Some(editor) = &mut self.editor {
+                    editor.start_drag = Some(cursor_pos);
+                }
+            }
+            geng::Event::MouseUp {
+                button: geng::MouseButton::Left,
+                ..
+            } => {
+                let p2 = cursor_pos;
+
+                if let Some(editor) = &mut self.editor {
+                    if let Some(p1) = editor.start_drag.take() {
+                        if (p1 - p2).len() > self.config.snap_distance {
+                            self.level.surfaces.push(Surface {
+                                p1,
+                                p2,
+                                type_index: 0,
+                            });
+                        }
+                    }
+                }
+            }
+            geng::Event::KeyDown { key } => match key {
+                geng::Key::F => {
+                    if let Some(editor) = &mut self.editor {
+                        editor.face_points.push(cursor_pos);
+                        if editor.face_points.len() == 3 {
+                            self.level.background_tiles.push(BackgroundTile {
+                                vertices: mem::take(&mut editor.face_points).try_into().unwrap(),
+                                type_index: 0,
+                            });
+                        }
+                    }
+                }
+                geng::Key::C => {
+                    if let Some(editor) = &mut self.editor {
+                        editor.face_points.clear();
+                    }
+                }
+                geng::Key::R => {
+                    if let Some(id) = self.my_guy.take() {
+                        self.guys.remove(&id);
+                    } else {
+                        let id = -1;
+                        self.my_guy = Some(id);
+                        self.guys.insert(Guy::new(id, cursor_pos));
+                    }
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+    }
 }
 
 impl geng::State for Game {
@@ -580,36 +655,8 @@ impl geng::State for Game {
     }
 
     fn handle_event(&mut self, event: geng::Event) {
+        self.handle_event_editor(&event);
         match event {
-            geng::Event::MouseDown {
-                position,
-                button: geng::MouseButton::Left,
-            } => {
-                self.editor.start_drag = Some(
-                    self.snap_position(
-                        self.camera
-                            .screen_to_world(self.framebuffer_size, position.map(|x| x as f32)),
-                    ),
-                );
-            }
-            geng::Event::MouseUp {
-                position,
-                button: geng::MouseButton::Left,
-            } => {
-                let p2 = self.snap_position(
-                    self.camera
-                        .screen_to_world(self.framebuffer_size, position.map(|x| x as f32)),
-                );
-                if let Some(p1) = self.editor.start_drag.take() {
-                    if (p1 - p2).len() > self.config.snap_distance {
-                        self.level.surfaces.push(Surface {
-                            p1,
-                            p2,
-                            type_index: 0,
-                        });
-                    }
-                }
-            }
             geng::Event::MouseDown {
                 button: geng::MouseButton::Right,
                 ..
@@ -618,44 +665,21 @@ impl geng::State for Game {
                     self.level.surfaces.remove(index);
                 }
             }
-            geng::Event::KeyDown { key } => match key {
-                geng::Key::F => {
-                    self.editor.face_points.push(self.snapped_cursor_position());
-                    if self.editor.face_points.len() == 3 {
-                        self.level.background_tiles.push(BackgroundTile {
-                            vertices: mem::take(&mut self.editor.face_points).try_into().unwrap(),
-                            type_index: 0,
-                        });
-                    }
-                }
-                geng::Key::C => {
-                    self.editor.face_points.clear();
-                }
-                geng::Key::R => {
-                    if let Some(id) = self.my_guy.take() {
-                        self.guys.remove(&id);
-                    } else {
-                        let id = -1;
-                        self.my_guy = Some(id);
-                        self.guys.insert(Guy::new(
-                            id,
-                            self.camera.screen_to_world(
-                                self.framebuffer_size,
-                                self.geng.window().cursor_position().map(|x| x as f32),
-                            ),
-                        ));
-                    }
-                }
-                _ => {}
-            },
             _ => {}
         }
     }
 }
 
+#[derive(clap::Parser)]
+pub struct Opt {
+    #[clap(long)]
+    pub editor: bool,
+}
+
 fn main() {
-    logger::init().unwrap();
     geng::setup_panic_handler();
+    let opt: Opt = program_args::parse();
+    logger::init().unwrap();
     let geng = Geng::new_with(geng::ContextOptions {
         title: "LD51".to_owned(),
         fixed_delta_time: 1.0 / 200.0,
@@ -669,7 +693,7 @@ fn main() {
             let geng = geng.clone();
             move |assets| {
                 let assets = assets.expect("Failed to load assets");
-                Game::new(&geng, &Rc::new(assets))
+                Game::new(&geng, &Rc::new(assets), opt)
             }
         },
     );
