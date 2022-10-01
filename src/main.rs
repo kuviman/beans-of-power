@@ -19,11 +19,11 @@ pub struct Config {
     fart_strength: f32,
     auto_fart_interval: f32,
     force_fart_interval: f32,
-    farticle_angle: f32,
     fart_color: Rgba<f32>,
-    part_farticle_w: f32,
+    farticle_w: f32,
     farticle_size: f32,
     farticle_count: usize,
+    farticle_additional_vel: f32,
 }
 
 #[derive(Deref)]
@@ -151,8 +151,15 @@ fn load_background_assets(
 }
 
 #[derive(geng::Assets)]
+pub struct SfxAssets {
+    #[asset(range = "1..=3", path = "fart/*.wav")]
+    pub fart: Vec<geng::Sound>,
+}
+
+#[derive(geng::Assets)]
 pub struct Assets {
     pub config: Config,
+    pub sfx: SfxAssets,
     pub guy: GuyAssets,
     #[asset(load_with = "load_surface_assets(&geng, &base_path.join(\"surfaces\"))")]
     pub surfaces: HashMap<String, SurfaceAssets>,
@@ -192,6 +199,7 @@ impl Surface {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Level {
+    pub spawn_point: Vec2<f32>,
     pub surfaces: Vec<Surface>,
     pub background_tiles: Vec<BackgroundTile>,
 }
@@ -199,6 +207,7 @@ pub struct Level {
 impl Level {
     pub fn empty() -> Self {
         Self {
+            spawn_point: Vec2::ZERO,
             surfaces: vec![],
             background_tiles: vec![],
         }
@@ -278,6 +287,7 @@ struct Game {
     noise: noise::OpenSimplex,
     opt: Opt,
     farticles: Vec<Farticle>,
+    volume: f32,
 }
 
 impl Drop for Game {
@@ -288,7 +298,7 @@ impl Drop for Game {
 
 impl Game {
     pub fn new(geng: &Geng, assets: &Rc<Assets>, level: Level, opt: Opt) -> Self {
-        Self {
+        let mut result = Self {
             geng: geng.clone(),
             config: assets.config.clone(),
             assets: assets.clone(),
@@ -309,9 +319,16 @@ impl Game {
             real_time: 0.0,
             noise: noise::OpenSimplex::new(),
             prev_mouse_pos: Vec2::ZERO,
-            opt,
+            opt: opt.clone(),
             farticles: default(),
+            volume: 0.5,
+        };
+        if !opt.editor {
+            let id = -1;
+            result.my_guy = Some(id);
+            result.guys.insert(Guy::new(id, result.level.spawn_point));
         }
+        result
     }
 
     pub fn snapped_cursor_position(&self) -> Vec2<f32> {
@@ -527,6 +544,15 @@ impl Game {
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );
+
+            self.geng.draw_2d(
+                framebuffer,
+                &self.camera,
+                &draw_2d::Quad::new(
+                    AABB::point(self.level.spawn_point).extend_uniform(0.1),
+                    Rgba::new(1.0, 0.8, 0.8, 0.5),
+                ),
+            );
         }
     }
 
@@ -582,19 +608,31 @@ impl Game {
                 for _ in 0..self.config.farticle_count {
                     self.farticles.push(Farticle {
                         pos: guy.pos,
-                        vel: -guy.vel.rotate(
-                            global_rng().gen_range(
-                                -self.config.farticle_angle..=self.config.farticle_angle,
-                            ),
-                        ),
+                        vel: guy.vel
+                            + vec2(
+                                global_rng().gen_range(0.0..=self.config.farticle_additional_vel),
+                                0.0,
+                            )
+                            .rotate(global_rng().gen_range(0.0..=2.0 * f32::PI)),
                         rot: global_rng().gen_range(0.0..2.0 * f32::PI),
-                        w: global_rng()
-                            .gen_range(-self.config.part_farticle_w..=self.config.part_farticle_w),
+                        w: global_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
                         color: self.config.fart_color,
                         t: 1.0,
                     });
                 }
                 guy.vel += vec2(0.0, self.config.fart_strength).rotate(guy.rot);
+                let mut effect = self
+                    .assets
+                    .sfx
+                    .fart
+                    .choose(&mut global_rng())
+                    .unwrap()
+                    .effect();
+                effect.set_volume(
+                    (self.volume * (1.0 - (guy.pos - self.camera.center).len() / self.camera.fov))
+                        .clamp(0.0, 1.0) as f64,
+                );
+                effect.play();
             }
 
             guy.pos += guy.vel * delta_time;
@@ -732,13 +770,29 @@ impl Game {
                     }
                 }
                 geng::Key::R => {
-                    if let Some(id) = self.my_guy.take() {
-                        self.guys.remove(&id);
+                    if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
+                        if self.my_guy.is_none() {
+                            let id = -1;
+                            self.my_guy = Some(id);
+                            self.guys.insert(Guy::new(id, cursor_pos));
+                        }
+                        self.guys.get_mut(&self.my_guy.unwrap()).unwrap().pos =
+                            self.level.spawn_point;
                     } else {
-                        let id = -1;
-                        self.my_guy = Some(id);
-                        self.guys.insert(Guy::new(id, cursor_pos));
+                        if let Some(id) = self.my_guy.take() {
+                            self.guys.remove(&id);
+                        } else {
+                            let id = -1;
+                            self.my_guy = Some(id);
+                            self.guys.insert(Guy::new(id, cursor_pos));
+                        }
                     }
+                }
+                geng::Key::P => {
+                    self.level.spawn_point = self.camera.screen_to_world(
+                        self.framebuffer_size,
+                        self.geng.window().mouse_pos().map(|x| x as f32),
+                    );
                 }
                 _ => {}
             },
@@ -763,6 +817,16 @@ impl Game {
             farticle.t -= delta_time;
             farticle.pos += farticle.vel * delta_time;
             farticle.rot += farticle.w * delta_time;
+
+            for surface in &self.level.surfaces {
+                let v = surface.vector_from(farticle.pos);
+                let penetration = self.config.farticle_size / 2.0 - v.len();
+                if penetration > EPS && Vec2::dot(v, farticle.vel) > 0.0 {
+                    let normal = -v.normalize_or_zero();
+                    farticle.pos += normal * penetration;
+                    farticle.vel -= normal * Vec2::dot(farticle.vel, normal);
+                }
+            }
         }
         self.farticles.retain(|farticle| farticle.t > 0.0);
     }
@@ -775,7 +839,7 @@ impl Game {
                 &draw_2d::TexturedQuad::unit_colored(
                     &self.assets.farticle,
                     Rgba {
-                        a: 1.0, // farticle.color.a * farticle.t,
+                        a: farticle.color.a * farticle.t,
                         ..farticle.color
                     },
                 )
@@ -833,7 +897,7 @@ impl geng::State for Game {
                     .screen_to_world(self.framebuffer_size, position.map(|x| x as f32));
                 self.camera.center += old_pos - new_pos;
             }
-            geng::Event::Wheel { delta } => {
+            geng::Event::Wheel { delta } if self.opt.editor => {
                 self.camera.fov = (self.camera.fov * 1.01f32.powf(-delta as f32)).clamp(5.0, 30.0);
             }
             geng::Event::KeyDown { key: geng::Key::S }
@@ -847,7 +911,7 @@ impl geng::State for Game {
     }
 }
 
-#[derive(clap::Parser)]
+#[derive(clap::Parser, Clone)]
 pub struct Opt {
     #[clap(long)]
     pub editor: bool,
@@ -855,7 +919,7 @@ pub struct Opt {
 
 fn main() {
     geng::setup_panic_handler();
-    let mut opt: Opt = program_args::parse();
+    let opt: Opt = program_args::parse();
     let level_path = static_path().join("level.json");
     logger::init().unwrap();
     let geng = Geng::new_with(geng::ContextOptions {
