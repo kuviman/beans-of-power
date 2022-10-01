@@ -1,11 +1,11 @@
 {
-    "snap_distance": 0.5,
+    "snap_distance": 0.2,
     "guy_radius": 0.3,
     "angular_acceleration": 10.0,
     "max_angular_speed": 6.5,
     "fart_strength": 5.0,
     "auto_fart_interval": 10.0,
-    "force_fart_interval": 1.0,
+    "force_fart_interval": 10.0,
     "gravity": 7.0,
     "fart_color": "#057F2177",
     "farticle_size": 0.2,

@@ -58,13 +58,15 @@ impl geng::LoadAsset for Texture {
 pub struct SurfaceParams {
     pub bounciness: f32,
     pub friction: f32,
+    pub front: bool,
+    pub back: bool,
 }
 
 pub struct SurfaceAssets {
     pub name: String,
     pub params: SurfaceParams,
-    pub front_texture: Texture,
-    pub back_texture: Texture,
+    pub front_texture: Option<Texture>,
+    pub back_texture: Option<Texture>,
 }
 
 #[derive(geng::Assets)]
@@ -88,18 +90,26 @@ fn load_surface_assets(
             let geng = geng.clone();
             let path = path.clone();
             async move {
-                let mut back_texture = <Texture as geng::LoadAsset>::load(
-                    &geng,
-                    &path.join(format!("{}_back.png", name)),
-                )
-                .await?;
-                back_texture.0.set_wrap_mode(ugli::WrapMode::Repeat);
-                let mut front_texture = <Texture as geng::LoadAsset>::load(
-                    &geng,
-                    &path.join(format!("{}_front.png", name)),
-                )
-                .await?;
-                front_texture.0.set_wrap_mode(ugli::WrapMode::Repeat);
+                let load = |file| {
+                    let geng = geng.clone();
+                    let path = path.clone();
+                    async move {
+                        let mut texture =
+                            <Texture as geng::LoadAsset>::load(&geng, &path.join(file)).await?;
+                        texture.0.set_wrap_mode(ugli::WrapMode::Repeat);
+                        Ok::<_, anyhow::Error>(texture)
+                    }
+                };
+                let mut back_texture = if params.back {
+                    Some(load(format!("{}_back.png", name)).await?)
+                } else {
+                    None
+                };
+                let mut front_texture = if params.front {
+                    Some(load(format!("{}_front.png", name)).await?)
+                } else {
+                    None
+                };
                 Ok((
                     name.clone(),
                     SurfaceAssets {
@@ -250,15 +260,21 @@ impl Guy {
 }
 
 struct EditorState {
+    next_autosave: f32,
     start_drag: Option<Vec2<f32>>,
     face_points: Vec<Vec2<f32>>,
+    selected_surface: String,
+    selected_background: String,
 }
 
 impl EditorState {
     pub fn new() -> Self {
         Self {
+            next_autosave: 0.0,
             start_drag: None,
             face_points: vec![],
+            selected_surface: "".to_owned(),
+            selected_background: "".to_owned(),
         }
     }
 }
@@ -392,11 +408,14 @@ impl Game {
     pub fn draw_level_impl(
         &self,
         framebuffer: &mut ugli::Framebuffer,
-        texture: impl Fn(&SurfaceAssets) -> &Texture,
+        texture: impl Fn(&SurfaceAssets) -> Option<&Texture>,
     ) {
         for surface in &self.level.surfaces {
             let assets = &self.assets.surfaces[&surface.type_name];
-            let texture = texture(assets);
+            let texture = match texture(assets) {
+                Some(texture) => texture,
+                None => continue,
+            };
             let normal = (surface.p2 - surface.p1).normalize().rotate_90();
             let len = (surface.p2 - surface.p1).len();
             let height = texture.size().y as f32 / texture.size().x as f32;
@@ -433,7 +452,7 @@ impl Game {
     }
 
     pub fn draw_level_back(&self, framebuffer: &mut ugli::Framebuffer) {
-        self.draw_level_impl(framebuffer, |assets| &assets.back_texture);
+        self.draw_level_impl(framebuffer, |assets| assets.back_texture.as_ref());
     }
 
     pub fn draw_level_front(&self, framebuffer: &mut ugli::Framebuffer) {
@@ -455,7 +474,7 @@ impl Game {
                 ),
             );
         }
-        self.draw_level_impl(framebuffer, |assets| &assets.front_texture);
+        self.draw_level_impl(framebuffer, |assets| assets.front_texture.as_ref());
     }
 
     pub fn find_hovered_surface(&self) -> Option<usize> {
@@ -705,6 +724,18 @@ impl Game {
         }
         let cursor_pos = self.snapped_cursor_position();
         let editor = self.editor.as_mut().unwrap();
+
+        if !self.assets.surfaces.contains_key(&editor.selected_surface) {
+            editor.selected_surface = self.assets.surfaces.keys().next().unwrap().clone();
+        }
+        if !self
+            .assets
+            .background
+            .contains_key(&editor.selected_background)
+        {
+            editor.selected_background = self.assets.background.keys().next().unwrap().clone();
+        }
+
         match event {
             geng::Event::MouseDown {
                 button: geng::MouseButton::Left,
@@ -720,15 +751,13 @@ impl Game {
             } => {
                 let p2 = cursor_pos;
 
-                if let Some(editor) = &mut self.editor {
-                    if let Some(p1) = editor.start_drag.take() {
-                        if (p1 - p2).len() > self.config.snap_distance {
-                            self.level.surfaces.push(Surface {
-                                p1,
-                                p2,
-                                type_name: self.assets.surfaces.keys().next().unwrap().clone(), // TODO
-                            });
-                        }
+                if let Some(p1) = editor.start_drag.take() {
+                    if (p1 - p2).len() > self.config.snap_distance {
+                        self.level.surfaces.push(Surface {
+                            p1,
+                            p2,
+                            type_name: editor.selected_surface.clone(),
+                        });
                     }
                 }
             }
@@ -742,21 +771,17 @@ impl Game {
             }
             geng::Event::KeyDown { key } => match key {
                 geng::Key::F => {
-                    if let Some(editor) = &mut self.editor {
-                        editor.face_points.push(cursor_pos);
-                        if editor.face_points.len() == 3 {
-                            let mut vertices: [Vec2<f32>; 3] =
-                                mem::take(&mut editor.face_points).try_into().unwrap();
-                            if Vec2::skew(vertices[1] - vertices[0], vertices[2] - vertices[0])
-                                < 0.0
-                            {
-                                vertices.reverse();
-                            }
-                            self.level.background_tiles.push(BackgroundTile {
-                                vertices,
-                                type_name: self.assets.background.keys().next().unwrap().clone(), // TODO
-                            });
+                    editor.face_points.push(cursor_pos);
+                    if editor.face_points.len() == 3 {
+                        let mut vertices: [Vec2<f32>; 3] =
+                            mem::take(&mut editor.face_points).try_into().unwrap();
+                        if Vec2::skew(vertices[1] - vertices[0], vertices[2] - vertices[0]) < 0.0 {
+                            vertices.reverse();
                         }
+                        self.level.background_tiles.push(BackgroundTile {
+                            vertices,
+                            type_name: editor.selected_background.clone(),
+                        });
                     }
                 }
                 geng::Key::D => {
@@ -765,9 +790,7 @@ impl Game {
                     }
                 }
                 geng::Key::C => {
-                    if let Some(editor) = &mut self.editor {
-                        editor.face_points.clear();
-                    }
+                    editor.face_points.clear();
                 }
                 geng::Key::R => {
                     if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
@@ -793,6 +816,24 @@ impl Game {
                         self.framebuffer_size,
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     );
+                }
+                geng::Key::Z => {
+                    let mut options: Vec<&String> = self.assets.surfaces.keys().collect();
+                    options.sort();
+                    let idx = options
+                        .iter()
+                        .position(|&s| s == &editor.selected_surface)
+                        .unwrap_or(0);
+                    editor.selected_surface = options[(idx + 1) % options.len()].clone();
+                }
+                geng::Key::X => {
+                    let mut options: Vec<&String> = self.assets.background.keys().collect();
+                    options.sort();
+                    let idx = options
+                        .iter()
+                        .position(|&s| s == &editor.selected_background)
+                        .unwrap_or(0);
+                    editor.selected_background = options[(idx + 1) % options.len()].clone();
                 }
                 _ => {}
             },
@@ -877,6 +918,14 @@ impl geng::State for Game {
         if let Some(id) = self.my_guy {
             let guy = self.guys.get(&id).unwrap();
             self.camera.center += (guy.pos - self.camera.center) * (delta_time * 5.0).min(1.0);
+        }
+
+        if let Some(editor) = &mut self.editor {
+            editor.next_autosave -= delta_time;
+            if editor.next_autosave < 0.0 {
+                editor.next_autosave = 10.0;
+                self.save_level();
+            }
         }
     }
 
