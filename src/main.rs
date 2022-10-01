@@ -947,7 +947,7 @@ impl geng::State for Game {
                 self.camera.center += old_pos - new_pos;
             }
             geng::Event::Wheel { delta } if self.opt.editor => {
-                self.camera.fov = (self.camera.fov * 1.01f32.powf(-delta as f32)).clamp(5.0, 30.0);
+                self.camera.fov = (self.camera.fov * 1.01f32.powf(-delta as f32)).clamp(1.0, 30.0);
             }
             geng::Event::KeyDown { key: geng::Key::S }
                 if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
