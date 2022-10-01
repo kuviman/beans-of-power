@@ -964,11 +964,30 @@ impl geng::State for Game {
 pub struct Opt {
     #[clap(long)]
     pub editor: bool,
+    #[clap(long)]
+    pub server: Option<String>,
+    #[clap(long)]
+    pub connect: Option<String>,
 }
 
 fn main() {
     geng::setup_panic_handler();
-    let opt: Opt = program_args::parse();
+    let mut opt: Opt = program_args::parse();
+
+    if opt.connect.is_none() && opt.server.is_none() {
+        if cfg!(target_arch = "wasm32") {
+            opt.connect = Some(
+                option_env!("CONNECT")
+                    .unwrap_or("ws://127.0.0.1:1155")
+                    // .expect("Set CONNECT compile time env var")
+                    .to_owned(),
+            );
+        } else {
+            opt.server = Some("127.0.0.1:1155".to_owned());
+            opt.connect = Some("ws://127.0.0.1:1155".to_owned());
+        }
+    }
+
     let level_path = static_path().join("level.json");
     logger::init().unwrap();
     let geng = Geng::new_with(geng::ContextOptions {
