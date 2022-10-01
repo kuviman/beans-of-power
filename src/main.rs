@@ -1,5 +1,7 @@
 use geng::prelude::*;
 
+use noise::NoiseFn;
+
 pub const EPS: f32 = 1e-9;
 
 pub const CONTROLS_LEFT: [geng::Key; 2] = [geng::Key::A, geng::Key::Left];
@@ -19,9 +21,45 @@ pub struct Config {
     force_fart_interval: f32,
 }
 
+#[derive(Deref)]
+pub struct Texture(#[deref] ugli::Texture);
+
+impl std::borrow::Borrow<ugli::Texture> for Texture {
+    fn borrow(&self) -> &ugli::Texture {
+        &self.0
+    }
+}
+impl std::borrow::Borrow<ugli::Texture> for &'_ Texture {
+    fn borrow(&self) -> &ugli::Texture {
+        &self.0
+    }
+}
+
+impl geng::LoadAsset for Texture {
+    fn load(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<Self> {
+        let texture = <ugli::Texture as geng::LoadAsset>::load(geng, path);
+        async move {
+            let mut texture = texture.await?;
+            texture.set_filter(ugli::Filter::Nearest);
+            Ok(Texture(texture))
+        }
+        .boxed_local()
+    }
+
+    const DEFAULT_EXT: Option<&'static str> = Some("png");
+}
+
+#[derive(geng::Assets)]
+pub struct GuyAssets {
+    pub body: Texture,
+    pub cheeks: Texture,
+    pub eyes: Texture,
+}
+
 #[derive(geng::Assets)]
 pub struct Assets {
     pub config: Config,
+    pub guy: GuyAssets,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -74,8 +112,8 @@ pub struct Guy {
     pub rot: f32,
     pub w: f32,
     pub input: Input,
-    pub next_auto_fart: f32,
-    pub next_force_fart: f32,
+    pub auto_fart_timer: f32,
+    pub force_fart_timer: f32,
 }
 
 impl Guy {
@@ -87,8 +125,8 @@ impl Guy {
             rot: 0.0,
             w: 0.0,
             input: Input::default(),
-            next_auto_fart: 0.0,
-            next_force_fart: 0.0,
+            auto_fart_timer: 0.0,
+            force_fart_timer: 0.0,
         }
     }
 }
@@ -103,6 +141,8 @@ struct Game {
     level: Level,
     guys: Collection<Guy>,
     my_guy: Option<Id>,
+    t: f32,
+    noise: noise::OpenSimplex,
 }
 
 impl Game {
@@ -114,13 +154,15 @@ impl Game {
             camera: geng::Camera2d {
                 center: Vec2::ZERO,
                 rotation: 0.0,
-                fov: 10.0,
+                fov: 5.0,
             },
             framebuffer_size: vec2(1.0, 1.0),
             start_drag: None,
             level: Level::empty(),
             guys: Collection::new(),
             my_guy: None,
+            t: 0.0,
+            noise: noise::OpenSimplex::new(),
         }
     }
 
@@ -147,18 +189,30 @@ impl Game {
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::Ellipse::unit(Rgba::WHITE)
+                &draw_2d::TexturedQuad::unit(&self.assets.guy.body)
                     .scale_uniform(self.config.guy_radius)
+                    .transform(Mat3::rotate(guy.rot))
+                    .translate(guy.pos),
+            );
+            let autofart_progress = guy.auto_fart_timer / self.config.auto_fart_interval;
+            self.geng.draw_2d(
+                framebuffer,
+                &self.camera,
+                &draw_2d::TexturedQuad::unit(&self.assets.guy.eyes)
+                    .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * autofart_progress)
+                    .scale_uniform(self.config.guy_radius * (0.8 + 0.6 * autofart_progress))
+                    .transform(Mat3::rotate(guy.rot))
                     .translate(guy.pos),
             );
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::Segment::new(
-                    Segment::new(vec2(0.0, 0.0), vec2(0.0, self.config.guy_radius)),
-                    self.config.guy_radius * 0.1,
-                    Rgba::BLACK,
+                &draw_2d::TexturedQuad::unit_colored(
+                    &self.assets.guy.cheeks,
+                    Rgba::new(1.0, 1.0, 1.0, (0.5 + 1.0 * autofart_progress).min(1.0)),
                 )
+                .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * autofart_progress)
+                .scale_uniform(self.config.guy_radius * (0.8 + 0.7 * autofart_progress))
                 .transform(Mat3::rotate(guy.rot))
                 .translate(guy.pos),
             );
@@ -260,15 +314,15 @@ impl Game {
             guy.vel.y -= self.config.gravity * delta_time;
 
             let mut farts = 0;
-            guy.next_auto_fart -= delta_time;
-            if guy.next_auto_fart <= 0.0 {
-                guy.next_auto_fart = self.config.auto_fart_interval;
+            guy.auto_fart_timer += delta_time;
+            if guy.auto_fart_timer >= self.config.auto_fart_interval {
+                guy.auto_fart_timer = 0.0;
                 farts += 1;
             }
-            guy.next_force_fart -= delta_time;
-            if guy.next_force_fart <= 0.0 && guy.input.force_fart {
+            guy.force_fart_timer += delta_time;
+            if guy.force_fart_timer >= self.config.force_fart_interval && guy.input.force_fart {
                 farts += 1;
-                guy.next_force_fart = self.config.force_fart_interval;
+                guy.force_fart_timer = 0.0;
             }
             for _ in 0..farts {
                 guy.vel += vec2(0.0, self.config.fart_strength).rotate(guy.rot);
@@ -315,6 +369,13 @@ impl Game {
             }
         }
     }
+
+    #[track_caller]
+    pub fn noise(&self, frequency: f32) -> f32 {
+        let caller = std::panic::Location::caller();
+        let phase = caller.line() as f64 * 1000.0 + caller.column() as f64;
+        self.noise.get([(self.t * frequency) as f64, phase]) as f32
+    }
 }
 
 impl geng::State for Game {
@@ -329,6 +390,7 @@ impl geng::State for Game {
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = delta_time as f32;
+        self.t += delta_time;
         self.update_my_guy_input();
         self.update_guys(delta_time);
     }
