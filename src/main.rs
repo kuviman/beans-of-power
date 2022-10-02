@@ -22,6 +22,7 @@ pub enum ClientMessage {
     Ping,
     Update(f32, Guy),
     Despawn,
+    Emote(usize),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,6 +31,7 @@ pub enum ServerMessage {
     ClientId(Id),
     UpdateGuy(f32, Guy),
     Despawn(Id),
+    Emote(Id, usize),
 }
 
 pub const CONTROLS_LEFT: [geng::Key; 2] = [geng::Key::A, geng::Key::Left];
@@ -232,6 +234,11 @@ pub struct Assets {
     pub font: geng::Font,
     pub closed_outhouse: Texture,
     pub golden_toilet: Texture,
+    #[asset(
+        range = "[\"poggers\", \"fuuuu\", \"kekw\", \"eesBoom\"].into_iter()",
+        path = "emotes/*.png"
+    )]
+    pub emotes: Vec<Texture>,
 }
 
 impl Assets {
@@ -381,6 +388,7 @@ pub struct Farticle {
 }
 
 pub struct Game {
+    emotes: Vec<(f32, Id, usize)>,
     best_progress: f32,
     framebuffer_size: Vec2<f32>,
     prev_mouse_pos: Vec2<f64>,
@@ -426,6 +434,7 @@ impl Game {
         connection: Connection,
     ) -> Self {
         let mut result = Self {
+            emotes: vec![],
             geng: geng.clone(),
             config: assets.config.clone(),
             assets: assets.clone(),
@@ -581,6 +590,17 @@ impl Game {
                     geng::TextAlign::CENTER,
                     0.1,
                     Rgba::BLACK,
+                );
+            }
+        }
+        for &(_, id, emote) in &self.emotes {
+            if let Some(guy) = self.guys.get(&id) {
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit(&self.assets.emotes[emote])
+                        .scale_uniform(0.1)
+                        .translate(guy.pos + vec2(0.0, self.config.guy_radius * 2.0)),
                 );
             }
         }
@@ -1168,14 +1188,25 @@ impl Game {
                     self.guys.remove(&id);
                     self.remote_simulation_times.remove(&id);
                 }
+                ServerMessage::Emote(id, emote) => {
+                    self.emotes.retain(|&(_, x, _)| x != id);
+                    self.emotes.push((self.real_time, id, emote));
+                }
             }
         }
     }
 
     fn update_remote(&mut self) {
         for (&id, updates) in &mut self.remote_updates {
-            let current_simulation_time = self.remote_simulation_times[&id];
+            let current_simulation_time = match self.remote_simulation_times.get(&id) {
+                Some(x) => *x,
+                None => continue,
+            };
             while let Some(update) = updates.front() {
+                if (update.0 - current_simulation_time).abs() > 1.0 {
+                    self.remote_simulation_times.insert(id, update.0);
+                    break;
+                }
                 if update.0 <= current_simulation_time {
                     let update = updates.pop_front().unwrap().1;
                     self.guys.insert(update);
@@ -1384,6 +1415,7 @@ impl geng::State for Game {
 
     fn update(&mut self, delta_time: f64) {
         self.music.set_volume(self.volume as f64);
+        self.emotes.retain(|&(t, ..)| t >= self.real_time - 1.0);
         let delta_time = delta_time as f32;
         self.real_time += delta_time;
 
@@ -1460,6 +1492,18 @@ impl geng::State for Game {
             geng::Event::KeyDown { key: geng::Key::H } => {
                 self.show_names = !self.show_names;
             }
+            geng::Event::KeyDown {
+                key: geng::Key::Num1,
+            } => self.connection.send(ClientMessage::Emote(0)),
+            geng::Event::KeyDown {
+                key: geng::Key::Num2,
+            } => self.connection.send(ClientMessage::Emote(1)),
+            geng::Event::KeyDown {
+                key: geng::Key::Num3,
+            } => self.connection.send(ClientMessage::Emote(2)),
+            geng::Event::KeyDown {
+                key: geng::Key::Num4,
+            } => self.connection.send(ClientMessage::Emote(3)),
             _ => {}
         }
         self.prev_mouse_pos = self.geng.window().mouse_pos();

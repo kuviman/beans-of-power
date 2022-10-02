@@ -24,6 +24,7 @@ impl ServerState {
                     ServerMessage::ClientId(_) => unreachable!(),
                     ServerMessage::UpdateGuy(_, guy) => guy.id != client_id,
                     ServerMessage::Despawn(id) => *id != client_id,
+                    ServerMessage::Emote(..) => true,
                 } {
                     client.sender.send(message.clone());
                 }
@@ -46,6 +47,9 @@ impl net::Receiver<ClientMessage> for Client {
             ClientMessage::Ping => client.sender.send(ServerMessage::Pong),
             ClientMessage::Update(t, guy) => state.messages.push(ServerMessage::UpdateGuy(t, guy)),
             ClientMessage::Despawn => state.messages.push(ServerMessage::Despawn(self.client_id)),
+            ClientMessage::Emote(emote) => state
+                .messages
+                .push(ServerMessage::Emote(self.client_id, emote)),
         }
         state.send_updates();
     }
