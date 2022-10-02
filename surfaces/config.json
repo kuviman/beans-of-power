@@ -1,0 +1,14 @@
+{
+    "grass": {
+        "bounciness": 0.1,
+        "friction": 1.0,
+        "front": true,
+        "back": true
+    },
+    "stone": {
+        "bounciness": 0.3,
+        "friction": 0.7,
+        "front": false,
+        "back": true
+    }
+}
