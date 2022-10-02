@@ -192,6 +192,7 @@ fn load_background_assets(
 pub struct SfxAssets {
     #[asset(range = "1..=3", path = "fart/*.wav")]
     pub fart: Vec<geng::Sound>,
+    pub fart_recharge: geng::Sound,
 }
 
 fn load_font(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<geng::Font> {
@@ -297,9 +298,9 @@ impl Guy {
         Self {
             name: "".to_owned(),
             id,
-            pos,
+            pos: pos + vec2(global_rng().gen_range(-1.0..=1.0), 0.0),
             vel: Vec2::ZERO,
-            rot: 0.0,
+            rot: global_rng().gen_range(-1.0..=1.0),
             w: 0.0,
             input: Input::default(),
             auto_fart_timer: 0.0,
@@ -465,11 +466,15 @@ impl Game {
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::TexturedQuad::unit(&self.assets.guy.eyes)
-                    .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * autofart_progress)
-                    .scale_uniform(self.config.guy_radius * (0.8 + 0.6 * autofart_progress))
-                    .transform(Mat3::rotate(guy.rot))
-                    .translate(guy.pos),
+                &draw_2d::TexturedQuad::unit_colored(&self.assets.guy.eyes, {
+                    let k = 0.8;
+                    let t = ((autofart_progress - k) / (1.0 - k)).clamp(0.0, 1.0) * 0.5;
+                    Rgba::new(1.0, 1.0 - t, 1.0 - t, 1.0)
+                })
+                .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * autofart_progress)
+                .scale_uniform(self.config.guy_radius * (0.8 + 0.6 * autofart_progress))
+                .transform(Mat3::rotate(guy.rot))
+                .translate(guy.pos),
             );
             self.geng.draw_2d(
                 framebuffer,
@@ -718,10 +723,18 @@ impl Game {
                 guy.auto_fart_timer = 0.0;
                 farts += 1;
             }
+            let could_force_fart = guy.force_fart_timer >= self.config.force_fart_interval;
             guy.force_fart_timer += delta_time;
             if guy.force_fart_timer >= self.config.force_fart_interval && guy.input.force_fart {
                 farts += 1;
                 guy.force_fart_timer = 0.0;
+            }
+            if !could_force_fart && guy.force_fart_timer >= self.config.force_fart_interval {
+                if Some(guy.id) == self.my_guy {
+                    let mut effect = self.assets.sfx.fart_recharge.effect();
+                    effect.set_volume(self.volume as f64 * 0.5);
+                    effect.play();
+                }
             }
             for _ in 0..farts {
                 for _ in 0..self.config.farticle_count {
@@ -1125,6 +1138,11 @@ impl geng::State for Game {
         if let Some(id) = self.my_guy {
             let guy = self.guys.get(&id).unwrap();
             self.camera.center += (guy.pos - self.camera.center) * (delta_time * 5.0).min(1.0);
+        }
+
+        if self.editor.is_none() {
+            let target_fov = if self.show_customizer { 2.0 } else { 6.0 };
+            self.camera.fov += (target_fov - self.camera.fov) * delta_time;
         }
 
         if let Some(editor) = &mut self.editor {
