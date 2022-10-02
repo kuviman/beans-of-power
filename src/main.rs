@@ -193,6 +193,8 @@ pub struct SfxAssets {
     #[asset(range = "1..=3", path = "fart/*.wav")]
     pub fart: Vec<geng::Sound>,
     pub fart_recharge: geng::Sound,
+    #[asset(path = "music.mp3")]
+    pub music: geng::Sound,
 }
 
 fn load_font(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<geng::Font> {
@@ -205,7 +207,7 @@ fn load_font(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<geng::Fon
             &data,
             geng::ttf::Options {
                 pixel_size: 64.0,
-                max_distance: 8.0,
+                max_distance: 0.1,
             },
         )?)
     }
@@ -226,6 +228,12 @@ pub struct Assets {
     pub font: geng::Font,
     pub closed_outhouse: Texture,
     pub golden_toilet: Texture,
+}
+
+impl Assets {
+    pub fn process(&mut self) {
+        self.sfx.music.looped = true;
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -371,6 +379,7 @@ pub struct Game {
     ui_controller: ui::Controller,
     buttons: Vec<ui::Button<UiMessage>>,
     show_customizer: bool,
+    music: geng::SoundEffect,
 }
 
 impl Drop for Game {
@@ -427,6 +436,7 @@ impl Game {
                 UiMessage::Play,
             )],
             show_customizer: !opt.editor,
+            music: assets.sfx.music.play(),
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -1189,7 +1199,23 @@ impl geng::State for Game {
 
         if !self.show_customizer {
             if let Some(id) = self.my_guy {
+                let camera = geng::Camera2d {
+                    center: Vec2::ZERO,
+                    rotation: 0.0,
+                    fov: 10.0,
+                };
                 let guy = self.guys.get(&id).unwrap();
+                if guy.finished {
+                    self.assets.font.draw(
+                        framebuffer,
+                        &camera,
+                        &"GG",
+                        vec2(0.0, 3.0),
+                        geng::TextAlign::CENTER,
+                        1.5,
+                        Rgba::BLACK,
+                    );
+                }
                 let progress = {
                     let mut total_len = 0.0;
                     for window in self.level.expected_path.windows(2) {
@@ -1217,18 +1243,35 @@ impl geng::State for Game {
                     }
                     progress
                 };
-                let camera = geng::Camera2d {
-                    center: Vec2::ZERO,
-                    rotation: 0.0,
-                    fov: 10.0,
-                };
+                let mut time_text = String::new();
+                let seconds = self.simulation_time.round() as i32;
+                let minutes = seconds / 60 + 1;
+                let seconds = seconds % 60;
+                let hours = minutes / 60 + 1;
+                let minutes = minutes % 60;
+                if hours != 0 {
+                    time_text += &format!("{} hours ", hours);
+                }
+                if minutes != 0 {
+                    time_text += &format!("{} minutes ", minutes);
+                }
+                time_text += &format!("{} seconds", seconds);
+                self.assets.font.draw(
+                    framebuffer,
+                    &camera,
+                    &time_text,
+                    vec2(0.0, -3.3),
+                    geng::TextAlign::CENTER,
+                    0.5,
+                    Rgba::BLACK,
+                );
                 self.assets.font.draw(
                     framebuffer,
                     &camera,
                     &"progress",
                     vec2(0.0, -4.0),
                     geng::TextAlign::CENTER,
-                    1.0,
+                    0.5,
                     Rgba::BLACK,
                 );
                 self.geng.draw_2d(
@@ -1253,7 +1296,9 @@ impl geng::State for Game {
 
     fn fixed_update(&mut self, delta_time: f64) {
         let delta_time = delta_time as f32;
-        self.simulation_time += delta_time;
+        if self.my_guy.is_none() || !self.guys.get(&self.my_guy.unwrap()).unwrap().finished {
+            self.simulation_time += delta_time;
+        }
         for time in self.remote_simulation_times.values_mut() {
             *time += delta_time;
         }
@@ -1263,6 +1308,7 @@ impl geng::State for Game {
     }
 
     fn update(&mut self, delta_time: f64) {
+        self.music.set_volume(self.volume as f64);
         let delta_time = delta_time as f32;
         self.real_time += delta_time;
 
@@ -1403,7 +1449,8 @@ fn main() {
             {
                 let geng = geng.clone();
                 move |((assets, level), (client_id, connection))| {
-                    let assets = assets.expect("Failed to load assets");
+                    let mut assets = assets.expect("Failed to load assets");
+                    assets.process();
                     let level = match level {
                         Ok(json) => serde_json::from_str(&json).unwrap(),
                         Err(_) => Level::empty(),
