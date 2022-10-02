@@ -1187,6 +1187,9 @@ impl Game {
                 ServerMessage::Despawn(id) => {
                     self.guys.remove(&id);
                     self.remote_simulation_times.remove(&id);
+                    if let Some(updates) = self.remote_updates.get_mut(&id) {
+                        updates.clear();
+                    }
                 }
                 ServerMessage::Emote(id, emote) => {
                     self.emotes.retain(|&(_, x, _)| x != id);
@@ -1204,7 +1207,9 @@ impl Game {
             };
             while let Some(update) = updates.front() {
                 if (update.0 - current_simulation_time).abs() > 1.0 {
-                    self.remote_simulation_times.insert(id, update.0);
+                    updates.clear();
+                    self.remote_simulation_times.remove(&id);
+                    self.guys.remove(&id);
                     break;
                 }
                 if update.0 <= current_simulation_time {
