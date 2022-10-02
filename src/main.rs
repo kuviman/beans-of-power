@@ -1245,9 +1245,9 @@ impl geng::State for Game {
                 };
                 let mut time_text = String::new();
                 let seconds = self.simulation_time.round() as i32;
-                let minutes = seconds / 60 + 1;
+                let minutes = seconds / 60;
                 let seconds = seconds % 60;
-                let hours = minutes / 60 + 1;
+                let hours = minutes / 60;
                 let minutes = minutes % 60;
                 if hours != 0 {
                     time_text += &format!("{} hours ", hours);
