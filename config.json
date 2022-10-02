@@ -5,11 +5,12 @@
     "max_angular_speed": 6.5,
     "fart_strength": 5.0,
     "auto_fart_interval": 10.0,
-    "force_fart_interval": 10.0,
+    "force_fart_interval": 5.0,
     "gravity": 7.0,
     "fart_color": "#057F2177",
     "farticle_size": 0.2,
     "farticle_count": 10,
     "farticle_w": 10.0,
-    "farticle_additional_vel": 1.0
+    "farticle_additional_vel": 1.0,
+    "background_color": "#C5EAEA"
 }
