@@ -972,14 +972,7 @@ impl Game {
                     editor.face_points.clear();
                 }
                 geng::Key::R => {
-                    if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
-                        if self.my_guy.is_none() {
-                            self.my_guy = Some(self.client_id);
-                            self.guys.insert(Guy::new(self.client_id, cursor_pos));
-                        }
-                        self.guys.get_mut(&self.my_guy.unwrap()).unwrap().pos =
-                            self.level.spawn_point;
-                    } else {
+                    if !self.geng.window().is_key_pressed(geng::Key::LCtrl) {
                         if let Some(id) = self.my_guy.take() {
                             self.connection.send(ClientMessage::Despawn);
                             self.guys.remove(&id);
@@ -1105,6 +1098,7 @@ impl Game {
                 }
                 ServerMessage::Despawn(id) => {
                     self.guys.remove(&id);
+                    self.remote_simulation_times.remove(&id);
                 }
             }
         }
@@ -1364,6 +1358,17 @@ impl geng::State for Game {
                 if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
             {
                 self.save_level();
+            }
+            geng::Event::KeyDown { key: geng::Key::R }
+                if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
+            {
+                let new_guy = Guy::new(self.client_id, self.level.spawn_point);
+                if self.my_guy.is_none() {
+                    self.my_guy = Some(self.client_id);
+                }
+                self.guys.insert(new_guy);
+                self.simulation_time = 0.0;
+                self.connection.send(ClientMessage::Despawn);
             }
             _ => {}
         }
