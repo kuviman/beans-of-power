@@ -52,12 +52,6 @@ impl Controller {
         camera: &geng::Camera2d,
         buttons: Vec<Button<T>>,
     ) {
-        ugli::clear(
-            framebuffer,
-            Some(self.assets.config.background_color),
-            None,
-            None,
-        );
         self.camera = camera.clone();
         self.framebuffer_size = framebuffer.size().map(|x| x as f32);
         for button in buttons {

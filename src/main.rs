@@ -1,14 +1,17 @@
 // TODO: write the rest of this comment
 use geng::prelude::*;
 
-mod customizer;
 #[cfg(not(target_arch = "wasm32"))]
 mod server;
 mod ui;
 
 type Connection = geng::net::client::Connection<ServerMessage, ClientMessage>;
 
-use customizer::Customizer;
+#[derive(Clone)]
+enum UiMessage {
+    Play,
+}
+
 use noise::NoiseFn;
 
 pub const EPS: f32 = 1e-9;
@@ -334,7 +337,7 @@ pub struct Farticle {
     pub t: f32,
 }
 
-struct Game {
+pub struct Game {
     framebuffer_size: Vec2<f32>,
     prev_mouse_pos: Vec2<f64>,
     geng: Geng,
@@ -356,6 +359,9 @@ struct Game {
     client_id: Id,
     connection: Connection,
     customization: Guy,
+    ui_controller: ui::Controller,
+    buttons: Vec<ui::Button<UiMessage>>,
+    show_customizer: bool,
 }
 
 impl Drop for Game {
@@ -372,7 +378,6 @@ impl Game {
         opt: Opt,
         client_id: Id,
         connection: Connection,
-        customization: Guy,
     ) -> Self {
         let mut result = Self {
             geng: geng.clone(),
@@ -403,7 +408,16 @@ impl Game {
             simulation_time: 0.0,
             remote_simulation_times: HashMap::new(),
             remote_updates: default(),
-            customization,
+            customization: Guy::new(-1, vec2(0.0, 0.0)),
+            ui_controller: ui::Controller::new(geng, assets),
+            buttons: vec![ui::Button::new(
+                "PLAY",
+                vec2(0.0, -3.0),
+                1.0,
+                0.5,
+                UiMessage::Play,
+            )],
+            show_customizer: true,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -652,6 +666,9 @@ impl Game {
     }
 
     pub fn update_my_guy_input(&mut self) {
+        if self.show_customizer {
+            return;
+        }
         let my_guy = match self.my_guy.map(|id| self.guys.get_mut(&id).unwrap()) {
             Some(guy) => guy,
             None => return,
@@ -1015,6 +1032,65 @@ impl Game {
             }
         }
     }
+
+    pub fn draw_customizer(&mut self, framebuffer: &mut ugli::Framebuffer) {
+        if !self.show_customizer {
+            return;
+        }
+        let camera = geng::Camera2d {
+            center: Vec2::ZERO,
+            rotation: 0.0,
+            fov: 10.0,
+        };
+        self.ui_controller
+            .draw(framebuffer, &camera, self.buttons.clone());
+        if self.customization.name.is_empty() {
+            self.assets.font.draw(
+                framebuffer,
+                &camera,
+                "type your name",
+                vec2(0.0, 3.0),
+                geng::TextAlign::CENTER,
+                1.0,
+                Rgba::new(0.5, 0.5, 1.0, 0.5),
+            );
+        } else {
+            self.assets.font.draw(
+                framebuffer,
+                &camera,
+                &self.customization.name,
+                vec2(0.0, 3.0),
+                geng::TextAlign::CENTER,
+                1.0,
+                Rgba::new(0.5, 0.5, 1.0, 1.0),
+            );
+        }
+    }
+
+    fn handle_customizer_event(&mut self, event: &geng::Event) {
+        if !self.show_customizer {
+            return;
+        }
+        for msg in self.ui_controller.handle_event(event, self.buttons.clone()) {
+            match msg {
+                UiMessage::Play => {
+                    self.show_customizer = false;
+                }
+            }
+        }
+        match event {
+            geng::Event::KeyDown { key } => {
+                let s = format!("{:?}", key);
+                if s.len() == 1 && self.customization.name.len() < 15 {
+                    self.customization.name.push_str(&s);
+                }
+                if *key == geng::Key::Backspace {
+                    self.customization.name.pop();
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 impl geng::State for Game {
@@ -1027,6 +1103,8 @@ impl geng::State for Game {
         self.draw_level_front(framebuffer);
         self.draw_farticles(framebuffer);
         self.draw_level_editor(framebuffer);
+
+        self.draw_customizer(framebuffer);
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
@@ -1068,6 +1146,7 @@ impl geng::State for Game {
 
     fn handle_event(&mut self, event: geng::Event) {
         self.handle_event_editor(&event);
+        self.handle_customizer_event(&event);
         match event {
             geng::Event::MouseMove { position, .. }
                 if self
@@ -1181,9 +1260,7 @@ fn main() {
                         Err(_) => Level::empty(),
                     };
                     let assets = Rc::new(assets);
-                    Customizer::new(&geng.clone(), &assets.clone(), move |guy| {
-                        Game::new(&geng, &assets, level, opt, client_id, connection, guy)
-                    })
+                    Game::new(&geng, &assets, level, opt, client_id, connection)
                 }
             },
         );
