@@ -224,6 +224,8 @@ pub struct Assets {
     pub farticle: Texture,
     #[asset(load_with = "load_font(&geng, &base_path.join(\"Ludum-Dairy-0.2.0.ttf\"))")]
     pub font: geng::Font,
+    pub closed_outhouse: Texture,
+    pub golden_toilet: Texture,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -258,16 +260,20 @@ impl Surface {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Level {
     pub spawn_point: Vec2<f32>,
+    pub finish_point: Vec2<f32>,
     pub surfaces: Vec<Surface>,
     pub background_tiles: Vec<BackgroundTile>,
+    pub expected_path: Vec<Vec2<f32>>,
 }
 
 impl Level {
     pub fn empty() -> Self {
         Self {
             spawn_point: Vec2::ZERO,
+            finish_point: Vec2::ZERO,
             surfaces: vec![],
             background_tiles: vec![],
+            expected_path: vec![],
         }
     }
 }
@@ -291,6 +297,7 @@ pub struct Guy {
     pub input: Input,
     pub auto_fart_timer: f32,
     pub force_fart_timer: f32,
+    pub finished: bool,
 }
 
 impl Guy {
@@ -305,6 +312,7 @@ impl Guy {
             input: Input::default(),
             auto_fart_timer: 0.0,
             force_fart_timer: 0.0,
+            finished: false,
         }
     }
 }
@@ -418,7 +426,7 @@ impl Game {
                 0.5,
                 UiMessage::Play,
             )],
-            show_customizer: true,
+            show_customizer: !opt.editor,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -547,6 +555,18 @@ impl Game {
     }
 
     pub fn draw_level_back(&self, framebuffer: &mut ugli::Framebuffer) {
+        self.geng.draw_2d(
+            framebuffer,
+            &self.camera,
+            &draw_2d::TexturedQuad::unit(&self.assets.closed_outhouse)
+                .translate(self.level.spawn_point),
+        );
+        self.geng.draw_2d(
+            framebuffer,
+            &self.camera,
+            &draw_2d::TexturedQuad::unit(&self.assets.golden_toilet)
+                .translate(self.level.finish_point),
+        );
         self.draw_level_impl(framebuffer, |assets| assets.back_texture.as_ref());
     }
 
@@ -667,6 +687,26 @@ impl Game {
                     Rgba::new(1.0, 0.8, 0.8, 0.5),
                 ),
             );
+            self.geng.draw_2d(
+                framebuffer,
+                &self.camera,
+                &draw_2d::Quad::new(
+                    AABB::point(self.level.finish_point).extend_uniform(0.1),
+                    Rgba::new(1.0, 0.0, 0.0, 0.5),
+                ),
+            );
+
+            for (i, &p) in self.level.expected_path.iter().enumerate() {
+                self.assets.font.draw(
+                    framebuffer,
+                    &self.camera,
+                    &i.to_string(),
+                    p,
+                    geng::TextAlign::CENTER,
+                    0.1,
+                    Rgba::new(0.0, 0.0, 0.0, 0.5),
+                );
+            }
         }
     }
 
@@ -708,6 +748,22 @@ impl Game {
 
     pub fn update_guys(&mut self, delta_time: f32) {
         for guy in &mut self.guys {
+            if (guy.pos - self.level.finish_point).len() < 1.5 {
+                guy.finished = true;
+            }
+
+            if guy.finished {
+                guy.auto_fart_timer = 0.0;
+                guy.force_fart_timer = 0.0;
+                guy.rot -= delta_time;
+                guy.pos = self.level.finish_point
+                    + (guy.pos - self.level.finish_point)
+                        .normalize_or_zero()
+                        .rotate(delta_time)
+                        * 1.0;
+                continue;
+            }
+
             guy.w += (guy.input.roll_direction.clamp(-1.0, 1.0)
                 * self.config.angular_acceleration
                 * delta_time)
@@ -929,6 +985,18 @@ impl Game {
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     );
                 }
+                geng::Key::I => {
+                    self.level.expected_path.push(self.camera.screen_to_world(
+                        self.framebuffer_size,
+                        self.geng.window().mouse_pos().map(|x| x as f32),
+                    ));
+                }
+                geng::Key::K => {
+                    self.level.finish_point = self.camera.screen_to_world(
+                        self.framebuffer_size,
+                        self.geng.window().mouse_pos().map(|x| x as f32),
+                    );
+                }
                 geng::Key::Z => {
                     let mut options: Vec<&String> = self.assets.surfaces.keys().collect();
                     options.sort();
@@ -1118,6 +1186,69 @@ impl geng::State for Game {
         self.draw_level_editor(framebuffer);
 
         self.draw_customizer(framebuffer);
+
+        if !self.show_customizer {
+            if let Some(id) = self.my_guy {
+                let guy = self.guys.get(&id).unwrap();
+                let progress = {
+                    let mut total_len = 0.0;
+                    for window in self.level.expected_path.windows(2) {
+                        let a = window[0];
+                        let b = window[1];
+                        total_len += (b - a).len();
+                    }
+                    let mut progress = 0.0;
+                    let mut closest_point_distance = 1e9;
+                    let mut prefix_len = 0.0;
+                    for window in self.level.expected_path.windows(2) {
+                        let a = window[0];
+                        let b = window[1];
+                        let v = Surface {
+                            p1: a,
+                            p2: b,
+                            type_name: String::new(),
+                        }
+                        .vector_from(guy.pos);
+                        if v.len() < closest_point_distance {
+                            closest_point_distance = v.len();
+                            progress = (prefix_len + (guy.pos + v - a).len()) / total_len;
+                        }
+                        prefix_len += (b - a).len();
+                    }
+                    progress
+                };
+                let camera = geng::Camera2d {
+                    center: Vec2::ZERO,
+                    rotation: 0.0,
+                    fov: 10.0,
+                };
+                self.assets.font.draw(
+                    framebuffer,
+                    &camera,
+                    &"progress",
+                    vec2(0.0, -4.0),
+                    geng::TextAlign::CENTER,
+                    1.0,
+                    Rgba::BLACK,
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &camera,
+                    &draw_2d::Quad::new(
+                        AABB::point(vec2(0.0, -4.5)).extend_symmetric(vec2(3.0, 0.1)),
+                        Rgba::BLACK,
+                    ),
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &camera,
+                    &draw_2d::Quad::new(
+                        AABB::point(vec2(-3.0 + 6.0 * progress, -4.5)).extend_uniform(0.3),
+                        Rgba::BLACK,
+                    ),
+                );
+            }
+        }
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
