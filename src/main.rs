@@ -244,7 +244,7 @@ impl Level {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 pub struct Input {
     pub roll_direction: f32, // -1 to +1
     pub force_fart: bool,
@@ -639,7 +639,11 @@ impl Game {
                 .iter()
                 .any(|&key| self.geng.window().is_key_pressed(key)),
         };
-        my_guy.input = new_input;
+        if my_guy.input != new_input {
+            my_guy.input = new_input;
+            self.connection
+                .send(ClientMessage::Update(self.simulation_time, my_guy.clone()));
+        }
     }
 
     pub fn update_guys(&mut self, delta_time: f32) {
