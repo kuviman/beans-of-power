@@ -10,6 +10,7 @@ type Connection = geng::net::client::Connection<ServerMessage, ClientMessage>;
 #[derive(Clone)]
 enum UiMessage {
     Play,
+    RandomizeSkin,
 }
 
 use noise::NoiseFn;
@@ -99,9 +100,12 @@ pub struct SurfaceAssets {
 
 #[derive(geng::Assets)]
 pub struct GuyAssets {
-    pub body: Texture,
     pub cheeks: Texture,
     pub eyes: Texture,
+    pub skin: Texture,
+    pub clothes_top: Texture,
+    pub clothes_bottom: Texture,
+    pub hair: Texture,
 }
 
 fn load_surface_assets(
@@ -294,6 +298,14 @@ pub struct Input {
 
 pub type Id = i32;
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct GuyColors {
+    pub top: Rgba<f32>,
+    pub bottom: Rgba<f32>,
+    pub hair: Rgba<f32>,
+    pub skin: Rgba<f32>,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, HasId)]
 pub struct Guy {
     pub name: String,
@@ -306,10 +318,15 @@ pub struct Guy {
     pub auto_fart_timer: f32,
     pub force_fart_timer: f32,
     pub finished: bool,
+    pub colors: GuyColors,
 }
 
 impl Guy {
     pub fn new(id: Id, pos: Vec2<f32>) -> Self {
+        let random_hue = || {
+            let hue = global_rng().gen_range(0.0..1.0);
+            Hsva::new(hue, 1.0, 1.0, 1.0).into()
+        };
         Self {
             name: "".to_owned(),
             id,
@@ -321,6 +338,15 @@ impl Guy {
             auto_fart_timer: 0.0,
             force_fart_timer: 0.0,
             finished: false,
+            colors: GuyColors {
+                top: random_hue(),
+                bottom: random_hue(),
+                hair: random_hue(),
+                skin: {
+                    let tone = global_rng().gen_range(0.5..1.0);
+                    Rgba::new(tone, tone, tone, 1.0)
+                },
+            },
         }
     }
 }
@@ -380,6 +406,7 @@ pub struct Game {
     buttons: Vec<ui::Button<UiMessage>>,
     show_customizer: bool,
     music: geng::SoundEffect,
+    show_names: bool,
 }
 
 impl Drop for Game {
@@ -428,15 +455,19 @@ impl Game {
             remote_updates: default(),
             customization: Guy::new(-1, vec2(0.0, 0.0)),
             ui_controller: ui::Controller::new(geng, assets),
-            buttons: vec![ui::Button::new(
-                "PLAY",
-                vec2(0.0, -3.0),
-                1.0,
-                0.5,
-                UiMessage::Play,
-            )],
+            buttons: vec![
+                ui::Button::new("PLAY", vec2(0.0, -3.0), 1.0, 0.5, UiMessage::Play),
+                ui::Button::new(
+                    "randomize",
+                    vec2(2.0, 0.0),
+                    0.7,
+                    0.0,
+                    UiMessage::RandomizeSkin,
+                ),
+            ],
             show_customizer: !opt.editor,
             music: assets.sfx.music.play(),
+            show_names: true,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -475,7 +506,34 @@ impl Game {
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::TexturedQuad::unit(&self.assets.guy.body)
+                &draw_2d::TexturedQuad::unit_colored(
+                    &self.assets.guy.clothes_bottom,
+                    guy.colors.bottom,
+                )
+                .scale_uniform(self.config.guy_radius)
+                .transform(Mat3::rotate(guy.rot))
+                .translate(guy.pos),
+            );
+            self.geng.draw_2d(
+                framebuffer,
+                &self.camera,
+                &draw_2d::TexturedQuad::unit_colored(&self.assets.guy.clothes_top, guy.colors.top)
+                    .scale_uniform(self.config.guy_radius)
+                    .transform(Mat3::rotate(guy.rot))
+                    .translate(guy.pos),
+            );
+            self.geng.draw_2d(
+                framebuffer,
+                &self.camera,
+                &draw_2d::TexturedQuad::unit_colored(&self.assets.guy.hair, guy.colors.hair)
+                    .scale_uniform(self.config.guy_radius)
+                    .transform(Mat3::rotate(guy.rot))
+                    .translate(guy.pos),
+            );
+            self.geng.draw_2d(
+                framebuffer,
+                &self.camera,
+                &draw_2d::TexturedQuad::unit_colored(&self.assets.guy.skin, guy.colors.skin)
                     .scale_uniform(self.config.guy_radius)
                     .transform(Mat3::rotate(guy.rot))
                     .translate(guy.pos),
@@ -499,22 +557,27 @@ impl Game {
                 &self.camera,
                 &draw_2d::TexturedQuad::unit_colored(
                     &self.assets.guy.cheeks,
-                    Rgba::new(1.0, 1.0, 1.0, (0.5 + 1.0 * autofart_progress).min(1.0)),
+                    Rgba {
+                        a: (0.5 + 1.0 * autofart_progress).min(1.0),
+                        ..guy.colors.skin
+                    },
                 )
                 .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * autofart_progress)
                 .scale_uniform(self.config.guy_radius * (0.8 + 0.7 * autofart_progress))
                 .transform(Mat3::rotate(guy.rot))
                 .translate(guy.pos),
             );
-            self.assets.font.draw(
-                framebuffer,
-                &self.camera,
-                &guy.name,
-                guy.pos + vec2(0.0, self.config.guy_radius * 1.1),
-                geng::TextAlign::CENTER,
-                0.1,
-                Rgba::BLACK,
-            );
+            if Some(guy.id) == self.my_guy || self.show_names {
+                self.assets.font.draw(
+                    framebuffer,
+                    &self.camera,
+                    &guy.name,
+                    guy.pos + vec2(0.0, self.config.guy_radius * 1.1),
+                    geng::TextAlign::CENTER,
+                    0.1,
+                    Rgba::BLACK,
+                );
+            }
         }
     }
 
@@ -1161,6 +1224,9 @@ impl Game {
                 UiMessage::Play => {
                     self.show_customizer = false;
                 }
+                UiMessage::RandomizeSkin => {
+                    self.customization.colors = Guy::new(-1, Vec2::ZERO).colors;
+                }
             }
         }
         match event {
@@ -1308,7 +1374,12 @@ impl geng::State for Game {
 
         if let Some(id) = self.my_guy {
             let guy = self.guys.get(&id).unwrap();
-            self.camera.center += (guy.pos - self.camera.center) * (delta_time * 5.0).min(1.0);
+            let mut target_center = guy.pos;
+            if self.show_customizer {
+                target_center.x += 1.0;
+            }
+            self.camera.center +=
+                (target_center - self.camera.center) * (delta_time * 5.0).min(1.0);
         }
 
         if self.editor.is_none() {
@@ -1330,6 +1401,7 @@ impl geng::State for Game {
         if let Some(id) = self.my_guy {
             let guy = self.guys.get_mut(&id).unwrap();
             guy.name = self.customization.name.clone();
+            guy.colors = self.customization.colors.clone();
         }
     }
 
@@ -1369,6 +1441,9 @@ impl geng::State for Game {
                 self.guys.insert(new_guy);
                 self.simulation_time = 0.0;
                 self.connection.send(ClientMessage::Despawn);
+            }
+            geng::Event::KeyDown { key: geng::Key::H } => {
+                self.show_names = !self.show_names;
             }
             _ => {}
         }
