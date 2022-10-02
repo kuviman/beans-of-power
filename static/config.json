@@ -11,5 +11,6 @@
     "farticle_size": 0.2,
     "farticle_count": 10,
     "farticle_w": 10.0,
-    "farticle_additional_vel": 1.0
+    "farticle_additional_vel": 1.0,
+    "background_color": "#C5EAEA"
 }

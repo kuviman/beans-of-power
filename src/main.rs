@@ -44,6 +44,7 @@ pub struct Config {
     farticle_size: f32,
     farticle_count: usize,
     farticle_additional_vel: f32,
+    background_color: Rgba<f32>,
 }
 
 #[derive(Deref)]
@@ -648,10 +649,13 @@ impl Game {
 
     pub fn update_guys(&mut self, delta_time: f32) {
         for guy in &mut self.guys {
-            guy.w += guy.input.roll_direction.clamp(-1.0, 1.0)
+            guy.w += (guy.input.roll_direction.clamp(-1.0, 1.0)
                 * self.config.angular_acceleration
-                * delta_time;
-            // guy.w = guy.w.clamp_abs(self.config.max_angular_speed);
+                * delta_time)
+                .clamp(
+                    -(guy.w + self.config.max_angular_speed).max(0.0),
+                    (self.config.max_angular_speed - guy.w).max(0.0),
+                );
             guy.vel.y -= self.config.gravity * delta_time;
 
             let mut farts = 0;
@@ -979,7 +983,7 @@ impl Game {
 impl geng::State for Game {
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size().map(|x| x as f32);
-        ugli::clear(framebuffer, Some(Rgba::new(0.8, 0.8, 1.0, 1.0)), None, None);
+        ugli::clear(framebuffer, Some(self.config.background_color), None, None);
 
         self.draw_level_back(framebuffer);
         self.draw_guys(framebuffer);
