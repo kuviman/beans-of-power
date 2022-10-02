@@ -22,7 +22,7 @@ impl ServerState {
                 if match message {
                     ServerMessage::Pong => unreachable!(),
                     ServerMessage::ClientId(_) => unreachable!(),
-                    ServerMessage::UpdateGuy(guy) => guy.id != client_id,
+                    ServerMessage::UpdateGuy(_, guy) => guy.id != client_id,
                     ServerMessage::Despawn(id) => *id != client_id,
                 } {
                     client.sender.send(message.clone());
@@ -44,7 +44,7 @@ impl net::Receiver<ClientMessage> for Client {
         let client = state.clients.get_mut(&self.client_id).unwrap();
         match message {
             ClientMessage::Ping => client.sender.send(ServerMessage::Pong),
-            ClientMessage::Update(guy) => state.messages.push(ServerMessage::UpdateGuy(guy)),
+            ClientMessage::Update(t, guy) => state.messages.push(ServerMessage::UpdateGuy(t, guy)),
             ClientMessage::Despawn => state.messages.push(ServerMessage::Despawn(self.client_id)),
         }
         state.send_updates();

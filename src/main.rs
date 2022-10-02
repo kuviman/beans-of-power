@@ -12,7 +12,7 @@ pub const EPS: f32 = 1e-9;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClientMessage {
     Ping,
-    Update(Guy),
+    Update(f32, Guy),
     Despawn,
 }
 
@@ -20,7 +20,7 @@ pub enum ClientMessage {
 pub enum ServerMessage {
     Pong,
     ClientId(Id),
-    UpdateGuy(Guy),
+    UpdateGuy(f32, Guy),
     Despawn(Id),
 }
 
@@ -319,6 +319,9 @@ struct Game {
     editor: Option<EditorState>,
     guys: Collection<Guy>,
     my_guy: Option<Id>,
+    simulation_time: f32,
+    remote_simulation_times: HashMap<Id, f32>,
+    remote_updates: HashMap<Id, std::collections::VecDeque<(f32, Guy)>>,
     real_time: f32,
     noise: noise::OpenSimplex,
     opt: Opt,
@@ -369,6 +372,9 @@ impl Game {
             volume: 0.5,
             client_id,
             connection,
+            simulation_time: 0.0,
+            remote_simulation_times: HashMap::new(),
+            remote_updates: default(),
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -930,15 +936,36 @@ impl Game {
                     self.connection.send(ClientMessage::Ping);
                     if let Some(id) = self.my_guy {
                         let guy = self.guys.get(&id).unwrap();
-                        self.connection.send(ClientMessage::Update(guy.clone()));
+                        self.connection
+                            .send(ClientMessage::Update(self.simulation_time, guy.clone()));
                     }
                 }
                 ServerMessage::ClientId(_) => unreachable!(),
-                ServerMessage::UpdateGuy(guy) => {
-                    self.guys.insert(guy);
+                ServerMessage::UpdateGuy(t, guy) => {
+                    if !self.remote_simulation_times.contains_key(&guy.id) {
+                        self.remote_simulation_times.insert(guy.id, t);
+                    }
+                    self.remote_updates
+                        .entry(guy.id)
+                        .or_default()
+                        .push_back((t, guy));
                 }
                 ServerMessage::Despawn(id) => {
                     self.guys.remove(&id);
+                }
+            }
+        }
+    }
+
+    fn update_remote(&mut self) {
+        for (&id, updates) in &mut self.remote_updates {
+            let current_simulation_time = self.remote_simulation_times[&id];
+            while let Some(update) = updates.front() {
+                if update.0 <= current_simulation_time {
+                    let update = updates.pop_front().unwrap().1;
+                    self.guys.insert(update);
+                } else {
+                    break;
                 }
             }
         }
@@ -959,6 +986,10 @@ impl geng::State for Game {
 
     fn fixed_update(&mut self, delta_time: f64) {
         let delta_time = delta_time as f32;
+        self.simulation_time += delta_time;
+        for time in self.remote_simulation_times.values_mut() {
+            *time += delta_time;
+        }
         self.update_my_guy_input();
         self.update_guys(delta_time);
         self.update_farticles(delta_time);
@@ -982,6 +1013,7 @@ impl geng::State for Game {
         }
 
         self.handle_connection();
+        self.update_remote();
     }
 
     fn handle_event(&mut self, event: geng::Event) {
