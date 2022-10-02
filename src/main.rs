@@ -1,8 +1,28 @@
 use geng::prelude::*;
 
+mod server;
+
+use server::Server;
+type Connection = geng::net::client::Connection<ServerMessage, ClientMessage>;
+
 use noise::NoiseFn;
 
 pub const EPS: f32 = 1e-9;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ClientMessage {
+    Ping,
+    Update(Guy),
+    Despawn,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ServerMessage {
+    Pong,
+    ClientId(Id),
+    UpdateGuy(Guy),
+    Despawn(Id),
+}
 
 pub const CONTROLS_LEFT: [geng::Key; 2] = [geng::Key::A, geng::Key::Left];
 pub const CONTROLS_RIGHT: [geng::Key; 2] = [geng::Key::D, geng::Key::Right];
@@ -304,6 +324,8 @@ struct Game {
     opt: Opt,
     farticles: Vec<Farticle>,
     volume: f32,
+    client_id: Id,
+    connection: Connection,
 }
 
 impl Drop for Game {
@@ -313,7 +335,14 @@ impl Drop for Game {
 }
 
 impl Game {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>, level: Level, opt: Opt) -> Self {
+    pub fn new(
+        geng: &Geng,
+        assets: &Rc<Assets>,
+        level: Level,
+        opt: Opt,
+        client_id: Id,
+        connection: Connection,
+    ) -> Self {
         let mut result = Self {
             geng: geng.clone(),
             config: assets.config.clone(),
@@ -338,11 +367,14 @@ impl Game {
             opt: opt.clone(),
             farticles: default(),
             volume: 0.5,
+            client_id,
+            connection,
         };
         if !opt.editor {
-            let id = -1;
-            result.my_guy = Some(id);
-            result.guys.insert(Guy::new(id, result.level.spawn_point));
+            result.my_guy = Some(client_id);
+            result
+                .guys
+                .insert(Guy::new(client_id, result.level.spawn_point));
         }
         result
     }
@@ -795,19 +827,18 @@ impl Game {
                 geng::Key::R => {
                     if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
                         if self.my_guy.is_none() {
-                            let id = -1;
-                            self.my_guy = Some(id);
-                            self.guys.insert(Guy::new(id, cursor_pos));
+                            self.my_guy = Some(self.client_id);
+                            self.guys.insert(Guy::new(self.client_id, cursor_pos));
                         }
                         self.guys.get_mut(&self.my_guy.unwrap()).unwrap().pos =
                             self.level.spawn_point;
                     } else {
                         if let Some(id) = self.my_guy.take() {
+                            self.connection.send(ClientMessage::Despawn);
                             self.guys.remove(&id);
                         } else {
-                            let id = -1;
-                            self.my_guy = Some(id);
-                            self.guys.insert(Guy::new(id, cursor_pos));
+                            self.my_guy = Some(self.client_id);
+                            self.guys.insert(Guy::new(self.client_id, cursor_pos));
                         }
                     }
                 }
@@ -890,6 +921,28 @@ impl Game {
             )
         }
     }
+
+    pub fn handle_connection(&mut self) {
+        let messages: Vec<ServerMessage> = self.connection.new_messages().collect();
+        for message in messages {
+            match message {
+                ServerMessage::Pong => {
+                    self.connection.send(ClientMessage::Ping);
+                    if let Some(id) = self.my_guy {
+                        let guy = self.guys.get(&id).unwrap();
+                        self.connection.send(ClientMessage::Update(guy.clone()));
+                    }
+                }
+                ServerMessage::ClientId(_) => unreachable!(),
+                ServerMessage::UpdateGuy(guy) => {
+                    self.guys.insert(guy);
+                }
+                ServerMessage::Despawn(id) => {
+                    self.guys.remove(&id);
+                }
+            }
+        }
+    }
 }
 
 impl geng::State for Game {
@@ -927,6 +980,8 @@ impl geng::State for Game {
                 self.save_level();
             }
         }
+
+        self.handle_connection();
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -990,30 +1045,69 @@ fn main() {
 
     let level_path = static_path().join("level.json");
     logger::init().unwrap();
-    let geng = Geng::new_with(geng::ContextOptions {
-        title: "LD51 - Stercore Dare".to_owned(),
-        fixed_delta_time: 1.0 / 200.0,
-        vsync: false,
-        ..default()
-    });
-    let state = geng::LoadingScreen::new(
-        &geng,
-        geng::EmptyLoadingScreen,
-        future::join(
-            <Assets as geng::LoadAsset>::load(&geng, &static_path()),
-            <String as geng::LoadAsset>::load(&geng, &level_path),
-        ),
-        {
-            let geng = geng.clone();
-            move |(assets, level)| {
-                let assets = assets.expect("Failed to load assets");
-                let level = match level {
-                    Ok(json) => serde_json::from_str(&json).unwrap(),
-                    Err(_) => Level::empty(),
-                };
-                Game::new(&geng, &Rc::new(assets), level, opt)
-            }
-        },
-    );
-    geng::run(&geng, state);
+
+    if opt.server.is_some() && opt.connect.is_none() {
+        #[cfg(not(target_arch = "wasm32"))]
+        Server::new(opt.server.as_deref().unwrap()).run();
+    } else {
+        #[cfg(not(target_arch = "wasm32"))]
+        let server = if let Some(addr) = &opt.server {
+            let server = Server::new(addr);
+            let server_handle = server.handle();
+            let server_thread = std::thread::spawn(move || {
+                server.run();
+            });
+            Some((server_handle, server_thread))
+        } else {
+            None
+        };
+
+        let geng = Geng::new_with(geng::ContextOptions {
+            title: "LD51 - Getting Farted On".to_owned(),
+            fixed_delta_time: 1.0 / 200.0,
+            vsync: false,
+            ..default()
+        });
+        let connection = geng::net::client::connect::<ServerMessage, ClientMessage>(
+            opt.connect.as_deref().unwrap(),
+        )
+        .then(|connection| async move {
+            let (message, mut connection) = connection.into_future().await;
+            let id = match message {
+                Some(ServerMessage::ClientId(id)) => id,
+                _ => unreachable!(),
+            };
+            connection.send(ClientMessage::Ping);
+            (id, connection)
+        });
+        let state = geng::LoadingScreen::new(
+            &geng,
+            geng::EmptyLoadingScreen,
+            future::join(
+                future::join(
+                    <Assets as geng::LoadAsset>::load(&geng, &static_path()),
+                    <String as geng::LoadAsset>::load(&geng, &level_path),
+                ),
+                connection,
+            ),
+            {
+                let geng = geng.clone();
+                move |((assets, level), (id, connection))| {
+                    let assets = assets.expect("Failed to load assets");
+                    let level = match level {
+                        Ok(json) => serde_json::from_str(&json).unwrap(),
+                        Err(_) => Level::empty(),
+                    };
+                    Game::new(&geng, &Rc::new(assets), level, opt, id, connection)
+                }
+            },
+        );
+        geng::run(&geng, state);
+
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some((server_handle, server_thread)) = server {
+            server_handle.shutdown();
+            server_thread.join().unwrap();
+        }
+    }
 }
