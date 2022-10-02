@@ -1,8 +1,8 @@
 use geng::prelude::*;
 
+#[cfg(not(target_arch = "wasm32"))]
 mod server;
 
-use server::Server;
 type Connection = geng::net::client::Connection<ServerMessage, ClientMessage>;
 
 use noise::NoiseFn;
@@ -1048,11 +1048,11 @@ fn main() {
 
     if opt.server.is_some() && opt.connect.is_none() {
         #[cfg(not(target_arch = "wasm32"))]
-        Server::new(opt.server.as_deref().unwrap()).run();
+        server::Server::new(opt.server.as_deref().unwrap()).run();
     } else {
         #[cfg(not(target_arch = "wasm32"))]
         let server = if let Some(addr) = &opt.server {
-            let server = Server::new(addr);
+            let server = server::Server::new(addr);
             let server_handle = server.handle();
             let server_thread = std::thread::spawn(move || {
                 server.run();
