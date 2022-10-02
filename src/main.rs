@@ -381,6 +381,7 @@ pub struct Farticle {
 }
 
 pub struct Game {
+    best_progress: f32,
     framebuffer_size: Vec2<f32>,
     prev_mouse_pos: Vec2<f64>,
     geng: Geng,
@@ -454,6 +455,7 @@ impl Game {
             remote_simulation_times: HashMap::new(),
             remote_updates: default(),
             customization: Guy::new(-1, vec2(0.0, 0.0)),
+            best_progress: 0.0,
             ui_controller: ui::Controller::new(geng, assets),
             buttons: vec![
                 ui::Button::new("PLAY", vec2(0.0, -3.0), 1.0, 0.5, UiMessage::Play),
@@ -502,7 +504,10 @@ impl Game {
     }
 
     pub fn draw_guys(&self, framebuffer: &mut ugli::Framebuffer) {
-        for guy in &self.guys {
+        for guy in itertools::chain![
+            self.guys.iter().filter(|guy| guy.id != self.client_id),
+            self.guys.iter().filter(|guy| guy.id == self.client_id),
+        ] {
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
@@ -1303,6 +1308,7 @@ impl geng::State for Game {
                     }
                     progress
                 };
+                self.best_progress = self.best_progress.max(progress);
                 let mut time_text = String::new();
                 let seconds = self.simulation_time.round() as i32;
                 let minutes = seconds / 60;
@@ -1340,6 +1346,15 @@ impl geng::State for Game {
                     &draw_2d::Quad::new(
                         AABB::point(vec2(0.0, -4.5)).extend_symmetric(vec2(3.0, 0.1)),
                         Rgba::BLACK,
+                    ),
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &camera,
+                    &draw_2d::Quad::new(
+                        AABB::point(vec2(-3.0 + 6.0 * self.best_progress, -4.5))
+                            .extend_uniform(0.3),
+                        Rgba::new(0.0, 0.0, 0.0, 0.5),
                     ),
                 );
                 self.geng.draw_2d(
