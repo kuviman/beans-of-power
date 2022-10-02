@@ -1243,6 +1243,15 @@ impl Game {
                 1.0,
                 Rgba::new(0.5, 0.5, 1.0, 0.5),
             );
+            self.assets.font.draw(
+                framebuffer,
+                &camera,
+                "yes just type it",
+                vec2(0.0, 2.0),
+                geng::TextAlign::CENTER,
+                1.0,
+                Rgba::new(0.5, 0.5, 1.0, 0.5),
+            );
         } else {
             self.assets.font.draw(
                 framebuffer,
