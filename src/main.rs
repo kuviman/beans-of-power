@@ -1,12 +1,14 @@
 // TODO: write the rest of this comment
-
 use geng::prelude::*;
 
+mod customizer;
 #[cfg(not(target_arch = "wasm32"))]
 mod server;
+mod ui;
 
 type Connection = geng::net::client::Connection<ServerMessage, ClientMessage>;
 
+use customizer::Customizer;
 use noise::NoiseFn;
 
 pub const EPS: f32 = 1e-9;
@@ -189,6 +191,23 @@ pub struct SfxAssets {
     pub fart: Vec<geng::Sound>,
 }
 
+fn load_font(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<geng::Font> {
+    let geng = geng.clone();
+    let path = path.to_owned();
+    async move {
+        let data = <Vec<u8> as geng::LoadAsset>::load(&geng, &path).await?;
+        Ok(geng::Font::new(
+            &geng,
+            &data,
+            geng::ttf::Options {
+                pixel_size: 64.0,
+                max_distance: 8.0,
+            },
+        )?)
+    }
+    .boxed_local()
+}
+
 #[derive(geng::Assets)]
 pub struct Assets {
     pub config: Config,
@@ -199,6 +218,8 @@ pub struct Assets {
     #[asset(load_with = "load_background_assets(&geng, &base_path.join(\"background\"))")]
     pub background: HashMap<String, BackgroundAssets>,
     pub farticle: Texture,
+    #[asset(load_with = "load_font(&geng, &base_path.join(\"Ludum-Dairy-0.2.0.ttf\"))")]
+    pub font: geng::Font,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -257,6 +278,7 @@ pub type Id = i32;
 
 #[derive(Serialize, Deserialize, Clone, Debug, HasId)]
 pub struct Guy {
+    pub name: String,
     pub id: Id,
     pub pos: Vec2<f32>,
     pub vel: Vec2<f32>,
@@ -270,6 +292,7 @@ pub struct Guy {
 impl Guy {
     pub fn new(id: Id, pos: Vec2<f32>) -> Self {
         Self {
+            name: "".to_owned(),
             id,
             pos,
             vel: Vec2::ZERO,
@@ -332,6 +355,7 @@ struct Game {
     volume: f32,
     client_id: Id,
     connection: Connection,
+    customization: Guy,
 }
 
 impl Drop for Game {
@@ -348,6 +372,7 @@ impl Game {
         opt: Opt,
         client_id: Id,
         connection: Connection,
+        customization: Guy,
     ) -> Self {
         let mut result = Self {
             geng: geng.clone(),
@@ -378,6 +403,7 @@ impl Game {
             simulation_time: 0.0,
             remote_simulation_times: HashMap::new(),
             remote_updates: default(),
+            customization,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -442,6 +468,15 @@ impl Game {
                 .scale_uniform(self.config.guy_radius * (0.8 + 0.7 * autofart_progress))
                 .transform(Mat3::rotate(guy.rot))
                 .translate(guy.pos),
+            );
+            self.assets.font.draw(
+                framebuffer,
+                &self.camera,
+                &guy.name,
+                guy.pos + vec2(0.0, self.config.guy_radius * 1.1),
+                geng::TextAlign::CENTER,
+                0.1,
+                Rgba::BLACK,
             );
         }
     }
@@ -1024,6 +1059,11 @@ impl geng::State for Game {
 
         self.handle_connection();
         self.update_remote();
+
+        if let Some(id) = self.my_guy {
+            let guy = self.guys.get_mut(&id).unwrap();
+            guy.name = self.customization.name.clone();
+        }
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -1134,13 +1174,16 @@ fn main() {
             ),
             {
                 let geng = geng.clone();
-                move |((assets, level), (id, connection))| {
+                move |((assets, level), (client_id, connection))| {
                     let assets = assets.expect("Failed to load assets");
                     let level = match level {
                         Ok(json) => serde_json::from_str(&json).unwrap(),
                         Err(_) => Level::empty(),
                     };
-                    Game::new(&geng, &Rc::new(assets), level, opt, id, connection)
+                    let assets = Rc::new(assets);
+                    Customizer::new(&geng.clone(), &assets.clone(), move |guy| {
+                        Game::new(&geng, &assets, level, opt, client_id, connection, guy)
+                    })
                 }
             },
         );
