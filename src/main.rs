@@ -1206,7 +1206,7 @@ impl Game {
                 None => continue,
             };
             while let Some(update) = updates.front() {
-                if (update.0 - current_simulation_time).abs() > 1.0 {
+                if (update.0 - current_simulation_time).abs() > 5.0 {
                     updates.clear();
                     self.remote_simulation_times.remove(&id);
                     self.guys.remove(&id);
