@@ -943,7 +943,7 @@ impl Game {
                 ServerMessage::ClientId(_) => unreachable!(),
                 ServerMessage::UpdateGuy(t, guy) => {
                     if !self.remote_simulation_times.contains_key(&guy.id) {
-                        self.remote_simulation_times.insert(guy.id, t);
+                        self.remote_simulation_times.insert(guy.id, t - 1.0);
                     }
                     self.remote_updates
                         .entry(guy.id)
