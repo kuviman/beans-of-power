@@ -25,6 +25,7 @@ impl ServerState {
                     ServerMessage::UpdateGuy(_, guy) => guy.id != client_id,
                     ServerMessage::Despawn(id) => *id != client_id,
                     ServerMessage::Emote(..) => true,
+                    ServerMessage::ForceReset => true,
                 } {
                     client.sender.send(message.clone());
                 }
@@ -44,6 +45,7 @@ impl net::Receiver<ClientMessage> for Client {
         let state: &mut ServerState = &mut state;
         let client = state.clients.get_mut(&self.client_id).unwrap();
         match message {
+            ClientMessage::ForceReset => state.messages.push(ServerMessage::ForceReset),
             ClientMessage::Ping => client.sender.send(ServerMessage::Pong),
             ClientMessage::Update(t, guy) => state.messages.push(ServerMessage::UpdateGuy(t, guy)),
             ClientMessage::Despawn => state.messages.push(ServerMessage::Despawn(self.client_id)),

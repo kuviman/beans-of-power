@@ -23,11 +23,13 @@ pub enum ClientMessage {
     Update(f32, Guy),
     Despawn,
     Emote(usize),
+    ForceReset,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerMessage {
     Pong,
+    ForceReset,
     ClientId(Id),
     UpdateGuy(f32, Guy),
     Despawn(Id),
@@ -358,7 +360,7 @@ pub struct Guy {
 }
 
 impl Guy {
-    pub fn new(id: Id, pos: Vec2<f32>) -> Self {
+    pub fn new(id: Id, pos: Vec2<f32>, rng: bool) -> Self {
         let random_hue = || {
             let hue = global_rng().gen_range(0.0..1.0);
             Hsva::new(hue, 1.0, 1.0, 1.0).into()
@@ -366,9 +368,18 @@ impl Guy {
         Self {
             name: "".to_owned(),
             id,
-            pos: pos + vec2(global_rng().gen_range(-1.0..=1.0), 0.0),
+            pos: pos
+                + if rng {
+                    vec2(global_rng().gen_range(-1.0..=1.0), 0.0)
+                } else {
+                    Vec2::ZERO
+                },
             vel: Vec2::ZERO,
-            rot: global_rng().gen_range(-1.0..=1.0),
+            rot: if rng {
+                global_rng().gen_range(-1.0..=1.0)
+            } else {
+                0.0
+            },
             w: 0.0,
             input: Input::default(),
             auto_fart_timer: 0.0,
@@ -502,7 +513,7 @@ impl Game {
             remote_simulation_times: HashMap::new(),
             remote_updates: default(),
             customization: {
-                let mut guy = Guy::new(-1, vec2(0.0, 0.0));
+                let mut guy = Guy::new(-1, vec2(0.0, 0.0), false);
                 if opt.postjam {
                     guy.postjam = true;
                 }
@@ -537,9 +548,15 @@ impl Game {
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
-            result
-                .guys
-                .insert(Guy::new(client_id, result.levels.0.spawn_point));
+            result.guys.insert(Guy::new(
+                client_id,
+                if result.customization.postjam {
+                    result.levels.1.spawn_point
+                } else {
+                    result.levels.0.spawn_point
+                },
+                !result.customization.postjam,
+            ));
         }
         result
     }
@@ -720,8 +737,13 @@ impl Game {
         self.geng.draw_2d(
             framebuffer,
             &self.camera,
-            &draw_2d::TexturedQuad::unit(&self.assets.closed_outhouse)
-                .translate(self.levels.0.spawn_point),
+            &draw_2d::TexturedQuad::unit(&self.assets.closed_outhouse).translate(
+                if self.customization.postjam {
+                    self.levels.1.spawn_point
+                } else {
+                    self.levels.0.spawn_point
+                },
+            ),
         );
         self.geng.draw_2d(
             framebuffer,
@@ -1203,15 +1225,16 @@ impl Game {
                             self.guys.remove(&id);
                         } else {
                             self.my_guy = Some(self.client_id);
-                            self.guys.insert(Guy::new(self.client_id, cursor_pos));
+                            self.guys
+                                .insert(Guy::new(self.client_id, cursor_pos, false));
                         }
                     }
                 }
                 geng::Key::P => {
-                    // self.level.spawn_point = self.camera.screen_to_world(
-                    //     self.framebuffer_size,
-                    //     self.geng.window().mouse_pos().map(|x| x as f32),
-                    // );
+                    self.levels.1.spawn_point = self.camera.screen_to_world(
+                        self.framebuffer_size,
+                        self.geng.window().mouse_pos().map(|x| x as f32),
+                    );
                 }
                 geng::Key::I => {
                     let level = if self.customization.postjam {
@@ -1321,6 +1344,26 @@ impl Game {
         let messages: Vec<ServerMessage> = self.connection.new_messages().collect();
         for message in messages {
             match message {
+                ServerMessage::ForceReset => {
+                    if self.my_guy.is_some() {
+                        // COPYPASTA mmmmmmm
+                        let new_guy = Guy::new(
+                            self.client_id,
+                            if self.customization.postjam {
+                                self.levels.1.spawn_point
+                            } else {
+                                self.levels.0.spawn_point
+                            },
+                            !self.customization.postjam,
+                        );
+                        if self.my_guy.is_none() {
+                            self.my_guy = Some(self.client_id);
+                        }
+                        self.guys.insert(new_guy);
+                        self.simulation_time = 0.0;
+                        self.connection.send(ClientMessage::Despawn);
+                    }
+                }
                 ServerMessage::Pong => {
                     self.connection.send(ClientMessage::Ping);
                     if let Some(id) = self.my_guy {
@@ -1438,7 +1481,8 @@ impl Game {
                     self.show_customizer = false;
                 }
                 UiMessage::RandomizeSkin => {
-                    self.customization.colors = Guy::new(-1, Vec2::ZERO).colors;
+                    self.customization.colors =
+                        Guy::new(-1, Vec2::ZERO, !self.customization.postjam).colors;
                 }
             }
         }
@@ -1595,7 +1639,7 @@ impl geng::State for Game {
                 };
                 guy.progress = progress;
                 self.best_progress = self.best_progress.max(progress);
-                guy.best_progress = dbg!(self.best_progress);
+                guy.best_progress = self.best_progress;
                 if guy.finished && self.simulation_time < guy.best_time.unwrap_or(1e9) {
                     guy.best_time = Some(self.simulation_time);
                 }
@@ -1782,13 +1826,32 @@ impl geng::State for Game {
             geng::Event::KeyDown { key: geng::Key::R }
                 if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
             {
-                let new_guy = Guy::new(self.client_id, self.levels.0.spawn_point);
-                if self.my_guy.is_none() {
-                    self.my_guy = Some(self.client_id);
+                if self.my_guy.is_none() && self.editor.is_none() {
+                    self.connection.send(ClientMessage::ForceReset);
+                } else {
+                    if !self.customization.postjam
+                        || !self
+                            .guys
+                            .iter()
+                            .any(|guy| guy.name.to_lowercase() == "pomo")
+                    {
+                        let new_guy = Guy::new(
+                            self.client_id,
+                            if self.customization.postjam {
+                                self.levels.1.spawn_point
+                            } else {
+                                self.levels.0.spawn_point
+                            },
+                            !self.customization.postjam,
+                        );
+                        if self.my_guy.is_none() {
+                            self.my_guy = Some(self.client_id);
+                        }
+                        self.guys.insert(new_guy);
+                        self.simulation_time = 0.0;
+                        self.connection.send(ClientMessage::Despawn);
+                    }
                 }
-                self.guys.insert(new_guy);
-                self.simulation_time = 0.0;
-                self.connection.send(ClientMessage::Despawn);
             }
             geng::Event::KeyDown { key: geng::Key::H } => {
                 self.show_names = !self.show_names;
