@@ -402,7 +402,7 @@ pub struct Game {
     config: Config,
     assets: Rc<Assets>,
     camera: geng::Camera2d,
-    level: Level,
+    levels: (Level, Level),
     editor: Option<EditorState>,
     guys: Collection<Guy>,
     my_guy: Option<Id>,
@@ -435,7 +435,7 @@ impl Game {
     pub fn new(
         geng: &Geng,
         assets: &Rc<Assets>,
-        level: Level,
+        levels: (Level, Level),
         opt: Opt,
         client_id: Id,
         connection: Connection,
@@ -456,7 +456,7 @@ impl Game {
             } else {
                 None
             },
-            level,
+            levels,
             guys: Collection::new(),
             my_guy: None,
             real_time: 0.0,
@@ -506,7 +506,7 @@ impl Game {
             result.my_guy = Some(client_id);
             result
                 .guys
-                .insert(Guy::new(client_id, result.level.spawn_point));
+                .insert(Guy::new(client_id, result.levels.0.spawn_point));
         }
         result
     }
@@ -520,11 +520,13 @@ impl Game {
 
     pub fn snap_position(&self, pos: Vec2<f32>) -> Vec2<f32> {
         let closest_point = itertools::chain![
-            self.level
+            self.levels
+                .1
                 .surfaces
                 .iter()
                 .flat_map(|surface| [surface.p1, surface.p2]),
-            self.level
+            self.levels
+                .1
                 .background_tiles
                 .iter()
                 .flat_map(|tile| tile.vertices)
@@ -633,7 +635,12 @@ impl Game {
         framebuffer: &mut ugli::Framebuffer,
         texture: impl Fn(&SurfaceAssets) -> Option<&Texture>,
     ) {
-        for surface in &self.level.surfaces {
+        let level = if self.customization.postjam {
+            &self.levels.1
+        } else {
+            &self.levels.0
+        };
+        for surface in &level.surfaces {
             let assets = &self.assets.surfaces[&surface.type_name];
             let texture = match texture(assets) {
                 Some(texture) => texture,
@@ -679,19 +686,24 @@ impl Game {
             framebuffer,
             &self.camera,
             &draw_2d::TexturedQuad::unit(&self.assets.closed_outhouse)
-                .translate(self.level.spawn_point),
+                .translate(self.levels.0.spawn_point),
         );
         self.geng.draw_2d(
             framebuffer,
             &self.camera,
             &draw_2d::TexturedQuad::unit(&self.assets.golden_toilet)
-                .translate(self.level.finish_point),
+                .translate(self.levels.0.finish_point),
         );
         self.draw_level_impl(framebuffer, |assets| assets.back_texture.as_ref());
     }
 
     pub fn draw_level_front(&self, framebuffer: &mut ugli::Framebuffer) {
-        for tile in &self.level.background_tiles {
+        let level = if self.customization.postjam {
+            &self.levels.1
+        } else {
+            &self.levels.0
+        };
+        for tile in &level.background_tiles {
             let assets = &self.assets.background[&tile.type_name];
             self.geng.draw_2d(
                 framebuffer,
@@ -717,7 +729,8 @@ impl Game {
             self.framebuffer_size,
             self.geng.window().mouse_pos().map(|x| x as f32),
         );
-        self.level
+        self.levels
+            .1
             .surfaces
             .iter()
             .enumerate()
@@ -733,7 +746,7 @@ impl Game {
             self.framebuffer_size,
             self.geng.window().mouse_pos().map(|x| x as f32),
         );
-        'tile_loop: for (index, tile) in self.level.background_tiles.iter().enumerate() {
+        'tile_loop: for (index, tile) in self.levels.1.background_tiles.iter().enumerate() {
             for i in 0..3 {
                 let p1 = tile.vertices[i];
                 let p2 = tile.vertices[(i + 1) % 3];
@@ -761,7 +774,7 @@ impl Game {
                 );
             }
             if let Some(index) = self.find_hovered_surface() {
-                let surface = &self.level.surfaces[index];
+                let surface = &self.levels.1.surfaces[index];
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
@@ -773,7 +786,7 @@ impl Game {
                 );
             }
             if let Some(index) = self.find_hovered_background() {
-                let tile = &self.level.background_tiles[index];
+                let tile = &self.levels.1.background_tiles[index];
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
@@ -803,7 +816,7 @@ impl Game {
                 framebuffer,
                 &self.camera,
                 &draw_2d::Quad::new(
-                    AABB::point(self.level.spawn_point).extend_uniform(0.1),
+                    AABB::point(self.levels.1.spawn_point).extend_uniform(0.1),
                     Rgba::new(1.0, 0.8, 0.8, 0.5),
                 ),
             );
@@ -811,12 +824,12 @@ impl Game {
                 framebuffer,
                 &self.camera,
                 &draw_2d::Quad::new(
-                    AABB::point(self.level.finish_point).extend_uniform(0.1),
+                    AABB::point(self.levels.1.finish_point).extend_uniform(0.1),
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );
 
-            for (i, &p) in self.level.expected_path.iter().enumerate() {
+            for (i, &p) in self.levels.1.expected_path.iter().enumerate() {
                 self.assets.font.draw(
                     framebuffer,
                     &self.camera,
@@ -868,7 +881,7 @@ impl Game {
 
     pub fn update_guys(&mut self, delta_time: f32) {
         for guy in &mut self.guys {
-            if (guy.pos - self.level.finish_point).len() < 1.5 {
+            if (guy.pos - self.levels.0.finish_point).len() < 1.5 {
                 guy.finished = true;
             }
 
@@ -876,8 +889,8 @@ impl Game {
                 guy.auto_fart_timer = 0.0;
                 guy.force_fart_timer = 0.0;
                 guy.rot -= delta_time;
-                guy.pos = self.level.finish_point
-                    + (guy.pos - self.level.finish_point)
+                guy.pos = self.levels.0.finish_point
+                    + (guy.pos - self.levels.0.finish_point)
                         .normalize_or_zero()
                         .rotate(delta_time)
                         * 1.0;
@@ -953,7 +966,12 @@ impl Game {
             }
 
             let mut collision_to_resolve = None;
-            for surface in &self.level.surfaces {
+            let level = if self.customization.postjam {
+                &self.levels.1
+            } else {
+                &self.levels.0
+            };
+            for surface in &level.surfaces {
                 let v = surface.vector_from(guy.pos);
                 let penetration = self.config.guy_radius - v.len();
                 if penetration > EPS && Vec2::dot(v, guy.vel) > 0.0 {
@@ -1042,7 +1060,7 @@ impl Game {
 
                 if let Some(p1) = editor.start_drag.take() {
                     if (p1 - p2).len() > self.config.snap_distance {
-                        self.level.surfaces.push(Surface {
+                        self.levels.1.surfaces.push(Surface {
                             p1,
                             p2,
                             type_name: editor.selected_surface.clone(),
@@ -1055,7 +1073,7 @@ impl Game {
                 ..
             } => {
                 if let Some(index) = self.find_hovered_surface() {
-                    self.level.surfaces.remove(index);
+                    self.levels.1.surfaces.remove(index);
                 }
             }
             geng::Event::KeyDown { key } => match key {
@@ -1067,7 +1085,7 @@ impl Game {
                         if Vec2::skew(vertices[1] - vertices[0], vertices[2] - vertices[0]) < 0.0 {
                             vertices.reverse();
                         }
-                        self.level.background_tiles.push(BackgroundTile {
+                        self.levels.1.background_tiles.push(BackgroundTile {
                             vertices,
                             type_name: editor.selected_background.clone(),
                         });
@@ -1075,7 +1093,7 @@ impl Game {
                 }
                 geng::Key::D => {
                     if let Some(index) = self.find_hovered_background() {
-                        self.level.background_tiles.remove(index);
+                        self.levels.1.background_tiles.remove(index);
                     }
                 }
                 geng::Key::C => {
@@ -1093,22 +1111,27 @@ impl Game {
                     }
                 }
                 geng::Key::P => {
-                    self.level.spawn_point = self.camera.screen_to_world(
-                        self.framebuffer_size,
-                        self.geng.window().mouse_pos().map(|x| x as f32),
-                    );
+                    // self.level.spawn_point = self.camera.screen_to_world(
+                    //     self.framebuffer_size,
+                    //     self.geng.window().mouse_pos().map(|x| x as f32),
+                    // );
                 }
                 geng::Key::I => {
-                    self.level.expected_path.push(self.camera.screen_to_world(
+                    let level = if self.customization.postjam {
+                        &mut self.levels.1
+                    } else {
+                        &mut self.levels.0
+                    };
+                    level.expected_path.push(self.camera.screen_to_world(
                         self.framebuffer_size,
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     ));
                 }
                 geng::Key::K => {
-                    self.level.finish_point = self.camera.screen_to_world(
-                        self.framebuffer_size,
-                        self.geng.window().mouse_pos().map(|x| x as f32),
-                    );
+                    // self.level.finish_point = self.camera.screen_to_world(
+                    //     self.framebuffer_size,
+                    //     self.geng.window().mouse_pos().map(|x| x as f32),
+                    // );
                 }
                 geng::Key::Z => {
                     let mut options: Vec<&String> = self.assets.surfaces.keys().collect();
@@ -1138,8 +1161,8 @@ impl Game {
         #[cfg(not(target_arch = "wasm32"))]
         if self.editor.is_some() {
             serde_json::to_writer_pretty(
-                std::fs::File::create(static_path().join("level.json")).unwrap(),
-                &self.level,
+                std::fs::File::create(static_path().join("new_level.json")).unwrap(),
+                &self.levels.1,
             )
             .unwrap();
             info!("LVL SAVED");
@@ -1152,7 +1175,12 @@ impl Game {
             farticle.pos += farticle.vel * delta_time;
             farticle.rot += farticle.w * delta_time;
 
-            for surface in &self.level.surfaces {
+            let level = if self.customization.postjam {
+                &self.levels.1
+            } else {
+                &self.levels.0
+            };
+            for surface in &level.surfaces {
                 let v = surface.vector_from(farticle.pos);
                 let penetration = self.config.farticle_size / 2.0 - v.len();
                 if penetration > EPS && Vec2::dot(v, farticle.vel) > 0.0 {
@@ -1352,8 +1380,13 @@ impl geng::State for Game {
                     );
                 }
                 let progress = {
+                    let level = if self.customization.postjam {
+                        &self.levels.1
+                    } else {
+                        &self.levels.0
+                    };
                     let mut total_len = 0.0;
-                    for window in self.level.expected_path.windows(2) {
+                    for window in level.expected_path.windows(2) {
                         let a = window[0];
                         let b = window[1];
                         total_len += (b - a).len();
@@ -1361,7 +1394,7 @@ impl geng::State for Game {
                     let mut progress = 0.0;
                     let mut closest_point_distance = 1e9;
                     let mut prefix_len = 0.0;
-                    for window in self.level.expected_path.windows(2) {
+                    for window in level.expected_path.windows(2) {
                         let a = window[0];
                         let b = window[1];
                         let v = Surface {
@@ -1528,7 +1561,7 @@ impl geng::State for Game {
             geng::Event::KeyDown { key: geng::Key::R }
                 if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
             {
-                let new_guy = Guy::new(self.client_id, self.level.spawn_point);
+                let new_guy = Guy::new(self.client_id, self.levels.0.spawn_point);
                 if self.my_guy.is_none() {
                     self.my_guy = Some(self.client_id);
                 }
@@ -1587,7 +1620,6 @@ fn main() {
         }
     }
 
-    let level_path = static_path().join("level.json");
     logger::init().unwrap();
 
     if opt.server.is_some() && opt.connect.is_none() {
@@ -1630,21 +1662,35 @@ fn main() {
             future::join(
                 future::join(
                     <Assets as geng::LoadAsset>::load(&geng, &static_path()),
-                    <String as geng::LoadAsset>::load(&geng, &level_path),
+                    future::join(
+                        <String as geng::LoadAsset>::load(
+                            &geng,
+                            &static_path().join("old_level.json"),
+                        ),
+                        <String as geng::LoadAsset>::load(
+                            &geng,
+                            &static_path().join("new_level.json"),
+                        ),
+                    ),
                 ),
                 connection,
             ),
             {
                 let geng = geng.clone();
-                move |((assets, level), (client_id, connection))| {
+                move |((assets, (old_level, new_level)), (client_id, connection))| {
                     let mut assets = assets.expect("Failed to load assets");
                     assets.process();
-                    let level = match level {
-                        Ok(json) => serde_json::from_str(&json).unwrap(),
-                        Err(_) => Level::empty(),
-                    };
+                    let old_level = serde_json::from_str(&old_level.unwrap()).unwrap();
+                    let new_level = serde_json::from_str(&new_level.unwrap()).unwrap();
                     let assets = Rc::new(assets);
-                    Game::new(&geng, &assets, level, opt, client_id, connection)
+                    Game::new(
+                        &geng,
+                        &assets,
+                        (old_level, new_level),
+                        opt,
+                        client_id,
+                        connection,
+                    )
                 }
             },
         );
