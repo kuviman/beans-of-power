@@ -94,6 +94,12 @@ pub struct SurfaceParams {
     pub back: bool,
 }
 
+#[derive(Deserialize)]
+pub struct BackgroundParams {
+    #[serde(default)]
+    pub friction: f32,
+}
+
 pub struct SurfaceAssets {
     pub name: String,
     pub params: SurfaceParams,
@@ -165,6 +171,7 @@ fn load_surface_assets(
 
 pub struct BackgroundAssets {
     pub name: String,
+    pub params: BackgroundParams,
     pub texture: Texture,
 }
 
@@ -175,9 +182,10 @@ fn load_background_assets(
     let geng = geng.clone();
     let path = path.to_owned();
     async move {
-        let json = <String as geng::LoadAsset>::load(&geng, &path.join("_list.json")).await?;
-        let list: Vec<String> = serde_json::from_str(&json).unwrap();
-        future::join_all(list.into_iter().map(|name| {
+        let json = <String as geng::LoadAsset>::load(&geng, &path.join("config.json")).await?;
+        let config: std::collections::BTreeMap<String, BackgroundParams> =
+            serde_json::from_str(&json).unwrap();
+        future::join_all(config.into_iter().map(|(name, params)| {
             let geng = geng.clone();
             let path = path.clone();
             async move {
@@ -185,7 +193,14 @@ fn load_background_assets(
                     <Texture as geng::LoadAsset>::load(&geng, &path.join(format!("{}.png", name)))
                         .await?;
                 texture.0.set_wrap_mode(ugli::WrapMode::Repeat);
-                Ok((name.clone(), BackgroundAssets { name, texture }))
+                Ok((
+                    name.clone(),
+                    BackgroundAssets {
+                        name,
+                        params,
+                        texture,
+                    },
+                ))
             }
         }))
         .await
@@ -258,9 +273,15 @@ pub struct Surface {
     pub type_name: String,
 }
 
+fn zero_flow() -> Vec2<f32> {
+    Vec2::ZERO
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BackgroundTile {
     pub vertices: [Vec2<f32>; 3],
+    #[serde(default = "zero_flow")]
+    pub flow: Vec2<f32>,
     pub type_name: String,
 }
 
@@ -370,6 +391,7 @@ struct EditorState {
     face_points: Vec<Vec2<f32>>,
     selected_surface: String,
     selected_background: String,
+    wind_drag: Option<(usize, Vec2<f32>)>,
 }
 
 impl EditorState {
@@ -380,6 +402,7 @@ impl EditorState {
             face_points: vec![],
             selected_surface: "".to_owned(),
             selected_background: "".to_owned(),
+            wind_drag: None,
         }
     }
 }
@@ -714,7 +737,7 @@ impl Game {
                         .map(|v| draw_2d::TexturedVertex {
                             a_pos: v,
                             a_color: Rgba::WHITE,
-                            a_vt: v,
+                            a_vt: v - tile.flow * self.simulation_time,
                         })
                         .collect(),
                     &assets.texture,
@@ -838,6 +861,24 @@ impl Game {
                     geng::TextAlign::CENTER,
                     0.1,
                     Rgba::new(0.0, 0.0, 0.0, 0.5),
+                );
+            }
+
+            if let Some((_, start)) = editor.wind_drag {
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::Segment::new(
+                        Segment::new(
+                            start,
+                            self.camera.screen_to_world(
+                                self.framebuffer_size,
+                                self.geng.window().mouse_pos().map(|x| x as f32),
+                            ),
+                        ),
+                        0.2,
+                        Rgba::new(1.0, 0.0, 0.0, 0.5),
+                    ),
                 );
             }
         }
@@ -989,6 +1030,21 @@ impl Game {
                         });
                 }
             }
+            if self.customization.postjam {
+                'tile_loop: for (index, tile) in self.levels.1.background_tiles.iter().enumerate() {
+                    for i in 0..3 {
+                        let p1 = tile.vertices[i];
+                        let p2 = tile.vertices[(i + 1) % 3];
+                        if Vec2::skew(p2 - p1, guy.pos - p1) < 0.0 {
+                            continue 'tile_loop;
+                        }
+                    }
+                    let relative_vel = guy.vel - tile.flow;
+                    let params = &self.assets.background[&tile.type_name].params;
+                    let force = -relative_vel * params.friction;
+                    guy.vel += force * delta_time;
+                }
+            }
             if let Some(collision) = collision_to_resolve {
                 guy.pos += collision.normal * collision.penetration;
                 let normal_vel = Vec2::dot(guy.vel, collision.normal);
@@ -1076,7 +1132,33 @@ impl Game {
                     self.levels.1.surfaces.remove(index);
                 }
             }
+            geng::Event::KeyUp { key } => match key {
+                geng::Key::W => {
+                    if let Some((index, start)) = editor.wind_drag.take() {
+                        let to = self.camera.screen_to_world(
+                            self.framebuffer_size,
+                            self.geng.window().mouse_pos().map(|x| x as f32),
+                        );
+                        self.levels.1.background_tiles[index].flow = to - start;
+                    }
+                }
+                _ => {}
+            },
             geng::Event::KeyDown { key } => match key {
+                geng::Key::W => {
+                    if editor.wind_drag.is_none() {
+                        self.editor.as_mut().unwrap().wind_drag =
+                            self.find_hovered_background().map(|index| {
+                                (
+                                    index,
+                                    self.camera.screen_to_world(
+                                        self.framebuffer_size,
+                                        self.geng.window().mouse_pos().map(|x| x as f32),
+                                    ),
+                                )
+                            });
+                    }
+                }
                 geng::Key::F => {
                     editor.face_points.push(cursor_pos);
                     if editor.face_points.len() == 3 {
@@ -1087,6 +1169,7 @@ impl Game {
                         }
                         self.levels.1.background_tiles.push(BackgroundTile {
                             vertices,
+                            flow: Vec2::ZERO,
                             type_name: editor.selected_background.clone(),
                         });
                     }

@@ -1,0 +1,8 @@
+{
+    "dirt": {},
+    "stone": {},
+    "snow": {},
+    "wind": {
+        "friction": 1.0
+    }
+}
