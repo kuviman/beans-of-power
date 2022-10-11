@@ -1039,7 +1039,9 @@ impl Game {
                             continue 'tile_loop;
                         }
                     }
-                    let relative_vel = guy.vel - tile.flow;
+                    let mut relative_vel = guy.vel - tile.flow;
+                    let n = tile.flow.rotate_90().normalize_or_zero();
+                    relative_vel -= n * Vec2::dot(n, relative_vel); // TODO: not always wanted, another param?
                     let params = &self.assets.background[&tile.type_name].params;
                     let force = -relative_vel * params.friction;
                     guy.vel += force * delta_time;
