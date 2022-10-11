@@ -352,6 +352,9 @@ pub struct Guy {
     pub finished: bool,
     pub colors: GuyColors,
     pub postjam: bool,
+    pub progress: f32,
+    pub best_progress: f32,
+    pub best_time: Option<f32>,
 }
 
 impl Guy {
@@ -381,6 +384,9 @@ impl Guy {
                 },
             },
             postjam: false,
+            progress: 0.0,
+            best_progress: 0.0,
+            best_time: None,
         }
     }
 }
@@ -446,6 +452,7 @@ pub struct Game {
     old_music: geng::SoundEffect,
     new_music: geng::SoundEffect,
     show_names: bool,
+    show_leaderboard: bool,
 }
 
 impl Drop for Game {
@@ -524,6 +531,7 @@ impl Game {
                 effect
             },
             show_names: true,
+            show_leaderboard: opt.postjam,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -628,7 +636,9 @@ impl Game {
                 .transform(Mat3::rotate(guy.rot))
                 .translate(guy.pos),
             );
-            if Some(guy.id) == self.my_guy || self.show_names {
+            if Some(guy.id) == self.my_guy
+                || (self.show_names && (!self.customization.postjam || guy.postjam))
+            {
                 self.assets.font.draw(
                     framebuffer,
                     &self.camera,
@@ -1433,9 +1443,67 @@ impl Game {
                 }
                 if self.customization.name.to_lowercase() == "postjamplease" {
                     self.customization.postjam = true;
+                    self.show_leaderboard = true;
                 }
             }
             _ => {}
+        }
+    }
+
+    fn draw_leaderboard(&self, framebuffer: &mut ugli::Framebuffer) {
+        if !self.show_leaderboard {
+            return;
+        }
+        let mut guys: Vec<&Guy> = self.guys.iter().filter(|guy| guy.postjam).collect();
+        guys.sort_by(|a, b| match (a.best_time, b.best_time) {
+            (Some(a), Some(b)) => a.partial_cmp(&b).unwrap(),
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (None, None) => a
+                .best_progress
+                .partial_cmp(&b.best_progress)
+                .unwrap()
+                .reverse(),
+        });
+        let mut camera = geng::Camera2d {
+            center: Vec2::ZERO,
+            rotation: 0.0,
+            fov: 40.0,
+        };
+        camera.center.x += camera.fov * self.framebuffer_size.x / self.framebuffer_size.y / 2.0;
+        for (place, guy) in guys.into_iter().enumerate() {
+            let place = place + 1;
+            let name = &guy.name;
+            let progress = (guy.progress * 100.0).round() as i32;
+            let mut text = format!("#{place}: {name} - {progress}% (");
+            if let Some(time) = guy.best_time {
+                let millis = (time * 1000.0).round() as i32;
+                let seconds = millis / 1000;
+                let millis = millis % 1000;
+                let minutes = seconds / 60;
+                let seconds = seconds % 60;
+                let hours = minutes / 60;
+                let minutes = minutes % 60;
+                if hours != 0 {
+                    text += &format!("{}:", hours);
+                }
+                if minutes != 0 {
+                    text += &format!("{}:", minutes);
+                }
+                text += &format!("{}.{}", seconds, millis);
+            } else {
+                text += &format!("{}%", (guy.best_progress * 100.0).round() as i32);
+            }
+            text.push(')');
+            self.geng.default_font().draw(
+                framebuffer,
+                &camera,
+                &text,
+                vec2(1.0, camera.fov / 2.0 - place as f32),
+                geng::TextAlign::LEFT,
+                1.0,
+                Rgba::BLACK,
+            );
         }
     }
 }
@@ -1453,6 +1521,8 @@ impl geng::State for Game {
 
         self.draw_customizer(framebuffer);
 
+        self.draw_leaderboard(framebuffer);
+
         if !self.show_customizer {
             if let Some(id) = self.my_guy {
                 let camera = geng::Camera2d {
@@ -1460,7 +1530,7 @@ impl geng::State for Game {
                     rotation: 0.0,
                     fov: 10.0,
                 };
-                let guy = self.guys.get(&id).unwrap();
+                let guy = self.guys.get_mut(&id).unwrap();
                 if guy.finished {
                     self.assets.font.draw(
                         framebuffer,
@@ -1504,7 +1574,12 @@ impl geng::State for Game {
                     }
                     progress
                 };
+                guy.progress = progress;
                 self.best_progress = self.best_progress.max(progress);
+                guy.best_progress = dbg!(self.best_progress);
+                if guy.finished && self.simulation_time < guy.best_time.unwrap_or(1e9) {
+                    guy.best_time = Some(self.simulation_time);
+                }
                 let mut time_text = String::new();
                 let seconds = self.simulation_time.round() as i32;
                 let minutes = seconds / 60;
@@ -1664,6 +1739,11 @@ impl geng::State for Game {
             }
             geng::Event::KeyDown { key: geng::Key::H } => {
                 self.show_names = !self.show_names;
+            }
+            geng::Event::KeyDown { key: geng::Key::L } => {
+                if self.customization.postjam {
+                    self.show_leaderboard = !self.show_leaderboard;
+                }
             }
             geng::Event::KeyDown {
                 key: geng::Key::Num1,
