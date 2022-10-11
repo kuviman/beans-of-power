@@ -1212,6 +1212,14 @@ impl Game {
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     ));
                 }
+                geng::Key::Backspace => {
+                    let level = if self.customization.postjam {
+                        &mut self.levels.1
+                    } else {
+                        &mut self.levels.0
+                    };
+                    level.expected_path.pop();
+                }
                 geng::Key::K => {
                     // self.level.finish_point = self.camera.screen_to_world(
                     //     self.framebuffer_size,
