@@ -41,6 +41,7 @@ pub const CONTROLS_FORCE_FART: [geng::Key; 3] = [geng::Key::W, geng::Key::Up, ge
 #[derive(geng::Assets, Deserialize, Clone, Debug)]
 #[asset(json)]
 pub struct Config {
+    volume: f32,
     snap_distance: f32,
     guy_radius: f32,
     angular_acceleration: f32,
@@ -457,7 +458,7 @@ impl Game {
             prev_mouse_pos: Vec2::ZERO,
             opt: opt.clone(),
             farticles: default(),
-            volume: 0.5,
+            volume: 0.0,
             client_id,
             connection,
             simulation_time: 0.0,
@@ -1428,6 +1429,7 @@ impl geng::State for Game {
     }
 
     fn update(&mut self, delta_time: f64) {
+        self.volume = self.assets.config.volume;
         self.music.set_volume(self.volume as f64);
         self.emotes.retain(|&(t, ..)| t >= self.real_time - 1.0);
         let delta_time = delta_time as f32;
@@ -1444,8 +1446,8 @@ impl geng::State for Game {
         }
 
         if self.editor.is_none() {
-            let target_fov = if self.show_customizer { 2.0 } else { 6.0 };
-            self.camera.fov += (target_fov - self.camera.fov) * delta_time;
+            // let target_fov = if self.show_customizer { 2.0 } else { 6.0 };
+            // self.camera.fov += (target_fov - self.camera.fov) * delta_time;
         }
 
         if let Some(editor) = &mut self.editor {
