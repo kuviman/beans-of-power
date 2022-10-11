@@ -201,7 +201,9 @@ pub struct SfxAssets {
     pub fart: Vec<geng::Sound>,
     pub fart_recharge: geng::Sound,
     #[asset(path = "music.mp3")]
-    pub music: geng::Sound,
+    pub old_music: geng::Sound,
+    #[asset(path = "KuviFart.wav")]
+    pub new_music: geng::Sound,
 }
 
 fn load_font(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<geng::Font> {
@@ -244,7 +246,8 @@ pub struct Assets {
 
 impl Assets {
     pub fn process(&mut self) {
-        self.sfx.music.looped = true;
+        self.sfx.old_music.looped = true;
+        self.sfx.new_music.looped = true;
     }
 }
 
@@ -327,6 +330,7 @@ pub struct Guy {
     pub force_fart_timer: f32,
     pub finished: bool,
     pub colors: GuyColors,
+    pub postjam: bool,
 }
 
 impl Guy {
@@ -355,6 +359,7 @@ impl Guy {
                     Rgba::new(tone, tone, tone, 1.0)
                 },
             },
+            postjam: false,
         }
     }
 }
@@ -415,7 +420,8 @@ pub struct Game {
     ui_controller: ui::Controller,
     buttons: Vec<ui::Button<UiMessage>>,
     show_customizer: bool,
-    music: geng::SoundEffect,
+    old_music: geng::SoundEffect,
+    new_music: geng::SoundEffect,
     show_names: bool,
 }
 
@@ -464,7 +470,13 @@ impl Game {
             simulation_time: 0.0,
             remote_simulation_times: HashMap::new(),
             remote_updates: default(),
-            customization: Guy::new(-1, vec2(0.0, 0.0)),
+            customization: {
+                let mut guy = Guy::new(-1, vec2(0.0, 0.0));
+                if opt.postjam {
+                    guy.postjam = true;
+                }
+                guy
+            },
             best_progress: 0.0,
             ui_controller: ui::Controller::new(geng, assets),
             buttons: vec![
@@ -478,7 +490,16 @@ impl Game {
                 ),
             ],
             show_customizer: !opt.editor,
-            music: assets.sfx.music.play(),
+            old_music: {
+                let mut effect = assets.sfx.old_music.play();
+                effect.set_volume(0.0);
+                effect
+            },
+            new_music: {
+                let mut effect = assets.sfx.new_music.play();
+                effect.set_volume(0.0);
+                effect
+            },
             show_names: true,
         };
         if !opt.editor {
@@ -1289,6 +1310,9 @@ impl Game {
                 if *key == geng::Key::Backspace {
                     self.customization.name.pop();
                 }
+                if self.customization.name.to_lowercase() == "postjamplease" {
+                    self.customization.postjam = true;
+                }
             }
             _ => {}
         }
@@ -1430,7 +1454,13 @@ impl geng::State for Game {
 
     fn update(&mut self, delta_time: f64) {
         self.volume = self.assets.config.volume;
-        self.music.set_volume(self.volume as f64);
+        if self.customization.postjam {
+            self.new_music.set_volume(self.volume as f64);
+            self.old_music.set_volume(0.0);
+        } else {
+            self.old_music.set_volume(self.volume as f64);
+            self.new_music.set_volume(0.0);
+        }
         self.emotes.retain(|&(t, ..)| t >= self.real_time - 1.0);
         let delta_time = delta_time as f32;
         self.real_time += delta_time;
@@ -1465,6 +1495,7 @@ impl geng::State for Game {
             let guy = self.guys.get_mut(&id).unwrap();
             guy.name = self.customization.name.clone();
             guy.colors = self.customization.colors.clone();
+            guy.postjam = self.customization.postjam;
         }
     }
 
@@ -1534,6 +1565,8 @@ pub struct Opt {
     pub server: Option<String>,
     #[clap(long)]
     pub connect: Option<String>,
+    #[clap(long)]
+    pub postjam: bool,
 }
 
 fn main() {
