@@ -453,6 +453,7 @@ pub struct Game {
     new_music: geng::SoundEffect,
     show_names: bool,
     show_leaderboard: bool,
+    follow: Option<Id>,
 }
 
 impl Drop for Game {
@@ -532,6 +533,7 @@ impl Game {
             },
             show_names: true,
             show_leaderboard: opt.postjam,
+            follow: None,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -1445,6 +1447,15 @@ impl Game {
                     self.customization.postjam = true;
                     self.show_leaderboard = true;
                 }
+                if self.customization.name.to_lowercase() == "iamoutfrost" {
+                    self.customization.postjam = true;
+                    self.show_leaderboard = true;
+                    self.opt.editor = true;
+                    if let Some(id) = self.my_guy.take() {
+                        self.connection.send(ClientMessage::Despawn);
+                        self.guys.remove(&id);
+                    }
+                }
             }
             _ => {}
         }
@@ -1666,15 +1677,19 @@ impl geng::State for Game {
         let delta_time = delta_time as f32;
         self.real_time += delta_time;
 
+        let mut target_center = self.camera.center;
         if let Some(id) = self.my_guy {
             let guy = self.guys.get(&id).unwrap();
-            let mut target_center = guy.pos;
+            target_center = guy.pos;
             if self.show_customizer {
                 target_center.x += 1.0;
             }
-            self.camera.center +=
-                (target_center - self.camera.center) * (delta_time * 5.0).min(1.0);
+        } else if let Some(id) = self.follow {
+            if let Some(guy) = self.guys.get(&id) {
+                target_center = guy.pos;
+            }
         }
+        self.camera.center += (target_center - self.camera.center) * (delta_time * 5.0).min(1.0);
 
         if self.editor.is_none() {
             // let target_fov = if self.show_customizer { 2.0 } else { 6.0 };
@@ -1717,6 +1732,29 @@ impl geng::State for Game {
                     .camera
                     .screen_to_world(self.framebuffer_size, position.map(|x| x as f32));
                 self.camera.center += old_pos - new_pos;
+            }
+            geng::Event::MouseDown {
+                position,
+                button: geng::MouseButton::Left,
+            } if self.my_guy.is_none() && self.editor.is_none() => {
+                let pos = self
+                    .camera
+                    .screen_to_world(self.framebuffer_size, position.map(|x| x as f32));
+                if let Some(guy) = self
+                    .guys
+                    .iter()
+                    .min_by_key(|guy| r32((guy.pos - pos).len()))
+                {
+                    if (guy.pos - pos).len() < self.assets.config.guy_radius {
+                        self.follow = Some(guy.id);
+                    }
+                }
+            }
+            geng::Event::MouseDown {
+                button: geng::MouseButton::Right,
+                ..
+            } => {
+                self.follow = None;
             }
             geng::Event::Wheel { delta } if self.opt.editor => {
                 self.camera.fov = (self.camera.fov * 1.01f32.powf(-delta as f32)).clamp(1.0, 30.0);
