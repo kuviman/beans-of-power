@@ -495,7 +495,7 @@ impl Game {
             prev_mouse_pos: Vec2::ZERO,
             opt: opt.clone(),
             farticles: default(),
-            volume: 0.0,
+            volume: assets.config.volume,
             client_id,
             connection,
             simulation_time: 0.0,
@@ -1360,6 +1360,14 @@ impl Game {
                 Some(x) => *x,
                 None => continue,
             };
+            if let Some(update) = updates.back() {
+                if (update.0 - current_simulation_time).abs() > 5.0 {
+                    updates.clear();
+                    self.remote_simulation_times.remove(&id);
+                    self.guys.remove(&id);
+                    continue;
+                }
+            }
             while let Some(update) = updates.front() {
                 if (update.0 - current_simulation_time).abs() > 5.0 {
                     updates.clear();
@@ -1665,7 +1673,14 @@ impl geng::State for Game {
     }
 
     fn update(&mut self, delta_time: f64) {
-        self.volume = self.assets.config.volume;
+        // self.volume = self.assets.config.volume;
+        if self.geng.window().is_key_pressed(geng::Key::PageUp) {
+            self.volume += delta_time as f32 * 0.5;
+        }
+        if self.geng.window().is_key_pressed(geng::Key::PageDown) {
+            self.volume -= delta_time as f32 * 0.5;
+        }
+        self.volume = self.volume.clamp(0.0, 1.0);
         if self.customization.postjam {
             self.new_music.set_volume(self.volume as f64);
             self.old_music.set_volume(0.0);
