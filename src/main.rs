@@ -1834,6 +1834,10 @@ impl geng::State for Game {
                             .guys
                             .iter()
                             .any(|guy| guy.name.to_lowercase() == "pomo")
+                        || self
+                            .my_guy
+                            .and_then(|id| self.guys.get(&id))
+                            .map_or(false, |me| me.finished)
                     {
                         let new_guy = Guy::new(
                             self.client_id,
