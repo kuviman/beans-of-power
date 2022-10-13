@@ -434,6 +434,7 @@ pub struct Farticle {
 }
 
 pub struct Game {
+    best_time: Option<f32>,
     emotes: Vec<(f32, Id, usize)>,
     best_progress: f32,
     framebuffer_size: Vec2<f32>,
@@ -483,6 +484,7 @@ impl Game {
         connection: Connection,
     ) -> Self {
         let mut result = Self {
+            best_time: None,
             emotes: vec![],
             geng: geng.clone(),
             config: assets.config.clone(),
@@ -1640,9 +1642,10 @@ impl geng::State for Game {
                 guy.progress = progress;
                 self.best_progress = self.best_progress.max(progress);
                 guy.best_progress = self.best_progress;
-                if guy.finished && self.simulation_time < guy.best_time.unwrap_or(1e9) {
-                    guy.best_time = Some(self.simulation_time);
+                if guy.finished && self.simulation_time < self.best_time.unwrap_or(1e9) {
+                    self.best_time = Some(self.simulation_time);
                 }
+                guy.best_time = self.best_time;
                 let mut time_text = String::new();
                 let seconds = self.simulation_time.round() as i32;
                 let minutes = seconds / 60;
