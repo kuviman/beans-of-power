@@ -1,3 +1,5 @@
+// TODO: custom fart texture/color/sound
+
 // TODO: write the rest of this comment
 use geng::prelude::*;
 
@@ -110,6 +112,37 @@ pub struct SurfaceAssets {
 }
 
 #[derive(geng::Assets)]
+pub struct CustomGuyAssets {
+    pub body: Texture,
+    pub eyes: Texture,
+    pub cheeks: Texture,
+}
+
+fn load_custom_guy_assets(
+    geng: &Geng,
+    path: &std::path::Path,
+) -> geng::AssetFuture<HashMap<String, CustomGuyAssets>> {
+    let geng = geng.clone();
+    let path = path.to_owned();
+    async move {
+        let json = <String as geng::LoadAsset>::load(&geng, &path.join("_list.json")).await?;
+        let list: Vec<String> = serde_json::from_str(&json).unwrap();
+        future::join_all(list.into_iter().map(|name| {
+            let geng = geng.clone();
+            let path = path.clone();
+            async move {
+                let assets = geng::LoadAsset::load(&geng, &path.join(&name)).await?;
+                Ok((name.to_uppercase(), assets))
+            }
+        }))
+        .await
+        .into_iter()
+        .collect::<Result<_, anyhow::Error>>()
+    }
+    .boxed_local()
+}
+
+#[derive(geng::Assets)]
 pub struct GuyAssets {
     pub cheeks: Texture,
     pub eyes: Texture,
@@ -117,6 +150,8 @@ pub struct GuyAssets {
     pub clothes_top: Texture,
     pub clothes_bottom: Texture,
     pub hair: Texture,
+    #[asset(load_with = "load_custom_guy_assets(&geng, &base_path.join(\"custom\"))")]
+    pub custom: HashMap<String, CustomGuyAssets>,
 }
 
 fn load_surface_assets(
@@ -593,46 +628,68 @@ impl Game {
             self.guys.iter().filter(|guy| guy.id != self.client_id),
             self.guys.iter().filter(|guy| guy.id == self.client_id),
         ] {
-            self.geng.draw_2d(
-                framebuffer,
-                &self.camera,
-                &draw_2d::TexturedQuad::unit_colored(
-                    &self.assets.guy.clothes_bottom,
-                    guy.colors.bottom,
+            let (eyes, cheeks, cheeks_color) = if let Some(custom) =
+                self.assets.guy.custom.get(&guy.name)
+            {
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit(&custom.body)
+                        .scale_uniform(self.config.guy_radius)
+                        .transform(Mat3::rotate(guy.rot))
+                        .translate(guy.pos),
+                );
+                (&custom.eyes, &custom.cheeks, Rgba::WHITE)
+            } else {
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit_colored(
+                        &self.assets.guy.clothes_bottom,
+                        guy.colors.bottom,
+                    )
+                    .scale_uniform(self.config.guy_radius)
+                    .transform(Mat3::rotate(guy.rot))
+                    .translate(guy.pos),
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit_colored(
+                        &self.assets.guy.clothes_top,
+                        guy.colors.top,
+                    )
+                    .scale_uniform(self.config.guy_radius)
+                    .transform(Mat3::rotate(guy.rot))
+                    .translate(guy.pos),
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit_colored(&self.assets.guy.hair, guy.colors.hair)
+                        .scale_uniform(self.config.guy_radius)
+                        .transform(Mat3::rotate(guy.rot))
+                        .translate(guy.pos),
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit_colored(&self.assets.guy.skin, guy.colors.skin)
+                        .scale_uniform(self.config.guy_radius)
+                        .transform(Mat3::rotate(guy.rot))
+                        .translate(guy.pos),
+                );
+                (
+                    &self.assets.guy.eyes,
+                    &self.assets.guy.cheeks,
+                    guy.colors.skin,
                 )
-                .scale_uniform(self.config.guy_radius)
-                .transform(Mat3::rotate(guy.rot))
-                .translate(guy.pos),
-            );
-            self.geng.draw_2d(
-                framebuffer,
-                &self.camera,
-                &draw_2d::TexturedQuad::unit_colored(&self.assets.guy.clothes_top, guy.colors.top)
-                    .scale_uniform(self.config.guy_radius)
-                    .transform(Mat3::rotate(guy.rot))
-                    .translate(guy.pos),
-            );
-            self.geng.draw_2d(
-                framebuffer,
-                &self.camera,
-                &draw_2d::TexturedQuad::unit_colored(&self.assets.guy.hair, guy.colors.hair)
-                    .scale_uniform(self.config.guy_radius)
-                    .transform(Mat3::rotate(guy.rot))
-                    .translate(guy.pos),
-            );
-            self.geng.draw_2d(
-                framebuffer,
-                &self.camera,
-                &draw_2d::TexturedQuad::unit_colored(&self.assets.guy.skin, guy.colors.skin)
-                    .scale_uniform(self.config.guy_radius)
-                    .transform(Mat3::rotate(guy.rot))
-                    .translate(guy.pos),
-            );
+            };
             let autofart_progress = guy.auto_fart_timer / self.config.auto_fart_interval;
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::TexturedQuad::unit_colored(&self.assets.guy.eyes, {
+                &draw_2d::TexturedQuad::unit_colored(eyes, {
                     let k = 0.8;
                     let t = ((autofart_progress - k) / (1.0 - k)).clamp(0.0, 1.0) * 0.5;
                     Rgba::new(1.0, 1.0 - t, 1.0 - t, 1.0)
@@ -646,10 +703,10 @@ impl Game {
                 framebuffer,
                 &self.camera,
                 &draw_2d::TexturedQuad::unit_colored(
-                    &self.assets.guy.cheeks,
+                    cheeks,
                     Rgba {
                         a: (0.5 + 1.0 * autofart_progress).min(1.0),
-                        ..guy.colors.skin
+                        ..cheeks_color
                     },
                 )
                 .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * autofart_progress)
