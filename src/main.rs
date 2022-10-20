@@ -1959,6 +1959,9 @@ fn main() {
     geng::setup_panic_handler();
     let mut opt: Opt = program_args::parse();
 
+    // TODO: postjam by default when jam is finished
+    // opt.postjam = true;
+
     if opt.connect.is_none() && opt.server.is_none() {
         if cfg!(target_arch = "wasm32") {
             opt.connect = Some(
