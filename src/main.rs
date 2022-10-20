@@ -162,6 +162,32 @@ pub struct GuyAssets {
     pub custom: HashMap<String, CustomGuyAssets>,
 }
 
+fn load_objects_assets(
+    geng: &Geng,
+    path: &std::path::Path,
+) -> geng::AssetFuture<HashMap<String, Texture>> {
+    let geng = geng.clone();
+    let path = path.to_owned();
+    async move {
+        let json = <String as geng::LoadAsset>::load(&geng, &path.join("_list.json")).await?;
+        let list: Vec<String> = serde_json::from_str(&json).unwrap();
+        future::join_all(list.into_iter().map(|name| {
+            let geng = geng.clone();
+            let path = path.clone();
+            async move {
+                Ok((
+                    name.clone(),
+                    geng::LoadAsset::load(&geng, &path.join(format!("{}.png", name))).await?,
+                ))
+            }
+        }))
+        .await
+        .into_iter()
+        .collect::<Result<_, anyhow::Error>>()
+    }
+    .boxed_local()
+}
+
 fn load_surface_assets(
     geng: &Geng,
     path: &std::path::Path,
@@ -292,6 +318,8 @@ pub struct Assets {
     pub surfaces: HashMap<String, SurfaceAssets>,
     #[asset(load_with = "load_background_assets(&geng, &base_path.join(\"background\"))")]
     pub background: HashMap<String, BackgroundAssets>,
+    #[asset(load_with = "load_objects_assets(&geng, &base_path.join(\"objects\"))")]
+    pub objects: HashMap<String, Texture>,
     pub farticle: Texture,
     #[asset(load_with = "load_font(&geng, &base_path.join(\"Ludum-Dairy-0.2.0.ttf\"))")]
     pub font: geng::Font,
@@ -347,12 +375,19 @@ impl Surface {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Object {
+    pub type_name: String,
+    pub pos: Vec2<f32>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Level {
     pub spawn_point: Vec2<f32>,
     pub finish_point: Vec2<f32>,
     pub surfaces: Vec<Surface>,
     pub background_tiles: Vec<BackgroundTile>,
     pub expected_path: Vec<Vec2<f32>>,
+    pub objects: Vec<Object>,
 }
 
 impl Level {
@@ -363,6 +398,7 @@ impl Level {
             surfaces: vec![],
             background_tiles: vec![],
             expected_path: vec![],
+            objects: vec![],
         }
     }
 }
@@ -452,6 +488,7 @@ struct EditorState {
     selected_surface: String,
     selected_background: String,
     wind_drag: Option<(usize, Vec2<f32>)>,
+    selected_object: String,
 }
 
 impl EditorState {
@@ -462,6 +499,7 @@ impl EditorState {
             face_points: vec![],
             selected_surface: "".to_owned(),
             selected_background: "".to_owned(),
+            selected_object: "".to_owned(),
             wind_drag: None,
         }
     }
@@ -818,6 +856,22 @@ impl Game {
             &draw_2d::TexturedQuad::unit(&self.assets.golden_toilet)
                 .translate(self.levels.0.finish_point),
         );
+        {
+            let level = if self.customization.postjam {
+                &self.levels.1
+            } else {
+                &self.levels.0
+            };
+            for obj in &level.objects {
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit(&self.assets.objects[&obj.type_name])
+                        .scale_uniform(0.6)
+                        .translate(obj.pos),
+                );
+            }
+        }
         self.draw_level_impl(framebuffer, |assets| assets.back_texture.as_ref());
     }
 
@@ -1206,6 +1260,9 @@ impl Game {
         {
             editor.selected_background = self.assets.background.keys().next().unwrap().clone();
         }
+        if !self.assets.objects.contains_key(&editor.selected_object) {
+            editor.selected_object = self.assets.objects.keys().next().unwrap().clone();
+        }
 
         match event {
             geng::Event::MouseDown {
@@ -1318,6 +1375,20 @@ impl Game {
                         self.framebuffer_size,
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     ));
+                }
+                geng::Key::O => {
+                    let level = if self.customization.postjam {
+                        &mut self.levels.1
+                    } else {
+                        &mut self.levels.0
+                    };
+                    level.objects.push(Object {
+                        type_name: editor.selected_object.to_owned(),
+                        pos: self.camera.screen_to_world(
+                            self.framebuffer_size,
+                            self.geng.window().mouse_pos().map(|x| x as f32),
+                        ),
+                    });
                 }
                 geng::Key::Backspace => {
                     let level = if self.customization.postjam {
