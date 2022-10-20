@@ -1,6 +1,9 @@
 {
     "dirt": {},
     "stone": {},
+    "darkstone": {
+        "background": true
+    },
     "snow": {},
     "wind": {
         "friction_along_flow": 1.0

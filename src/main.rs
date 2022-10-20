@@ -101,6 +101,8 @@ pub struct SurfaceParams {
 #[derive(Deserialize)]
 pub struct BackgroundParams {
     #[serde(default)]
+    pub background: bool,
+    #[serde(default)]
     pub friction_along_flow: f32,
     #[serde(default)]
     pub friction: f32,
@@ -839,6 +841,32 @@ impl Game {
     }
 
     pub fn draw_level_back(&self, framebuffer: &mut ugli::Framebuffer) {
+        let level = if self.customization.postjam {
+            &self.levels.1
+        } else {
+            &self.levels.0
+        };
+        for tile in &level.background_tiles {
+            let assets = &self.assets.background[&tile.type_name];
+            if !assets.params.background {
+                continue;
+            }
+            self.geng.draw_2d(
+                framebuffer,
+                &self.camera,
+                &draw_2d::TexturedPolygon::new(
+                    tile.vertices
+                        .into_iter()
+                        .map(|v| draw_2d::TexturedVertex {
+                            a_pos: v,
+                            a_color: Rgba::WHITE,
+                            a_vt: v - tile.flow * self.simulation_time,
+                        })
+                        .collect(),
+                    &assets.texture,
+                ),
+            );
+        }
         self.geng.draw_2d(
             framebuffer,
             &self.camera,
@@ -883,6 +911,9 @@ impl Game {
         };
         for tile in &level.background_tiles {
             let assets = &self.assets.background[&tile.type_name];
+            if assets.params.background {
+                continue;
+            }
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
