@@ -107,6 +107,10 @@ pub struct BackgroundParams {
     pub friction_along_flow: f32,
     #[serde(default)]
     pub friction: f32,
+    #[serde(default)]
+    pub texture_movement_frequency: f32,
+    #[serde(default)]
+    pub texture_movement_amplitude: f32,
     #[serde(default = "zero_vec")]
     pub additional_force: Vec2<f32>,
 }
@@ -941,7 +945,11 @@ impl Game {
                         .map(|v| draw_2d::TexturedVertex {
                             a_pos: v,
                             a_color: Rgba::WHITE,
-                            a_vt: v - tile.flow * self.simulation_time,
+                            a_vt: v - tile.flow * self.simulation_time
+                                + vec2(
+                                    self.noise(assets.params.texture_movement_frequency),
+                                    self.noise(assets.params.texture_movement_frequency),
+                                ) * assets.params.texture_movement_amplitude,
                         })
                         .collect(),
                     &assets.texture,

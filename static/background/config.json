@@ -13,6 +13,8 @@
         "additional_force": {
             "x": 0.0,
             "y": 10.0
-        }
+        },
+        "texture_movement_frequency": 0.1,
+        "texture_movement_amplitude": 0.5
     }
 }
