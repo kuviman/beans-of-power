@@ -592,7 +592,7 @@ impl Game {
                 } else {
                     result.levels.0.spawn_point
                 },
-                !result.customization.postjam,
+                true,
             ));
         }
         result
@@ -1413,7 +1413,7 @@ impl Game {
                             } else {
                                 self.levels.0.spawn_point
                             },
-                            !self.customization.postjam,
+                            true,
                         );
                         if self.my_guy.is_none() {
                             self.my_guy = Some(self.client_id);
@@ -1540,8 +1540,7 @@ impl Game {
                     self.show_customizer = false;
                 }
                 UiMessage::RandomizeSkin => {
-                    self.customization.colors =
-                        Guy::new(-1, Vec2::ZERO, !self.customization.postjam).colors;
+                    self.customization.colors = Guy::new(-1, Vec2::ZERO, true).colors;
                 }
             }
         }
@@ -1906,7 +1905,7 @@ impl geng::State for Game {
                             } else {
                                 self.levels.0.spawn_point
                             },
-                            !self.customization.postjam,
+                            true,
                         );
                         if self.my_guy.is_none() {
                             self.my_guy = Some(self.client_id);
