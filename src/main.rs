@@ -55,6 +55,7 @@ pub struct Config {
     auto_fart_interval: f32,
     force_fart_interval: f32,
     fart_color: Rgba<f32>,
+    bubble_fart_color: Rgba<f32>,
     farticle_w: f32,
     farticle_size: f32,
     farticle_count: usize,
@@ -287,6 +288,8 @@ fn load_background_assets(
 pub struct SfxAssets {
     #[asset(range = "1..=3", path = "fart/*.wav")]
     pub fart: Vec<geng::Sound>,
+    #[asset(range = "1..=1", path = "bubble_fart/*.wav")]
+    pub bubble_fart: Vec<geng::Sound>,
     pub fart_recharge: geng::Sound,
     #[asset(path = "music.mp3")]
     pub old_music: geng::Sound,
@@ -505,6 +508,12 @@ impl EditorState {
             wind_drag: None,
         }
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+enum FartType {
+    Bubble,
+    Regular,
 }
 
 pub struct Farticle {
@@ -1133,6 +1142,7 @@ impl Game {
                 );
             guy.vel.y -= self.config.gravity * delta_time;
 
+            let mut in_water = false;
             if self.customization.postjam {
                 'tile_loop: for (index, tile) in self.levels.1.background_tiles.iter().enumerate() {
                     for i in 0..3 {
@@ -1141,6 +1151,9 @@ impl Game {
                         if Vec2::skew(p2 - p1, guy.pos - p1) < 0.0 {
                             continue 'tile_loop;
                         }
+                    }
+                    if tile.type_name == "water" {
+                        in_water = true;
                     }
                     let relative_vel = guy.vel - tile.flow;
                     let flow_direction = tile.flow.normalize_or_zero();
@@ -1185,18 +1198,21 @@ impl Game {
                             .rotate(global_rng().gen_range(0.0..=2.0 * f32::PI)),
                         rot: global_rng().gen_range(0.0..2.0 * f32::PI),
                         w: global_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
-                        color: self.config.fart_color,
+                        color: if in_water {
+                            self.config.bubble_fart_color
+                        } else {
+                            self.config.fart_color
+                        },
                         t: 1.0,
                     });
                 }
                 guy.vel += vec2(0.0, self.config.fart_strength).rotate(guy.rot);
-                let mut effect = self
-                    .assets
-                    .sfx
-                    .fart
-                    .choose(&mut global_rng())
-                    .unwrap()
-                    .effect();
+                let sounds = if in_water {
+                    &self.assets.sfx.bubble_fart
+                } else {
+                    &self.assets.sfx.fart
+                };
+                let mut effect = sounds.choose(&mut global_rng()).unwrap().effect();
                 effect.set_volume(
                     (self.volume * (1.0 - (guy.pos - self.camera.center).len() / self.camera.fov))
                         .clamp(0.0, 1.0) as f64,
