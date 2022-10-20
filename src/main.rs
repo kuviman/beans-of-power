@@ -90,7 +90,7 @@ impl geng::LoadAsset for Texture {
     const DEFAULT_EXT: Option<&'static str> = Some("png");
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct SurfaceParams {
     pub bounciness: f32,
     pub friction: f32,
@@ -101,7 +101,15 @@ pub struct SurfaceParams {
 #[derive(Deserialize)]
 pub struct BackgroundParams {
     #[serde(default)]
+    pub friction_along_flow: f32,
+    #[serde(default)]
     pub friction: f32,
+    #[serde(default = "zero_vec")]
+    pub additional_force: Vec2<f32>,
+}
+
+fn zero_vec() -> Vec2<f32> {
+    Vec2::ZERO
 }
 
 pub struct SurfaceAssets {
@@ -1040,6 +1048,27 @@ impl Game {
                 );
             guy.vel.y -= self.config.gravity * delta_time;
 
+            if self.customization.postjam {
+                'tile_loop: for (index, tile) in self.levels.1.background_tiles.iter().enumerate() {
+                    for i in 0..3 {
+                        let p1 = tile.vertices[i];
+                        let p2 = tile.vertices[(i + 1) % 3];
+                        if Vec2::skew(p2 - p1, guy.pos - p1) < 0.0 {
+                            continue 'tile_loop;
+                        }
+                    }
+                    let relative_vel = guy.vel - tile.flow;
+                    let flow_direction = tile.flow.normalize_or_zero();
+                    let relative_vel_along_flow = Vec2::dot(flow_direction, relative_vel);
+                    let params = &self.assets.background[&tile.type_name].params;
+                    let force_along_flow =
+                        -flow_direction * relative_vel_along_flow * params.friction_along_flow;
+                    let friction_force = -relative_vel * params.friction;
+                    guy.vel +=
+                        (force_along_flow + params.additional_force + friction_force) * delta_time;
+                }
+            }
+
             let mut farts = 0;
             guy.auto_fart_timer += delta_time;
             if guy.auto_fart_timer >= self.config.auto_fart_interval {
@@ -1093,6 +1122,7 @@ impl Game {
             guy.pos += guy.vel * delta_time;
             guy.rot += guy.w * delta_time;
 
+            #[derive(Debug)]
             struct Collision<'a> {
                 penetration: f32,
                 normal: Vec2<f32>,
@@ -1108,7 +1138,7 @@ impl Game {
             for surface in &level.surfaces {
                 let v = surface.vector_from(guy.pos);
                 let penetration = self.config.guy_radius - v.len();
-                if penetration > EPS && Vec2::dot(v, guy.vel) > 0.0 {
+                if penetration > EPS && Vec2::dot(v, guy.vel) > EPS {
                     let collision = Collision {
                         penetration,
                         normal: -v.normalize_or_zero(),
@@ -1121,23 +1151,6 @@ impl Game {
                                 None => -1.0,
                             })
                         });
-                }
-            }
-            if self.customization.postjam {
-                'tile_loop: for (index, tile) in self.levels.1.background_tiles.iter().enumerate() {
-                    for i in 0..3 {
-                        let p1 = tile.vertices[i];
-                        let p2 = tile.vertices[(i + 1) % 3];
-                        if Vec2::skew(p2 - p1, guy.pos - p1) < 0.0 {
-                            continue 'tile_loop;
-                        }
-                    }
-                    let mut relative_vel = guy.vel - tile.flow;
-                    let n = tile.flow.rotate_90().normalize_or_zero();
-                    relative_vel -= n * Vec2::dot(n, relative_vel); // TODO: not always wanted, another param?
-                    let params = &self.assets.background[&tile.type_name].params;
-                    let force = -relative_vel * params.friction;
-                    guy.vel += force * delta_time;
                 }
             }
             if let Some(collision) = collision_to_resolve {
