@@ -9,6 +9,7 @@
     "force_fart_interval": 5.0,
     "gravity": 7.0,
     "fart_color": "#057F2177",
+    "bubble_fart_color": "#0af5",
     "farticle_size": 0.2,
     "farticle_count": 10,
     "farticle_w": 10.0,
