@@ -290,6 +290,8 @@ pub struct SfxAssets {
     pub fart: Vec<geng::Sound>,
     #[asset(range = "1..=1", path = "bubble_fart/*.wav")]
     pub bubble_fart: Vec<geng::Sound>,
+    #[asset(range = "1..=1", path = "rainbow_fart/*.wav")]
+    pub rainbow_fart: Vec<geng::Sound>,
     pub fart_recharge: geng::Sound,
     #[asset(path = "music.mp3")]
     pub old_music: geng::Sound,
@@ -441,6 +443,7 @@ pub struct Guy {
     pub progress: f32,
     pub best_progress: f32,
     pub best_time: Option<f32>,
+    pub touched_a_unicorn: bool,
 }
 
 impl Guy {
@@ -482,6 +485,7 @@ impl Guy {
             progress: 0.0,
             best_progress: 0.0,
             best_time: None,
+            touched_a_unicorn: false,
         }
     }
 }
@@ -904,6 +908,11 @@ impl Game {
                     framebuffer,
                     &self.camera,
                     &draw_2d::TexturedQuad::unit(&self.assets.objects[&obj.type_name])
+                        .transform(Mat3::rotate(if obj.type_name == "unicorn" {
+                            self.real_time
+                        } else {
+                            0.0
+                        }))
                         .scale_uniform(0.6)
                         .translate(obj.pos),
                 );
@@ -1120,6 +1129,14 @@ impl Game {
             if (guy.pos - self.levels.0.finish_point).len() < 1.5 {
                 guy.finished = true;
             }
+            if !guy.touched_a_unicorn {
+                for object in &self.levels.1.objects {
+                    if (guy.pos - object.pos).len() < 1.5 && object.type_name == "unicorn" {
+                        guy.touched_a_unicorn = true;
+                        guy.auto_fart_timer = self.config.auto_fart_interval;
+                    }
+                }
+            }
 
             if guy.finished {
                 guy.auto_fart_timer = 0.0;
@@ -1200,6 +1217,8 @@ impl Game {
                         w: global_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
                         color: if in_water {
                             self.config.bubble_fart_color
+                        } else if guy.touched_a_unicorn {
+                            Hsva::new(global_rng().gen_range(0.0..1.0), 1.0, 1.0, 0.5).into()
                         } else {
                             self.config.fart_color
                         },
@@ -1209,6 +1228,8 @@ impl Game {
                 guy.vel += vec2(0.0, self.config.fart_strength).rotate(guy.rot);
                 let sounds = if in_water {
                     &self.assets.sfx.bubble_fart
+                } else if guy.touched_a_unicorn {
+                    &self.assets.sfx.rainbow_fart
                 } else {
                     &self.assets.sfx.fart
                 };
