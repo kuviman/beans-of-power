@@ -100,6 +100,7 @@ pub struct SurfaceParams {
     pub friction: f32,
     pub front: bool,
     pub back: bool,
+    pub sound: bool,
 }
 
 #[derive(Deserialize)]
@@ -127,6 +128,7 @@ pub struct SurfaceAssets {
     pub params: SurfaceParams,
     pub front_texture: Option<Texture>,
     pub back_texture: Option<Texture>,
+    pub sound: Option<geng::Sound>,
 }
 
 #[derive(geng::Assets)]
@@ -222,13 +224,18 @@ fn load_surface_assets(
                         Ok::<_, anyhow::Error>(texture)
                     }
                 };
-                let mut back_texture = if params.back {
+                let back_texture = if params.back {
                     Some(load(format!("{}_back.png", name)).await?)
                 } else {
                     None
                 };
-                let mut front_texture = if params.front {
+                let front_texture = if params.front {
                     Some(load(format!("{}_front.png", name)).await?)
+                } else {
+                    None
+                };
+                let sound = if params.sound {
+                    Some(geng::LoadAsset::load(&geng, &path.join(format!("{}.wav", name))).await?)
                 } else {
                     None
                 };
@@ -239,6 +246,7 @@ fn load_surface_assets(
                         params,
                         front_texture,
                         back_texture,
+                        sound,
                     },
                 ))
             }
@@ -1272,11 +1280,10 @@ impl Game {
             guy.pos += guy.vel * delta_time;
             guy.rot += guy.w * delta_time;
 
-            #[derive(Debug)]
             struct Collision<'a> {
                 penetration: f32,
                 normal: Vec2<f32>,
-                surface_params: &'a SurfaceParams,
+                assets: &'a SurfaceAssets,
             }
 
             let mut collision_to_resolve = None;
@@ -1291,7 +1298,7 @@ impl Game {
                 let v = surface.vector_from(guy.pos);
                 let penetration = self.config.guy_radius - v.len();
                 if penetration > EPS {
-                    let surface_params = &self.assets.surfaces[&surface.type_name].params;
+                    let assets = &self.assets.surfaces[&surface.type_name];
 
                     if surface.type_name == "water" {
                         guy.colliding_water = true;
@@ -1299,7 +1306,14 @@ impl Game {
                             was_colliding_water = true;
                             if Vec2::dot(v, guy.vel).abs() > 0.5 {
                                 let mut effect = self.assets.sfx.water_splash.effect();
-                                effect.set_volume(self.volume as f64 * 0.5);
+                                effect.set_volume(
+                                    (self.volume
+                                        * 0.6
+                                        * (1.0
+                                            - (guy.pos - self.camera.center).len()
+                                                / self.camera.fov))
+                                        .clamp(0.0, 1.0) as f64,
+                                );
                                 effect.play();
                                 for _ in 0..30 {
                                     self.farticles.push(Farticle {
@@ -1336,14 +1350,14 @@ impl Game {
                         }
                     }
 
-                    if surface_params.non_collidable {
+                    if assets.params.non_collidable {
                         continue;
                     }
                     if Vec2::dot(v, guy.vel) > EPS {
                         let collision = Collision {
                             penetration,
                             normal: -v.normalize_or_zero(),
-                            surface_params,
+                            assets,
                         };
                         collision_to_resolve = std::cmp::max_by_key(
                             collision_to_resolve,
@@ -1364,11 +1378,24 @@ impl Game {
                 let tangent = collision.normal.rotate_90();
                 let tangent_vel = Vec2::dot(guy.vel, tangent) - guy.w * self.config.guy_radius;
                 guy.vel -=
-                    collision.normal * normal_vel * (1.0 + collision.surface_params.bounciness);
-                let max_friction_impulse = normal_vel.abs() * collision.surface_params.friction;
+                    collision.normal * normal_vel * (1.0 + collision.assets.params.bounciness);
+                let max_friction_impulse = normal_vel.abs() * collision.assets.params.friction;
                 let friction_impulse = -tangent_vel.clamp_abs(max_friction_impulse);
                 guy.vel += tangent * friction_impulse;
                 guy.w -= friction_impulse / self.config.guy_radius;
+                if let Some(sound) = &collision.assets.sound {
+                    let volume = ((-0.5 - normal_vel) / 2.0).clamp(0.0, 1.0);
+                    if volume > 0.0 {
+                        let mut effect = sound.effect();
+                        effect.set_volume(
+                            (self.volume
+                                * volume
+                                * (1.0 - (guy.pos - self.camera.center).len() / self.camera.fov))
+                                .clamp(0.0, 1.0) as f64,
+                        );
+                        effect.play();
+                    }
+                }
             }
         }
     }

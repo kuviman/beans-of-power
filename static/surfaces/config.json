@@ -3,31 +3,36 @@
         "bounciness": 0.1,
         "friction": 1.0,
         "front": true,
-        "back": true
+        "back": true,
+        "sound": true
     },
     "stone": {
         "bounciness": 0.3,
         "friction": 0.7,
         "front": false,
-        "back": true
+        "back": true,
+        "sound": true
     },
     "ice": {
         "bounciness": 0.2,
         "friction": 0.0,
         "front": false,
-        "back": true
+        "back": true,
+        "sound": true
     },
     "slime": {
         "bounciness": 1.0,
         "friction": 0.5,
         "front": false,
-        "back": true
+        "back": true,
+        "sound": true
     },
     "water": {
         "non_collidable": true,
         "bounciness": 1.0,
         "friction": 0.5,
         "front": true,
-        "back": false
+        "back": false,
+        "sound": false
     }
 }
