@@ -1171,16 +1171,13 @@ impl Game {
 
             let mut in_water = false;
             if self.customization.postjam {
-                'tile_loop: for (index, tile) in self.levels.1.background_tiles.iter().enumerate() {
+                'tile_loop: for tile in self.levels.1.background_tiles.iter() {
                     for i in 0..3 {
                         let p1 = tile.vertices[i];
                         let p2 = tile.vertices[(i + 1) % 3];
                         if Vec2::skew(p2 - p1, guy.pos - p1) < 0.0 {
                             continue 'tile_loop;
                         }
-                    }
-                    if tile.type_name == "water" {
-                        in_water = true;
                     }
                     let relative_vel = guy.vel - tile.flow;
                     let flow_direction = tile.flow.normalize_or_zero();
@@ -1192,6 +1189,19 @@ impl Game {
                     guy.vel +=
                         (force_along_flow + params.additional_force + friction_force) * delta_time;
                     guy.w -= guy.w * params.friction * delta_time;
+                }
+                let butt = guy.pos + vec2(0.0, -self.config.guy_radius).rotate(guy.rot);
+                'tile_loop: for tile in self.levels.1.background_tiles.iter() {
+                    for i in 0..3 {
+                        let p1 = tile.vertices[i];
+                        let p2 = tile.vertices[(i + 1) % 3];
+                        if Vec2::skew(p2 - p1, butt - p1) < 0.0 {
+                            continue 'tile_loop;
+                        }
+                    }
+                    if tile.type_name == "water" {
+                        in_water = true;
+                    }
                 }
             }
 
