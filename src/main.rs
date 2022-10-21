@@ -94,6 +94,8 @@ impl geng::LoadAsset for Texture {
 
 #[derive(Deserialize, Debug)]
 pub struct SurfaceParams {
+    #[serde(default)]
+    pub non_collidable: bool,
     pub bounciness: f32,
     pub friction: f32,
     pub front: bool,
@@ -298,6 +300,7 @@ pub struct SfxAssets {
     #[asset(range = "1..=1", path = "rainbow_fart/*.wav")]
     pub rainbow_fart: Vec<geng::Sound>,
     pub fart_recharge: geng::Sound,
+    pub water_splash: geng::Sound,
     #[asset(path = "music.mp3")]
     pub old_music: geng::Sound,
     #[asset(path = "KuviFart.wav")]
@@ -434,6 +437,7 @@ pub struct GuyColors {
 #[derive(Serialize, Deserialize, Clone, Debug, HasId)]
 pub struct Guy {
     pub name: String,
+    pub colliding_water: bool,
     pub id: Id,
     pub pos: Vec2<f32>,
     pub vel: Vec2<f32>,
@@ -458,6 +462,7 @@ impl Guy {
             Hsva::new(hue, 1.0, 1.0, 1.0).into()
         };
         Self {
+            colliding_water: false,
             name: "".to_owned(),
             id,
             pos: pos
@@ -520,6 +525,7 @@ impl EditorState {
 }
 
 pub struct Farticle {
+    pub size: f32,
     pub pos: Vec2<f32>,
     pub vel: Vec2<f32>,
     pub color: Rgba<f32>,
@@ -1227,6 +1233,7 @@ impl Game {
             for _ in 0..farts {
                 for _ in 0..self.config.farticle_count {
                     self.farticles.push(Farticle {
+                        size: 1.0,
                         pos: guy.pos,
                         vel: guy.vel
                             + vec2(
@@ -1278,22 +1285,77 @@ impl Game {
             } else {
                 &self.levels.0
             };
+            let mut was_colliding_water = guy.colliding_water;
+            guy.colliding_water = false;
             for surface in &level.surfaces {
                 let v = surface.vector_from(guy.pos);
                 let penetration = self.config.guy_radius - v.len();
-                if penetration > EPS && Vec2::dot(v, guy.vel) > EPS {
-                    let collision = Collision {
-                        penetration,
-                        normal: -v.normalize_or_zero(),
-                        surface_params: &self.assets.surfaces[&surface.type_name].params,
-                    };
-                    collision_to_resolve =
-                        std::cmp::max_by_key(collision_to_resolve, Some(collision), |collision| {
-                            r32(match collision {
-                                Some(collision) => collision.penetration,
-                                None => -1.0,
-                            })
-                        });
+                if penetration > EPS {
+                    let surface_params = &self.assets.surfaces[&surface.type_name].params;
+
+                    if surface.type_name == "water" {
+                        guy.colliding_water = true;
+                        if !was_colliding_water {
+                            was_colliding_water = true;
+                            if Vec2::dot(v, guy.vel).abs() > 0.5 {
+                                let mut effect = self.assets.sfx.water_splash.effect();
+                                effect.set_volume(self.volume as f64 * 0.5);
+                                effect.play();
+                                for _ in 0..30 {
+                                    self.farticles.push(Farticle {
+                                        size: 0.6,
+                                        pos: guy.pos
+                                            + v
+                                            + vec2(
+                                                global_rng().gen_range(
+                                                    -self.config.guy_radius
+                                                        ..=self.config.guy_radius,
+                                                ),
+                                                0.0,
+                                            ),
+                                        vel: {
+                                            let mut v =
+                                                vec2(0.0, global_rng().gen_range(0.0..=1.0))
+                                                    .rotate(
+                                                        global_rng().gen_range(
+                                                            -f32::PI / 4.0..=f32::PI / 4.0,
+                                                        ),
+                                                    );
+                                            v.y *= 0.3;
+                                            v * 2.0
+                                        },
+                                        rot: global_rng().gen_range(0.0..2.0 * f32::PI),
+                                        w: global_rng().gen_range(
+                                            -self.config.farticle_w..=self.config.farticle_w,
+                                        ),
+                                        color: self.config.bubble_fart_color,
+                                        t: 0.5,
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    if surface_params.non_collidable {
+                        continue;
+                    }
+                    if Vec2::dot(v, guy.vel) > EPS {
+                        let collision = Collision {
+                            penetration,
+                            normal: -v.normalize_or_zero(),
+                            surface_params,
+                        };
+                        collision_to_resolve = std::cmp::max_by_key(
+                            collision_to_resolve,
+                            Some(collision),
+                            |collision| {
+                                r32(match collision {
+                                    Some(collision) => collision.penetration,
+                                    None => -1.0,
+                                })
+                            },
+                        );
+                    }
                 }
             }
             if let Some(collision) = collision_to_resolve {
@@ -1566,7 +1628,7 @@ impl Game {
                     },
                 )
                 .transform(Mat3::rotate(farticle.rot))
-                .scale_uniform(self.config.farticle_size)
+                .scale_uniform(self.config.farticle_size * farticle.size)
                 .translate(farticle.pos),
             )
         }
