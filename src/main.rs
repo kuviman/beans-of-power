@@ -1870,7 +1870,7 @@ impl Game {
     }
 
     fn draw_leaderboard(&self, framebuffer: &mut ugli::Framebuffer) {
-        if !self.show_leaderboard {
+        if !self.show_leaderboard || !self.customization.postjam {
             return;
         }
         let mut guys: Vec<&Guy> = self.guys.iter().filter(|guy| guy.postjam).collect();
