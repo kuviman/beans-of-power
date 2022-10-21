@@ -518,12 +518,6 @@ impl EditorState {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-enum FartType {
-    Bubble,
-    Regular,
-}
-
 pub struct Farticle {
     pub pos: Vec2<f32>,
     pub vel: Vec2<f32>,
@@ -1189,6 +1183,7 @@ impl Game {
                     let friction_force = -relative_vel * params.friction;
                     guy.vel +=
                         (force_along_flow + params.additional_force + friction_force) * delta_time;
+                    guy.w -= guy.w * params.friction * delta_time;
                 }
             }
 
