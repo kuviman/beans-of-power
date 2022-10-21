@@ -2086,10 +2086,10 @@ impl geng::State for Game {
             {
                 self.respawn();
             }
-            geng::Event::KeyDown { key: geng::Key::H } => {
+            geng::Event::KeyDown { key: geng::Key::H } if !self.show_customizer => {
                 self.show_names = !self.show_names;
             }
-            geng::Event::KeyDown { key: geng::Key::L } => {
+            geng::Event::KeyDown { key: geng::Key::L } if !self.show_customizer => {
                 if self.customization.postjam {
                     self.show_leaderboard = !self.show_leaderboard;
                 }
