@@ -1756,9 +1756,6 @@ impl Game {
                 if *key == geng::Key::Backspace {
                     self.customization.name.pop();
                 }
-                if self.customization.name.to_lowercase() == "postjamplease" {
-                    self.customization.postjam = true;
-                }
                 if self.customization.name.to_lowercase() == "iamoutfrost" {
                     self.customization.postjam = true;
                     self.show_leaderboard = true;
