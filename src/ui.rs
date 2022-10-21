@@ -10,7 +10,7 @@ pub struct Button<T> {
 
 impl<T> Button<T> {
     pub fn new(text: &str, position: Vec2<f32>, size: f32, align: f32, message: T) -> Self {
-        let width = text.len() as f32 * 0.8;
+        let width = text.len() as f32 * 0.4;
         Self {
             text: text.to_owned(),
             position: vec2(position.x - width * align * size, position.y),

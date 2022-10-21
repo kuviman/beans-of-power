@@ -13,6 +13,7 @@ type Connection = geng::net::client::Connection<ServerMessage, ClientMessage>;
 enum UiMessage {
     Play,
     RandomizeSkin,
+    TogglePostJam,
 }
 
 use noise::NoiseFn;
@@ -626,6 +627,13 @@ impl Game {
                     0.0,
                     UiMessage::RandomizeSkin,
                 ),
+                ui::Button::new(
+                    &format!("postjam ({})", if opt.postjam { "on" } else { "off" }),
+                    vec2(0.0, -4.0),
+                    0.7,
+                    0.5,
+                    UiMessage::TogglePostJam,
+                ),
             ],
             show_customizer: !opt.editor,
             old_music: {
@@ -639,7 +647,7 @@ impl Game {
                 effect
             },
             show_names: true,
-            show_leaderboard: opt.postjam,
+            show_leaderboard: true,
             follow: None,
         };
         if !opt.editor {
@@ -1642,6 +1650,25 @@ impl Game {
         }
     }
 
+    pub fn respawn(&mut self) {
+        // COPYPASTA MMMMM 🍝
+        let new_guy = Guy::new(
+            self.client_id,
+            if self.customization.postjam {
+                self.levels.1.spawn_point
+            } else {
+                self.levels.0.spawn_point
+            },
+            true,
+        );
+        if self.my_guy.is_none() {
+            self.my_guy = Some(self.client_id);
+        }
+        self.guys.insert(new_guy);
+        self.simulation_time = 0.0;
+        self.connection.send(ClientMessage::Despawn);
+    }
+
     pub fn draw_customizer(&mut self, framebuffer: &mut ugli::Framebuffer) {
         if !self.show_customizer {
             return;
@@ -1697,6 +1724,27 @@ impl Game {
                 UiMessage::RandomizeSkin => {
                     self.customization.colors = Guy::new(-1, Vec2::ZERO, true).colors;
                 }
+                UiMessage::TogglePostJam => {
+                    if self.customization.postjam {
+                        self.customization.postjam = false;
+                    } else {
+                        self.customization.postjam = true;
+                    }
+                    self.buttons
+                        .iter_mut()
+                        .find(|button| button.text.starts_with("postjam"))
+                        .unwrap()
+                        .text = format!(
+                        "postjam ({})",
+                        if self.customization.postjam {
+                            "on"
+                        } else {
+                            "off"
+                        }
+                    );
+
+                    self.respawn();
+                }
             }
         }
         match event {
@@ -1710,7 +1758,6 @@ impl Game {
                 }
                 if self.customization.name.to_lowercase() == "postjamplease" {
                     self.customization.postjam = true;
-                    self.show_leaderboard = true;
                 }
                 if self.customization.name.to_lowercase() == "iamoutfrost" {
                     self.customization.postjam = true;
@@ -2040,36 +2087,7 @@ impl geng::State for Game {
             geng::Event::KeyDown { key: geng::Key::R }
                 if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
             {
-                if self.my_guy.is_none() && self.editor.is_none() {
-                    self.connection.send(ClientMessage::ForceReset);
-                } else {
-                    if !self.customization.postjam
-                        || !self
-                            .guys
-                            .iter()
-                            .any(|guy| guy.name.to_lowercase() == "pomo")
-                        || self
-                            .my_guy
-                            .and_then(|id| self.guys.get(&id))
-                            .map_or(false, |me| me.finished)
-                    {
-                        let new_guy = Guy::new(
-                            self.client_id,
-                            if self.customization.postjam {
-                                self.levels.1.spawn_point
-                            } else {
-                                self.levels.0.spawn_point
-                            },
-                            true,
-                        );
-                        if self.my_guy.is_none() {
-                            self.my_guy = Some(self.client_id);
-                        }
-                        self.guys.insert(new_guy);
-                        self.simulation_time = 0.0;
-                        self.connection.send(ClientMessage::Despawn);
-                    }
-                }
+                self.respawn();
             }
             geng::Event::KeyDown { key: geng::Key::H } => {
                 self.show_names = !self.show_names;
