@@ -795,9 +795,7 @@ impl Game {
                 .transform(Mat3::rotate(guy.rot))
                 .translate(guy.pos),
             );
-            if Some(guy.id) == self.my_guy
-                || (self.show_names && (!self.customization.postjam || guy.postjam))
-            {
+            if Some(guy.id) == self.my_guy || self.show_names {
                 self.assets.font.draw(
                     framebuffer,
                     &self.camera,
@@ -805,7 +803,11 @@ impl Game {
                     guy.pos + vec2(0.0, self.config.guy_radius * 1.1),
                     geng::TextAlign::CENTER,
                     0.1,
-                    Rgba::BLACK,
+                    if guy.postjam {
+                        Rgba::BLACK
+                    } else {
+                        Rgba::new(0.0, 0.0, 0.0, 0.5)
+                    },
                 );
             }
         }
@@ -1854,15 +1856,6 @@ impl Game {
                 }
                 if *key == geng::Key::Backspace {
                     self.customization.name.pop();
-                }
-                if self.customization.name.to_lowercase() == "iamoutfrost" {
-                    self.customization.postjam = true;
-                    self.show_leaderboard = true;
-                    self.opt.editor = true;
-                    if let Some(id) = self.my_guy.take() {
-                        self.connection.send(ClientMessage::Despawn);
-                        self.guys.remove(&id);
-                    }
                 }
             }
             _ => {}
