@@ -1176,6 +1176,7 @@ impl Game {
             guy.vel.y -= self.config.gravity * delta_time;
 
             let mut in_water = false;
+            let butt = guy.pos + vec2(0.0, -self.config.guy_radius * 0.9).rotate(guy.rot);
             if self.customization.postjam {
                 'tile_loop: for tile in self.levels.1.background_tiles.iter() {
                     for i in 0..3 {
@@ -1196,7 +1197,6 @@ impl Game {
                         (force_along_flow + params.additional_force + friction_force) * delta_time;
                     guy.w -= guy.w * params.friction * delta_time;
                 }
-                let butt = guy.pos + vec2(0.0, -self.config.guy_radius).rotate(guy.rot);
                 'tile_loop: for tile in self.levels.1.background_tiles.iter() {
                     for i in 0..3 {
                         let p1 = tile.vertices[i];
@@ -1234,7 +1234,7 @@ impl Game {
                 for _ in 0..self.config.farticle_count {
                     self.farticles.push(Farticle {
                         size: 1.0,
-                        pos: guy.pos,
+                        pos: butt,
                         vel: guy.vel
                             + vec2(
                                 global_rng().gen_range(0.0..=self.config.farticle_additional_vel),
