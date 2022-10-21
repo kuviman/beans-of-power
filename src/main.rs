@@ -1385,7 +1385,7 @@ impl Game {
                 guy.w -= friction_impulse / self.config.guy_radius;
                 if let Some(sound) = &collision.assets.sound {
                     let volume = ((-0.5 - normal_vel) / 2.0).clamp(0.0, 1.0);
-                    if volume > 0.0 {
+                    if volume > 0.0 && self.customization.postjam {
                         let mut effect = sound.effect();
                         effect.set_volume(
                             (self.volume
