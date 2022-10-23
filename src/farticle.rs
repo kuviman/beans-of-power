@@ -17,11 +17,7 @@ impl Game {
             farticle.pos += farticle.vel * delta_time;
             farticle.rot += farticle.w * delta_time;
 
-            let level = if self.customization.postjam {
-                &self.levels.1
-            } else {
-                &self.levels.0
-            };
+            let level = self.levels.get(self.customization.postjam);
             for surface in &level.surfaces {
                 let v = surface.vector_from(farticle.pos);
                 let penetration = self.config.farticle_size / 2.0 - v.len();

@@ -9,6 +9,28 @@ pub use object::*;
 pub use surface::*;
 pub use tile::*;
 
+pub struct Levels {
+    pub jam: Level,
+    pub postjam: Level,
+}
+
+impl Levels {
+    pub fn get(&self, postjam: bool) -> &Level {
+        if postjam {
+            &self.postjam
+        } else {
+            &self.jam
+        }
+    }
+    pub fn get_mut(&mut self, postjam: bool) -> &mut Level {
+        if postjam {
+            &mut self.postjam
+        } else {
+            &mut self.jam
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Level {
     pub spawn_point: Vec2<f32>,

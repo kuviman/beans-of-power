@@ -1,13 +1,13 @@
 use super::*;
 
 pub struct EditorState {
-    pub next_autosave: f32,
-    pub start_drag: Option<Vec2<f32>>,
-    pub face_points: Vec<Vec2<f32>>,
-    pub selected_surface: String,
-    pub selected_tile: String,
-    pub wind_drag: Option<(usize, Vec2<f32>)>,
-    pub selected_object: String,
+    next_autosave: f32,
+    start_drag: Option<Vec2<f32>>,
+    face_points: Vec<Vec2<f32>>,
+    selected_surface: String,
+    selected_tile: String,
+    wind_drag: Option<(usize, Vec2<f32>)>,
+    selected_object: String,
 }
 
 impl EditorState {
@@ -22,37 +22,55 @@ impl EditorState {
             wind_drag: None,
         }
     }
+    pub fn update(&mut self, levels: &mut Levels, delta_time: f32) {
+        self.next_autosave -= delta_time;
+        if self.next_autosave < 0.0 {
+            self.next_autosave = 10.0;
+            self.save_level(levels);
+        }
+    }
+
+    pub fn save_level(&self, levels: &Levels) {
+        #[cfg(not(target_arch = "wasm32"))]
+        serde_json::to_writer_pretty(
+            std::fs::File::create(static_path().join("new_level.json")).unwrap(),
+            &levels.postjam,
+        )
+        .unwrap();
+        info!("LVL SAVED");
+    }
 }
 
 impl Game {
-    pub fn snapped_cursor_position(&self) -> Vec2<f32> {
-        self.snap_position(self.camera.screen_to_world(
-            self.framebuffer_size,
-            self.geng.window().mouse_pos().map(|x| x as f32),
-        ))
+    pub fn snapped_cursor_position(&self, level: &Level) -> Vec2<f32> {
+        self.snap_position(
+            level,
+            self.camera.screen_to_world(
+                self.framebuffer_size,
+                self.geng.window().mouse_pos().map(|x| x as f32),
+            ),
+        )
     }
 
-    pub fn snap_position(&self, pos: Vec2<f32>) -> Vec2<f32> {
+    pub fn snap_position(&self, level: &Level, pos: Vec2<f32>) -> Vec2<f32> {
         let closest_point = itertools::chain![
-            self.levels
-                .1
+            level
                 .surfaces
                 .iter()
                 .flat_map(|surface| [surface.p1, surface.p2]),
-            self.levels.1.tiles.iter().flat_map(|tile| tile.vertices)
+            level.tiles.iter().flat_map(|tile| tile.vertices)
         ]
         .filter(|&p| (pos - p).len() < self.config.snap_distance)
         .min_by_key(|&p| r32((pos - p).len()));
         closest_point.unwrap_or(pos)
     }
 
-    pub fn find_hovered_surface(&self) -> Option<usize> {
+    pub fn find_hovered_surface(&self, level: &Level) -> Option<usize> {
         let cursor = self.camera.screen_to_world(
             self.framebuffer_size,
             self.geng.window().mouse_pos().map(|x| x as f32),
         );
-        self.levels
-            .1
+        level
             .surfaces
             .iter()
             .enumerate()
@@ -63,12 +81,12 @@ impl Game {
             .map(|(index, _surface)| index)
     }
 
-    pub fn find_hovered_tile(&self) -> Option<usize> {
+    pub fn find_hovered_tile(&self, level: &Level) -> Option<usize> {
         let p = self.camera.screen_to_world(
             self.framebuffer_size,
             self.geng.window().mouse_pos().map(|x| x as f32),
         );
-        'tile_loop: for (index, tile) in self.levels.1.tiles.iter().enumerate() {
+        'tile_loop: for (index, tile) in level.tiles.iter().enumerate() {
             for i in 0..3 {
                 let p1 = tile.vertices[i];
                 let p2 = tile.vertices[(i + 1) % 3];
@@ -82,9 +100,10 @@ impl Game {
     }
 
     pub fn draw_level_editor(&self, framebuffer: &mut ugli::Framebuffer) {
+        let level = &self.levels.postjam;
         if let Some(editor) = &self.editor {
             if let Some(p1) = editor.start_drag {
-                let p2 = self.snapped_cursor_position();
+                let p2 = self.snapped_cursor_position(level);
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
@@ -95,8 +114,8 @@ impl Game {
                     ),
                 );
             }
-            if let Some(index) = self.find_hovered_surface() {
-                let surface = &self.levels.1.surfaces[index];
+            if let Some(index) = self.find_hovered_surface(level) {
+                let surface = &level.surfaces[index];
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
@@ -107,8 +126,8 @@ impl Game {
                     ),
                 );
             }
-            if let Some(index) = self.find_hovered_tile() {
-                let tile = &self.levels.1.tiles[index];
+            if let Some(index) = self.find_hovered_tile(level) {
+                let tile = &level.tiles[index];
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
@@ -129,7 +148,7 @@ impl Game {
                 framebuffer,
                 &self.camera,
                 &draw_2d::Quad::new(
-                    AABB::point(self.snapped_cursor_position()).extend_uniform(0.1),
+                    AABB::point(self.snapped_cursor_position(level)).extend_uniform(0.1),
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );
@@ -138,7 +157,7 @@ impl Game {
                 framebuffer,
                 &self.camera,
                 &draw_2d::Quad::new(
-                    AABB::point(self.levels.1.spawn_point).extend_uniform(0.1),
+                    AABB::point(level.spawn_point).extend_uniform(0.1),
                     Rgba::new(1.0, 0.8, 0.8, 0.5),
                 ),
             );
@@ -146,12 +165,12 @@ impl Game {
                 framebuffer,
                 &self.camera,
                 &draw_2d::Quad::new(
-                    AABB::point(self.levels.1.finish_point).extend_uniform(0.1),
+                    AABB::point(level.finish_point).extend_uniform(0.1),
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );
 
-            for (i, &p) in self.levels.1.expected_path.iter().enumerate() {
+            for (i, &p) in level.expected_path.iter().enumerate() {
                 self.assets.font.draw(
                     framebuffer,
                     &self.camera,
@@ -184,6 +203,12 @@ impl Game {
     }
 
     pub fn handle_event_editor(&mut self, event: &geng::Event) {
+        let level = &self.levels.postjam;
+        macro_rules! level_mut {
+            () => {
+                &mut self.levels.postjam
+            };
+        }
         if self.opt.editor
             && matches!(
                 event,
@@ -201,7 +226,7 @@ impl Game {
         if self.editor.is_none() {
             return;
         }
-        let cursor_pos = self.snapped_cursor_position();
+        let cursor_pos = self.snapped_cursor_position(level);
         let editor = self.editor.as_mut().unwrap();
 
         if !self.assets.surfaces.contains_key(&editor.selected_surface) {
@@ -231,7 +256,7 @@ impl Game {
 
                 if let Some(p1) = editor.start_drag.take() {
                     if (p1 - p2).len() > self.config.snap_distance {
-                        self.levels.1.surfaces.push(Surface {
+                        level_mut!().surfaces.push(Surface {
                             p1,
                             p2,
                             type_name: editor.selected_surface.clone(),
@@ -243,8 +268,8 @@ impl Game {
                 button: geng::MouseButton::Right,
                 ..
             } => {
-                if let Some(index) = self.find_hovered_surface() {
-                    self.levels.1.surfaces.remove(index);
+                if let Some(index) = self.find_hovered_surface(level) {
+                    level_mut!().surfaces.remove(index);
                 }
             }
             geng::Event::KeyUp { key } => match key {
@@ -254,7 +279,7 @@ impl Game {
                             self.framebuffer_size,
                             self.geng.window().mouse_pos().map(|x| x as f32),
                         );
-                        self.levels.1.tiles[index].flow = to - start;
+                        level_mut!().tiles[index].flow = to - start;
                     }
                 }
                 _ => {}
@@ -263,7 +288,7 @@ impl Game {
                 geng::Key::W => {
                     if editor.wind_drag.is_none() {
                         self.editor.as_mut().unwrap().wind_drag =
-                            self.find_hovered_tile().map(|index| {
+                            self.find_hovered_tile(level).map(|index| {
                                 (
                                     index,
                                     self.camera.screen_to_world(
@@ -282,7 +307,7 @@ impl Game {
                         if Vec2::skew(vertices[1] - vertices[0], vertices[2] - vertices[0]) < 0.0 {
                             vertices.reverse();
                         }
-                        self.levels.1.tiles.push(Tile {
+                        level_mut!().tiles.push(Tile {
                             vertices,
                             flow: Vec2::ZERO,
                             type_name: editor.selected_tile.clone(),
@@ -290,8 +315,8 @@ impl Game {
                     }
                 }
                 geng::Key::D => {
-                    if let Some(index) = self.find_hovered_tile() {
-                        self.levels.1.tiles.remove(index);
+                    if let Some(index) = self.find_hovered_tile(level) {
+                        level_mut!().tiles.remove(index);
                     }
                 }
                 geng::Key::C => {
@@ -310,29 +335,19 @@ impl Game {
                     }
                 }
                 geng::Key::P => {
-                    self.levels.1.spawn_point = self.camera.screen_to_world(
+                    level_mut!().spawn_point = self.camera.screen_to_world(
                         self.framebuffer_size,
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     );
                 }
                 geng::Key::I => {
-                    let level = if self.customization.postjam {
-                        &mut self.levels.1
-                    } else {
-                        &mut self.levels.0
-                    };
-                    level.expected_path.push(self.camera.screen_to_world(
+                    level_mut!().expected_path.push(self.camera.screen_to_world(
                         self.framebuffer_size,
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     ));
                 }
                 geng::Key::O => {
-                    let level = if self.customization.postjam {
-                        &mut self.levels.1
-                    } else {
-                        &mut self.levels.0
-                    };
-                    level.objects.push(Object {
+                    level_mut!().objects.push(Object {
                         type_name: editor.selected_object.to_owned(),
                         pos: self.camera.screen_to_world(
                             self.framebuffer_size,
@@ -341,18 +356,13 @@ impl Game {
                     });
                 }
                 geng::Key::Backspace => {
-                    let level = if self.customization.postjam {
-                        &mut self.levels.1
-                    } else {
-                        &mut self.levels.0
-                    };
-                    level.expected_path.pop();
+                    level_mut!().expected_path.pop();
                 }
                 geng::Key::K => {
-                    // self.level.finish_point = self.camera.screen_to_world(
-                    //     self.framebuffer_size,
-                    //     self.geng.window().mouse_pos().map(|x| x as f32),
-                    // );
+                    level_mut!().finish_point = self.camera.screen_to_world(
+                        self.framebuffer_size,
+                        self.geng.window().mouse_pos().map(|x| x as f32),
+                    );
                 }
                 geng::Key::Z => {
                     let mut options: Vec<&String> = self.assets.surfaces.keys().collect();
@@ -372,21 +382,12 @@ impl Game {
                         .unwrap_or(0);
                     editor.selected_tile = options[(idx + 1) % options.len()].clone();
                 }
+                geng::Key::S if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
+                    editor.save_level(&self.levels);
+                }
                 _ => {}
             },
             _ => {}
-        }
-    }
-
-    pub fn save_level(&self) {
-        #[cfg(not(target_arch = "wasm32"))]
-        if self.editor.is_some() {
-            serde_json::to_writer_pretty(
-                std::fs::File::create(static_path().join("new_level.json")).unwrap(),
-                &self.levels.1,
-            )
-            .unwrap();
-            info!("LVL SAVED");
         }
     }
 }

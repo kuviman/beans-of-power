@@ -130,7 +130,10 @@ fn main() {
                     Game::new(
                         &geng,
                         &assets,
-                        (old_level, new_level),
+                        Levels {
+                            jam: old_level,
+                            postjam: new_level,
+                        },
                         opt,
                         client_id,
                         connection,

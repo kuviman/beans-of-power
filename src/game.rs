@@ -14,7 +14,7 @@ pub struct Game {
     pub config: Config,
     pub assets: Rc<Assets>,
     pub camera: geng::Camera2d,
-    pub levels: (Level, Level),
+    pub levels: Levels,
     pub editor: Option<EditorState>,
     pub guys: Collection<Guy>,
     pub my_guy: Option<Id>,
@@ -41,7 +41,9 @@ pub struct Game {
 
 impl Drop for Game {
     fn drop(&mut self) {
-        self.save_level();
+        if let Some(editor) = &mut self.editor {
+            editor.save_level(&self.levels);
+        }
     }
 }
 
@@ -49,7 +51,7 @@ impl Game {
     pub fn new(
         geng: &Geng,
         assets: &Rc<Assets>,
-        levels: (Level, Level),
+        levels: Levels,
         opt: Opt,
         client_id: Id,
         connection: Connection,
@@ -130,11 +132,7 @@ impl Game {
             result.my_guy = Some(client_id);
             result.guys.insert(Guy::new(
                 client_id,
-                if result.customization.postjam {
-                    result.levels.1.spawn_point
-                } else {
-                    result.levels.0.spawn_point
-                },
+                result.levels.get(result.customization.postjam).spawn_point,
                 true,
             ));
         }
@@ -164,11 +162,7 @@ impl Game {
                 );
             }
             let progress = {
-                let level = if self.customization.postjam {
-                    &self.levels.1
-                } else {
-                    &self.levels.0
-                };
+                let level = self.levels.get(self.customization.postjam);
                 let mut total_len = 0.0;
                 for window in level.expected_path.windows(2) {
                     let a = window[0];
@@ -266,9 +260,11 @@ impl geng::State for Game {
         self.framebuffer_size = framebuffer.size().map(|x| x as f32);
         ugli::clear(framebuffer, Some(self.config.background_color), None, None);
 
-        self.draw_level_back(framebuffer);
+        let level = self.levels.get(self.customization.postjam);
+
+        self.draw_level_back(level, framebuffer);
         self.draw_guys(framebuffer);
-        self.draw_level_front(framebuffer);
+        self.draw_level_front(level, framebuffer);
         self.draw_farticles(framebuffer);
         self.draw_level_editor(framebuffer);
         self.draw_customizer(framebuffer);
@@ -329,11 +325,7 @@ impl geng::State for Game {
         }
 
         if let Some(editor) = &mut self.editor {
-            editor.next_autosave -= delta_time;
-            if editor.next_autosave < 0.0 {
-                editor.next_autosave = 10.0;
-                self.save_level();
-            }
+            editor.update(&mut self.levels, delta_time);
         }
 
         self.handle_connection();
@@ -391,15 +383,10 @@ impl geng::State for Game {
             geng::Event::Wheel { delta } if self.opt.editor => {
                 self.camera.fov = (self.camera.fov * 1.01f32.powf(-delta as f32)).clamp(1.0, 30.0);
             }
-            geng::Event::KeyDown { key: geng::Key::S }
-                if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
-            {
-                self.save_level();
-            }
             geng::Event::KeyDown { key: geng::Key::R }
                 if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
             {
-                self.respawn();
+                self.respawn_my_guy();
             }
             geng::Event::KeyDown { key: geng::Key::H } if !self.show_customizer => {
                 self.show_names = !self.show_names;

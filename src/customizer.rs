@@ -82,7 +82,7 @@ impl Game {
                         }
                     );
 
-                    self.respawn();
+                    self.respawn_my_guy();
                 }
             }
         }

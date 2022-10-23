@@ -1,16 +1,12 @@
 use super::*;
 
 impl Game {
-    pub fn draw_level_impl(
+    fn draw_level_impl(
         &self,
+        level: &Level,
         framebuffer: &mut ugli::Framebuffer,
         texture: impl Fn(&SurfaceAssets) -> Option<&Texture>,
     ) {
-        let level = if self.customization.postjam {
-            &self.levels.1
-        } else {
-            &self.levels.0
-        };
         for surface in &level.surfaces {
             let assets = &self.assets.surfaces[&surface.type_name];
             let texture = match texture(assets) {
@@ -52,12 +48,7 @@ impl Game {
         }
     }
 
-    pub fn draw_level_back(&self, framebuffer: &mut ugli::Framebuffer) {
-        let level = if self.customization.postjam {
-            &self.levels.1
-        } else {
-            &self.levels.0
-        };
+    pub fn draw_level_back(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
         for tile in &level.tiles {
             let assets = &self.assets.tiles[&tile.type_name];
             if !assets.params.background {
@@ -82,26 +73,14 @@ impl Game {
         self.geng.draw_2d(
             framebuffer,
             &self.camera,
-            &draw_2d::TexturedQuad::unit(&self.assets.closed_outhouse).translate(
-                if self.customization.postjam {
-                    self.levels.1.spawn_point
-                } else {
-                    self.levels.0.spawn_point
-                },
-            ),
+            &draw_2d::TexturedQuad::unit(&self.assets.closed_outhouse).translate(level.spawn_point),
         );
         self.geng.draw_2d(
             framebuffer,
             &self.camera,
-            &draw_2d::TexturedQuad::unit(&self.assets.golden_toilet)
-                .translate(self.levels.0.finish_point),
+            &draw_2d::TexturedQuad::unit(&self.assets.golden_toilet).translate(level.finish_point),
         );
         {
-            let level = if self.customization.postjam {
-                &self.levels.1
-            } else {
-                &self.levels.0
-            };
             for obj in &level.objects {
                 self.geng.draw_2d(
                     framebuffer,
@@ -117,15 +96,10 @@ impl Game {
                 );
             }
         }
-        self.draw_level_impl(framebuffer, |assets| assets.back_texture.as_ref());
+        self.draw_level_impl(level, framebuffer, |assets| assets.back_texture.as_ref());
     }
 
-    pub fn draw_level_front(&self, framebuffer: &mut ugli::Framebuffer) {
-        let level = if self.customization.postjam {
-            &self.levels.1
-        } else {
-            &self.levels.0
-        };
+    pub fn draw_level_front(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
         for tile in &level.tiles {
             let assets = &self.assets.tiles[&tile.type_name];
             if assets.params.background {
@@ -151,6 +125,6 @@ impl Game {
                 ),
             );
         }
-        self.draw_level_impl(framebuffer, |assets| assets.front_texture.as_ref());
+        self.draw_level_impl(level, framebuffer, |assets| assets.front_texture.as_ref());
     }
 }
