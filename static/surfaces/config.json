@@ -4,7 +4,9 @@
         "friction": 1.0,
         "front": true,
         "back": true,
-        "sound": true
+        "sound": true,
+        "flex_frequency": 0.5,
+        "flex_amplitude": 0.03
     },
     "stone": {
         "bounciness": 0.3,

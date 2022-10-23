@@ -89,6 +89,7 @@ impl Game {
         level: &Level,
         framebuffer: &mut ugli::Framebuffer,
         texture: impl Fn(&SurfaceAssets) -> Option<&Texture>,
+        texture_shift: f32,
     ) {
         let mesh = self.get_mesh(level);
         for (index, surface) in level.surfaces.iter().enumerate() {
@@ -107,6 +108,9 @@ impl Game {
                         u_texture: &**texture,
                         u_height: texture.size().y as f32 / texture.size().x as f32,
                         u_simulation_time: self.simulation_time,
+                        u_flex_frequency: assets.params.flex_frequency,
+                        u_flex_amplitude: assets.params.flex_amplitude,
+                        u_texture_shift: texture_shift,
                     },
                     geng::camera2d_uniforms(&self.camera, self.framebuffer_size),
                 ),
@@ -177,11 +181,21 @@ impl Game {
                 );
             }
         }
-        self.draw_surfaces(level, framebuffer, |assets| assets.back_texture.as_ref());
+        self.draw_surfaces(
+            level,
+            framebuffer,
+            |assets| assets.back_texture.as_ref(),
+            43756.0,
+        );
     }
 
     pub fn draw_level_front(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
         self.draw_tiles(framebuffer, level, false);
-        self.draw_surfaces(level, framebuffer, |assets| assets.front_texture.as_ref());
+        self.draw_surfaces(
+            level,
+            framebuffer,
+            |assets| assets.front_texture.as_ref(),
+            -123.0,
+        );
     }
 }

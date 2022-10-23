@@ -32,6 +32,10 @@ pub struct SurfaceParams {
     pub front: bool,
     pub back: bool,
     pub sound: bool,
+    #[serde(default)]
+    pub flex_frequency: f32,
+    #[serde(default)]
+    pub flex_amplitude: f32,
 }
 
 pub struct SurfaceAssets {
