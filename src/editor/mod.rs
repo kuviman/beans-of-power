@@ -205,9 +205,10 @@ impl Game {
     pub fn handle_event_editor(&mut self, event: &geng::Event) {
         let level = &self.levels.postjam;
         macro_rules! level_mut {
-            () => {
+            () => {{
+                self.levels.postjam.mesh.take();
                 &mut self.levels.postjam
-            };
+            }};
         }
         if self.opt.editor
             && matches!(

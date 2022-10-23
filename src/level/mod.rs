@@ -22,13 +22,6 @@ impl Levels {
             &self.jam
         }
     }
-    pub fn get_mut(&mut self, postjam: bool) -> &mut Level {
-        if postjam {
-            &mut self.postjam
-        } else {
-            &mut self.jam
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize)]
