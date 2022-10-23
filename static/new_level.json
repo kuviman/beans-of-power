@@ -1967,7 +1967,7 @@
       "type_name": "water"
     }
   ],
-  "background_tiles": [
+  "tiles": [
     {
       "vertices": [
         {

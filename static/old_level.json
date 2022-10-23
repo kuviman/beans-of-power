@@ -1649,7 +1649,7 @@
       "type_name": "slime"
     }
   ],
-  "background_tiles": [
+  "tiles": [
     {
       "vertices": [
         {
