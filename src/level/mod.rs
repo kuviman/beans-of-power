@@ -31,7 +31,7 @@ impl Levels {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct Level {
     pub spawn_point: Vec2<f32>,
     pub finish_point: Vec2<f32>,
@@ -39,6 +39,8 @@ pub struct Level {
     pub tiles: Vec<Tile>,
     pub expected_path: Vec<Vec2<f32>>,
     pub objects: Vec<Object>,
+    #[serde(skip)]
+    pub mesh: RefCell<Option<draw::LevelMesh>>,
 }
 
 impl Level {
@@ -50,6 +52,7 @@ impl Level {
             tiles: vec![],
             expected_path: vec![],
             objects: vec![],
+            mesh: default(),
         }
     }
 }

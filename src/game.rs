@@ -257,19 +257,34 @@ impl Game {
 
 impl geng::State for Game {
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
+        let mut test = String::new();
+        let timer1 = Timer::new();
+        let mut timer = Timer::new();
         self.framebuffer_size = framebuffer.size().map(|x| x as f32);
         ugli::clear(framebuffer, Some(self.config.background_color), None, None);
 
         let level = self.levels.get(self.customization.postjam);
 
         self.draw_level_back(level, framebuffer);
+        test += &format!("lvl back {}\n", timer.tick());
         self.draw_guys(framebuffer);
+        test += &format!("guys {}\n", timer.tick());
         self.draw_level_front(level, framebuffer);
+        test += &format!("lvl front {}\n", timer.tick());
         self.draw_farticles(framebuffer);
+        test += &format!("farticles {}\n", timer.tick());
         self.draw_level_editor(framebuffer);
+        test += &format!("editor {}\n", timer.tick());
         self.draw_customizer(framebuffer);
+        test += &format!("customizer {}\n", timer.tick());
         self.draw_leaderboard(framebuffer);
+        test += &format!("lb {}\n", timer.tick());
         self.draw_progress(framebuffer);
+        test += &format!("progress {}\n", timer.tick());
+
+        if timer1.elapsed() > 0.100 {
+            println!("{}", test);
+        }
     }
 
     fn fixed_update(&mut self, delta_time: f64) {

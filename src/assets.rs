@@ -21,6 +21,13 @@ pub struct Assets {
         path = "emotes/*.png"
     )]
     pub emotes: Vec<Texture>,
+    pub shaders: Shaders,
+}
+
+#[derive(geng::Assets)]
+pub struct Shaders {
+    pub tile: ugli::Program,
+    pub surface: ugli::Program,
 }
 
 #[derive(geng::Assets, Deserialize, Clone, Debug)]
