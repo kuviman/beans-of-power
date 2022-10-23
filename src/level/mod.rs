@@ -1,5 +1,6 @@
 use super::*;
 
+mod draw;
 mod object;
 mod surface;
 mod tile;

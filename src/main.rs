@@ -6,21 +6,29 @@ use geng::prelude::*;
 mod ui;
 
 mod assets;
+mod customizer;
 mod editor;
 mod farticle;
 mod game;
 mod guy;
+mod leaderboard;
 mod level;
+mod logic;
 mod net;
+mod remote;
 mod util;
 
 pub use assets::*;
+pub use customizer::*;
 pub use editor::*;
 pub use farticle::*;
 pub use game::*;
 pub use guy::*;
+pub use leaderboard::*;
 pub use level::*;
+pub use logic::*;
 pub use net::*;
+pub use remote::*;
 pub use util::*;
 
 #[derive(clap::Parser, Clone)]

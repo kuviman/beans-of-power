@@ -37,3 +37,12 @@ impl geng::LoadAsset for Texture {
 pub fn zero_vec() -> Vec2<f32> {
     Vec2::ZERO
 }
+
+impl Game {
+    #[track_caller]
+    pub fn noise(&self, frequency: f32) -> f32 {
+        let caller = std::panic::Location::caller();
+        let phase = caller.line() as f64 * 1000.0 + caller.column() as f64;
+        self.noise.get([(self.real_time * frequency) as f64, phase]) as f32
+    }
+}
