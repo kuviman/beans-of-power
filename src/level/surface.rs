@@ -36,6 +36,8 @@ pub struct SurfaceParams {
     pub flex_frequency: f32,
     #[serde(default)]
     pub flex_amplitude: f32,
+    #[serde(default)]
+    pub texture_speed: f32,
 }
 
 pub struct SurfaceAssets {

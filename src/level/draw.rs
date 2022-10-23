@@ -90,6 +90,7 @@ impl Game {
         framebuffer: &mut ugli::Framebuffer,
         texture: impl Fn(&SurfaceAssets) -> Option<&Texture>,
         texture_shift: f32,
+        texture_move_direction: f32,
     ) {
         let mesh = self.get_mesh(level);
         for (index, surface) in level.surfaces.iter().enumerate() {
@@ -98,6 +99,8 @@ impl Game {
                 Some(texture) => texture,
                 None => continue,
             };
+            let texture_shift = texture_shift
+                + assets.params.texture_speed * self.simulation_time * texture_move_direction;
             ugli::draw(
                 framebuffer,
                 &self.assets.shaders.surface,
@@ -186,6 +189,7 @@ impl Game {
             framebuffer,
             |assets| assets.back_texture.as_ref(),
             43756.0,
+            1.0,
         );
     }
 
@@ -196,6 +200,7 @@ impl Game {
             framebuffer,
             |assets| assets.front_texture.as_ref(),
             -123.0,
+            -1.0,
         );
     }
 }
