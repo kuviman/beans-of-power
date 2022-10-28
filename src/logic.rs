@@ -258,14 +258,15 @@ impl Game {
                 let normal_vel = Vec2::dot(guy.vel, collision.normal);
                 let tangent = collision.normal.rotate_90();
                 let tangent_vel = Vec2::dot(guy.vel, tangent) - guy.w * self.config.guy_radius;
-                guy.vel -=
-                    collision.normal * normal_vel * (1.0 + collision.assets.params.bounciness);
+                let impulse = (-normal_vel * (1.0 + collision.assets.params.bounciness))
+                    .max(-normal_vel + collision.assets.params.min_bounce_vel);
+                guy.vel += collision.normal * impulse;
                 let max_friction_impulse = normal_vel.abs() * collision.assets.params.friction;
                 let friction_impulse = -tangent_vel.clamp_abs(max_friction_impulse);
                 guy.vel += tangent * friction_impulse;
                 guy.w -= friction_impulse / self.config.guy_radius;
                 if let Some(sound) = &collision.assets.sound {
-                    let volume = ((-0.5 - normal_vel) / 2.0).clamp(0.0, 1.0);
+                    let volume = ((-0.5 + impulse / 2.0) / 2.0).clamp(0.0, 1.0);
                     if volume > 0.0 && self.customization.postjam {
                         let mut effect = sound.effect();
                         effect.set_volume(

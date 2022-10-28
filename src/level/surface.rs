@@ -28,6 +28,8 @@ pub struct SurfaceParams {
     #[serde(default)]
     pub non_collidable: bool,
     pub bounciness: f32,
+    #[serde(default)]
+    pub min_bounce_vel: f32,
     pub friction: f32,
     pub front: bool,
     pub back: bool,
