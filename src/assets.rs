@@ -39,6 +39,8 @@ pub struct Config {
     pub angular_acceleration: f32,
     pub gravity: f32,
     pub max_angular_speed: f32, // TODO: maybe?
+    pub fart_continued_force: f32,
+    pub fart_continuation_pressure_speed: f32,
     pub force_fart_pressure_multiplier: f32,
     pub fart_strength: f32,
     pub max_fart_pressure: f32,

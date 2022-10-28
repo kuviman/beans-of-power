@@ -109,15 +109,32 @@ impl Game {
             }
 
             let could_fart = guy.fart_pressure >= self.config.fart_pressure_released;
-            guy.fart_pressure += if guy.input.force_fart {
-                delta_time * self.config.force_fart_pressure_multiplier
+            if self.config.fart_continued_force == 0.0 {
+                guy.farting = false;
+            }
+            if guy.input.force_fart {
+                if guy.farting {
+                    guy.fart_pressure -= delta_time * self.config.fart_continuation_pressure_speed;
+                    if guy.fart_pressure < 0.0 {
+                        guy.fart_pressure = 0.0;
+                        guy.farting = false;
+                    }
+                } else {
+                    guy.fart_pressure += delta_time * self.config.force_fart_pressure_multiplier;
+                }
             } else {
-                delta_time
+                guy.farting = false;
+                guy.fart_pressure += delta_time;
             };
-            if (guy.fart_pressure >= self.config.fart_pressure_released && guy.input.force_fart)
+
+            if guy.farting {
+                guy.vel += vec2(0.0, self.config.fart_continued_force * delta_time).rotate(guy.rot);
+            } else if (guy.fart_pressure >= self.config.fart_pressure_released
+                && guy.input.force_fart)
                 || guy.fart_pressure >= self.config.max_fart_pressure
             {
                 guy.fart_pressure -= self.config.fart_pressure_released;
+                guy.farting = true;
                 for _ in 0..self.config.farticle_count {
                     self.farticles.push(Farticle {
                         size: 1.0,

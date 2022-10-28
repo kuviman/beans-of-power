@@ -17,6 +17,7 @@ pub struct Guy {
     pub vel: Vec2<f32>,
     pub rot: f32,
     pub w: f32,
+    pub farting: bool,
     pub input: Input,
     pub fart_pressure: f32,
     pub finished: bool,
@@ -43,6 +44,7 @@ impl Guy {
             Hsva::new(hue, 1.0, 1.0, 1.0).into()
         };
         Self {
+            farting: false,
             colliding_water: false,
             name: "".to_owned(),
             id,
