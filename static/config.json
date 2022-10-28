@@ -7,6 +7,7 @@
     "fart_strength": 5.0,
     "max_fart_pressure": 6.0,
     "fart_pressure_released": 3.0,
+    "force_fart_pressure_multiplier": 2.0,
     "gravity": 7.0,
     "fart_color": "#057F2177",
     "bubble_fart_color": "#0af5",

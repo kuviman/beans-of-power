@@ -110,7 +110,7 @@ impl Game {
 
             let could_fart = guy.fart_pressure >= self.config.fart_pressure_released;
             guy.fart_pressure += if guy.input.force_fart {
-                delta_time * 2.0
+                delta_time * self.config.force_fart_pressure_multiplier
             } else {
                 delta_time
             };
