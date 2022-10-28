@@ -40,8 +40,8 @@ pub struct Config {
     pub gravity: f32,
     pub max_angular_speed: f32, // TODO: maybe?
     pub fart_strength: f32,
-    pub auto_fart_interval: f32,
-    pub force_fart_interval: f32,
+    pub max_fart_pressure: f32,
+    pub fart_pressure_released: f32,
     pub fart_color: Rgba<f32>,
     pub bubble_fart_color: Rgba<f32>,
     pub farticle_w: f32,

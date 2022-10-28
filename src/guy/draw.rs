@@ -6,7 +6,7 @@ impl Game {
             self.guys.iter().filter(|guy| guy.id != self.client_id),
             self.guys.iter().filter(|guy| guy.id == self.client_id),
         ] {
-            let (eyes, cheeks, cheeks_color) = if let Some(custom) =
+            let (eyes, closed_eyes, cheeks, cheeks_color) = if let Some(custom) =
                 self.assets.guy.custom.get(&guy.name)
             {
                 self.geng.draw_2d(
@@ -17,7 +17,12 @@ impl Game {
                         .transform(Mat3::rotate(guy.rot))
                         .translate(guy.pos),
                 );
-                (&custom.eyes, &custom.cheeks, Rgba::WHITE)
+                (
+                    &custom.eyes,
+                    &self.assets.guy.closed_eyes, // TODO custom
+                    &custom.cheeks,
+                    Rgba::WHITE,
+                )
             } else {
                 self.geng.draw_2d(
                     framebuffer,
@@ -59,36 +64,74 @@ impl Game {
                 );
                 (
                     &self.assets.guy.eyes,
+                    &self.assets.guy.closed_eyes,
                     &self.assets.guy.cheeks,
                     guy.colors.skin,
                 )
             };
-            let autofart_progress = guy.auto_fart_timer / self.config.auto_fart_interval;
-            self.geng.draw_2d(
-                framebuffer,
-                &self.camera,
-                &draw_2d::TexturedQuad::unit_colored(eyes, {
-                    let k = 0.8;
-                    let t = ((autofart_progress - k) / (1.0 - k)).clamp(0.0, 1.0) * 0.5;
-                    Rgba::new(1.0, 1.0 - t, 1.0 - t, 1.0)
-                })
-                .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * autofart_progress)
-                .scale_uniform(self.config.guy_radius * (0.8 + 0.6 * autofart_progress))
-                .transform(Mat3::rotate(guy.rot))
-                .translate(guy.pos),
-            );
+            let fart_progress = guy.fart_pressure / self.config.max_fart_pressure;
+
+            {
+                // Visualize fart pressure
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::Quad::new(
+                        AABB::point(guy.pos + vec2(0.0, self.config.guy_radius * 1.2))
+                            .extend_symmetric(vec2(0.5, 0.02)),
+                        Rgba::BLACK,
+                    ),
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::Quad::new(
+                        AABB::point(
+                            guy.pos + vec2(-0.5 + fart_progress, self.config.guy_radius * 1.2),
+                        )
+                        .extend_uniform(0.04),
+                        Rgba::BLACK,
+                    ),
+                );
+            }
+
+            if guy.input.force_fart {
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit_colored(closed_eyes, guy.colors.skin)
+                        .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * fart_progress)
+                        .scale_uniform(self.config.guy_radius * (0.8 + 0.6 * fart_progress))
+                        .transform(Mat3::rotate(guy.rot))
+                        .translate(guy.pos),
+                );
+            } else {
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit_colored(eyes, {
+                        let k = 0.8;
+                        let t = ((fart_progress - k) / (1.0 - k)).clamp(0.0, 1.0) * 0.5;
+                        Rgba::new(1.0, 1.0 - t, 1.0 - t, 1.0)
+                    })
+                    .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * fart_progress)
+                    .scale_uniform(self.config.guy_radius * (0.8 + 0.6 * fart_progress))
+                    .transform(Mat3::rotate(guy.rot))
+                    .translate(guy.pos),
+                );
+            }
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
                 &draw_2d::TexturedQuad::unit_colored(
                     cheeks,
                     Rgba {
-                        a: (0.5 + 1.0 * autofart_progress).min(1.0),
+                        a: (0.5 + 1.0 * fart_progress).min(1.0),
                         ..cheeks_color
                     },
                 )
-                .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * autofart_progress)
-                .scale_uniform(self.config.guy_radius * (0.8 + 0.7 * autofart_progress))
+                .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * fart_progress)
+                .scale_uniform(self.config.guy_radius * (0.8 + 0.7 * fart_progress))
                 .transform(Mat3::rotate(guy.rot))
                 .translate(guy.pos),
             );

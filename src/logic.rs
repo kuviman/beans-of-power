@@ -47,14 +47,13 @@ impl Game {
                 for object in &level.objects {
                     if (guy.pos - object.pos).len() < 1.5 && object.type_name == "unicorn" {
                         guy.touched_a_unicorn = true;
-                        guy.auto_fart_timer = self.config.auto_fart_interval;
+                        guy.fart_pressure = self.config.max_fart_pressure;
                     }
                 }
             }
 
             if guy.finished {
-                guy.auto_fart_timer = 0.0;
-                guy.force_fart_timer = 0.0;
+                guy.fart_pressure = 0.0;
                 guy.rot -= delta_time;
                 guy.pos = level.finish_point
                     + (guy.pos - level.finish_point)
@@ -109,26 +108,16 @@ impl Game {
                 }
             }
 
-            let mut farts = 0;
-            guy.auto_fart_timer += delta_time;
-            if guy.auto_fart_timer >= self.config.auto_fart_interval {
-                guy.auto_fart_timer = 0.0;
-                farts += 1;
-            }
-            let could_force_fart = guy.force_fart_timer >= self.config.force_fart_interval;
-            guy.force_fart_timer += delta_time;
-            if guy.force_fart_timer >= self.config.force_fart_interval && guy.input.force_fart {
-                farts += 1;
-                guy.force_fart_timer = 0.0;
-            }
-            if !could_force_fart && guy.force_fart_timer >= self.config.force_fart_interval {
-                if Some(guy.id) == self.my_guy {
-                    let mut effect = self.assets.sfx.fart_recharge.effect();
-                    effect.set_volume(self.volume as f64 * 0.5);
-                    effect.play();
-                }
-            }
-            for _ in 0..farts {
+            let could_fart = guy.fart_pressure >= self.config.fart_pressure_released;
+            guy.fart_pressure += if guy.input.force_fart {
+                delta_time * 2.0
+            } else {
+                delta_time
+            };
+            if (guy.fart_pressure >= self.config.fart_pressure_released && guy.input.force_fart)
+                || guy.fart_pressure >= self.config.max_fart_pressure
+            {
+                guy.fart_pressure -= self.config.fart_pressure_released;
                 for _ in 0..self.config.farticle_count {
                     self.farticles.push(Farticle {
                         size: 1.0,
@@ -165,6 +154,13 @@ impl Game {
                         .clamp(0.0, 1.0) as f64,
                 );
                 effect.play();
+            } else if !could_fart && guy.fart_pressure >= self.config.fart_pressure_released {
+                // Growling stomach recharge
+                if Some(guy.id) == self.my_guy {
+                    let mut effect = self.assets.sfx.fart_recharge.effect();
+                    effect.set_volume(self.volume as f64 * 0.5);
+                    effect.play();
+                }
             }
 
             guy.pos += guy.vel * delta_time;
