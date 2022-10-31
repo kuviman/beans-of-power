@@ -26,6 +26,7 @@ pub struct Guy {
     pub progress: f32,
     pub best_progress: f32,
     pub best_time: Option<f32>,
+    pub next_farticle: f32,
     pub touched_a_unicorn: bool,
 }
 
@@ -78,6 +79,7 @@ impl Guy {
             best_progress: 0.0,
             best_time: None,
             touched_a_unicorn: false,
+            next_farticle: 0.0,
         }
     }
 }

@@ -127,7 +127,100 @@ impl Game {
                 guy.fart_pressure += delta_time;
             };
 
+            if !guy.farting {
+                if let Some(sfx) = self.long_fart_sfx.get_mut(&guy.id) {
+                    if sfx.finish_time.is_none() {
+                        sfx.finish_time = Some(self.real_time);
+                    }
+                    let fadeout = (self.real_time - sfx.finish_time.unwrap()) / 0.2;
+                    if fadeout >= 1.0 {
+                        sfx.sfx.pause();
+                        sfx.bubble_sfx.pause();
+                        sfx.rainbow_sfx.pause();
+                        self.long_fart_sfx.remove(&guy.id);
+                    } else {
+                        let active_index = if in_water {
+                            0
+                        } else if guy.touched_a_unicorn {
+                            1
+                        } else {
+                            2
+                        };
+                        for (index, sfx) in
+                            [&mut sfx.bubble_sfx, &mut sfx.rainbow_sfx, &mut sfx.sfx]
+                                .into_iter()
+                                .enumerate()
+                        {
+                            if index == active_index {
+                                sfx.set_volume(
+                                    (self.volume
+                                        * (1.0
+                                            - (guy.pos - self.camera.center).len()
+                                                / self.camera.fov))
+                                        .clamp(0.0, 1.0) as f64
+                                        * (1.0 - fadeout) as f64,
+                                );
+                            } else {
+                                sfx.set_volume(0.0);
+                            }
+                        }
+                    }
+                }
+            } else {
+                if let Some(sfx) = self.long_fart_sfx.get_mut(&guy.id) {
+                    let active_index = if in_water {
+                        0
+                    } else if guy.touched_a_unicorn {
+                        1
+                    } else {
+                        2
+                    };
+                    for (index, sfx) in [&mut sfx.bubble_sfx, &mut sfx.rainbow_sfx, &mut sfx.sfx]
+                        .into_iter()
+                        .enumerate()
+                    {
+                        if index == active_index {
+                            sfx.set_volume(
+                                (self.volume
+                                    * (1.0
+                                        - (guy.pos - self.camera.center).len() / self.camera.fov))
+                                    .clamp(0.0, 1.0) as f64,
+                            );
+                        } else {
+                            sfx.set_volume(0.0);
+                        }
+                    }
+                } else {
+                    warn!("No sfx for long fart?");
+                }
+            }
+
             if guy.farting {
+                guy.next_farticle -= delta_time;
+                while guy.next_farticle < 0.0 {
+                    guy.next_farticle += 1.0 / self.config.long_fart_farticles_per_second;
+                    self.farticles.push(Farticle {
+                        size: 1.0,
+                        pos: butt,
+                        vel: guy.vel
+                            + vec2(
+                                global_rng().gen_range(0.0..=self.config.farticle_additional_vel),
+                                0.0,
+                            )
+                            .rotate(global_rng().gen_range(0.0..=2.0 * f32::PI))
+                            + vec2(0.0, -self.config.long_fart_farticle_speed).rotate(guy.rot),
+                        rot: global_rng().gen_range(0.0..2.0 * f32::PI),
+                        w: global_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
+                        color: if in_water {
+                            self.config.bubble_fart_color
+                        } else if guy.touched_a_unicorn {
+                            Hsva::new(global_rng().gen_range(0.0..1.0), 1.0, 1.0, 0.5).into()
+                        } else {
+                            self.config.fart_color
+                        },
+                        t: 1.0,
+                    });
+                }
                 guy.vel += vec2(0.0, self.config.fart_continued_force * delta_time).rotate(guy.rot);
             } else if (guy.fart_pressure >= self.config.fart_pressure_released
                 && guy.input.force_fart)
@@ -135,6 +228,30 @@ impl Game {
             {
                 guy.fart_pressure -= self.config.fart_pressure_released;
                 guy.farting = true;
+                {
+                    let mut sfx = self.assets.sfx.long_fart.effect();
+                    sfx.set_volume(0.0);
+                    sfx.play();
+                    let mut bubble_sfx = self.assets.sfx.bubble_long_fart.effect();
+                    bubble_sfx.set_volume(0.0);
+                    bubble_sfx.play();
+                    let mut rainbow_sfx = self.assets.sfx.rainbow_long_fart.effect();
+                    rainbow_sfx.set_volume(0.0);
+                    rainbow_sfx.play();
+                    if let Some(mut sfx) = self.long_fart_sfx.insert(
+                        guy.id,
+                        LongFartSfx {
+                            finish_time: None,
+                            sfx,
+                            bubble_sfx,
+                            rainbow_sfx,
+                        },
+                    ) {
+                        sfx.bubble_sfx.pause();
+                        sfx.sfx.pause();
+                        sfx.rainbow_sfx.pause();
+                    }
+                }
                 for _ in 0..self.config.farticle_count {
                     self.farticles.push(Farticle {
                         size: 1.0,

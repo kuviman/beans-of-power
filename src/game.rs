@@ -4,6 +4,13 @@ pub const CONTROLS_LEFT: [geng::Key; 2] = [geng::Key::A, geng::Key::Left];
 pub const CONTROLS_RIGHT: [geng::Key; 2] = [geng::Key::D, geng::Key::Right];
 pub const CONTROLS_FORCE_FART: [geng::Key; 3] = [geng::Key::W, geng::Key::Up, geng::Key::Space];
 
+pub struct LongFartSfx {
+    pub finish_time: Option<f32>,
+    pub sfx: geng::SoundEffect,
+    pub bubble_sfx: geng::SoundEffect,
+    pub rainbow_sfx: geng::SoundEffect,
+}
+
 pub struct Game {
     pub best_time: Option<f32>,
     pub emotes: Vec<(f32, Id, usize)>,
@@ -37,6 +44,7 @@ pub struct Game {
     pub show_names: bool,
     pub show_leaderboard: bool,
     pub follow: Option<Id>,
+    pub long_fart_sfx: HashMap<Id, LongFartSfx>,
 }
 
 impl Drop for Game {
@@ -127,6 +135,7 @@ impl Game {
             show_names: true,
             show_leaderboard: true,
             follow: None,
+            long_fart_sfx: HashMap::new(),
         };
         if !opt.editor {
             result.my_guy = Some(client_id);

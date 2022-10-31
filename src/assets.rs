@@ -42,6 +42,8 @@ pub struct Config {
     pub fart_continued_force: f32,
     pub fart_continuation_pressure_speed: f32,
     pub force_fart_pressure_multiplier: f32,
+    pub long_fart_farticles_per_second: f32,
+    pub long_fart_farticle_speed: f32,
     pub fart_strength: f32,
     pub max_fart_pressure: f32,
     pub fart_pressure_released: f32,
@@ -62,6 +64,12 @@ pub struct SfxAssets {
     pub bubble_fart: Vec<geng::Sound>,
     #[asset(range = "1..=1", path = "rainbow_fart/*.wav")]
     pub rainbow_fart: Vec<geng::Sound>,
+    #[asset(path = "fart/long.wav")]
+    pub long_fart: geng::Sound,
+    #[asset(path = "bubble_fart/long.wav")]
+    pub bubble_long_fart: geng::Sound,
+    #[asset(path = "rainbow_fart/long.wav")]
+    pub rainbow_long_fart: geng::Sound,
     pub fart_recharge: geng::Sound,
     pub water_splash: geng::Sound,
     #[asset(path = "music.mp3")]
