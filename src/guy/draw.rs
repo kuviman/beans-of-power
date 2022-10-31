@@ -71,7 +71,7 @@ impl Game {
             };
             let fart_progress = guy.fart_pressure / self.config.max_fart_pressure;
 
-            {
+            if false {
                 // Visualize fart pressure
                 self.geng.draw_2d(
                     framebuffer,
@@ -120,21 +120,25 @@ impl Game {
                     .translate(guy.pos),
                 );
             }
-            self.geng.draw_2d(
-                framebuffer,
-                &self.camera,
-                &draw_2d::TexturedQuad::unit_colored(
-                    cheeks,
-                    Rgba {
-                        a: (0.5 + 1.0 * fart_progress).min(1.0),
-                        ..cheeks_color
-                    },
-                )
-                .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * fart_progress)
-                .scale_uniform(self.config.guy_radius * (0.8 + 0.7 * fart_progress))
-                .transform(Mat3::rotate(guy.rot))
-                .translate(guy.pos),
-            );
+            if guy.fart_pressure >= self.config.fart_pressure_released {
+                let progress = (guy.fart_pressure - self.config.fart_pressure_released)
+                    / (self.config.max_fart_pressure - self.config.fart_pressure_released);
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit_colored(
+                        cheeks,
+                        Rgba {
+                            a: (0.5 + 1.0 * progress).min(1.0),
+                            ..cheeks_color
+                        },
+                    )
+                    .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * progress)
+                    .scale_uniform(self.config.guy_radius * (0.8 + 0.7 * progress))
+                    .transform(Mat3::rotate(guy.rot))
+                    .translate(guy.pos),
+                );
+            }
             if Some(guy.id) == self.my_guy || self.show_names {
                 self.assets.font.draw(
                     framebuffer,
