@@ -36,6 +36,7 @@ pub struct Game {
     pub client_id: Id,
     pub connection: Connection,
     pub customization: Guy,
+    pub mute_music: bool,
     pub ui_controller: ui::Controller,
     pub buttons: Vec<ui::Button<UiMessage>>,
     pub show_customizer: bool,
@@ -102,6 +103,7 @@ impl Game {
                 }
                 guy
             },
+            mute_music: false,
             best_progress: 0.0,
             ui_controller: ui::Controller::new(geng, assets),
             buttons: vec![
@@ -318,7 +320,10 @@ impl geng::State for Game {
             self.volume -= delta_time as f32 * 0.5;
         }
         self.volume = self.volume.clamp(0.0, 1.0);
-        if self.customization.postjam {
+        if self.mute_music {
+            self.new_music.set_volume(0.0);
+            self.old_music.set_volume(0.0);
+        } else if self.customization.postjam {
             self.new_music.set_volume(self.volume as f64);
             self.old_music.set_volume(0.0);
         } else {
@@ -411,6 +416,9 @@ impl geng::State for Game {
                 if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
             {
                 self.respawn_my_guy();
+            }
+            geng::Event::KeyDown { key: geng::Key::M } if !self.show_customizer => {
+                self.mute_music = !self.mute_music;
             }
             geng::Event::KeyDown { key: geng::Key::H } if !self.show_customizer => {
                 self.show_names = !self.show_names;
