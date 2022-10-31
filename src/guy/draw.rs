@@ -6,6 +6,37 @@ impl Game {
             self.guys.iter().filter(|guy| guy.id != self.client_id),
             self.guys.iter().filter(|guy| guy.id == self.client_id),
         ] {
+            if let Some(growl_progress) = guy.growl_progress {
+                let shift = vec2(self.noise(10.0), self.noise(10.0)) * 0.1;
+                let scale = 1.0 - (growl_progress * 2.0 - 1.0).sqr();
+                let scale =
+                    self.config.growl_min_scale * (1.0 - scale) + self.config.growl_scale * scale;
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit_colored(
+                        &self.assets.guy.growl_bottom,
+                        guy.colors.bottom,
+                    )
+                    .translate(shift)
+                    .scale_uniform(self.config.guy_radius * scale)
+                    .transform(Mat3::rotate(guy.rot))
+                    .translate(guy.pos),
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit_colored(
+                        &self.assets.guy.growl_top,
+                        guy.colors.top,
+                    )
+                    .translate(shift)
+                    .scale_uniform(self.config.guy_radius * scale)
+                    .transform(Mat3::rotate(guy.rot))
+                    .translate(guy.pos),
+                );
+            }
+
             let (eyes, closed_eyes, cheeks, cheeks_color) = if let Some(custom) =
                 self.assets.guy.custom.get(&guy.name)
             {

@@ -12,6 +12,7 @@ pub struct Input {
 pub struct Guy {
     pub name: String,
     pub colliding_water: bool,
+    pub growl_progress: Option<f32>,
     pub id: Id,
     pub pos: Vec2<f32>,
     pub vel: Vec2<f32>,
@@ -46,6 +47,7 @@ impl Guy {
         };
         Self {
             farting: false,
+            growl_progress: None,
             colliding_water: false,
             name: "".to_owned(),
             id,
@@ -121,6 +123,8 @@ pub struct GuyAssets {
     pub eyes: Texture,
     pub closed_eyes: Texture,
     pub skin: Texture,
+    pub growl_top: Texture,
+    pub growl_bottom: Texture,
     pub clothes_top: Texture,
     pub clothes_bottom: Texture,
     pub hair: Texture,

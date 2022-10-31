@@ -295,6 +295,14 @@ impl Game {
                     effect.set_volume(self.volume as f64 * 0.5);
                     effect.play();
                 }
+                guy.growl_progress = Some(0.0);
+            }
+
+            if let Some(growl) = &mut guy.growl_progress {
+                *growl += delta_time / self.config.growl_time;
+                if *growl >= 1.0 {
+                    guy.growl_progress = None;
+                }
             }
 
             guy.pos += guy.vel * delta_time;
