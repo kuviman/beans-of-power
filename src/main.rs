@@ -54,8 +54,7 @@ fn main() {
         if cfg!(target_arch = "wasm32") {
             opt.connect = Some(
                 option_env!("CONNECT")
-                    .unwrap_or("ws://127.0.0.1:1155")
-                    // .expect("Set CONNECT compile time env var")
+                    .expect("Set CONNECT compile time env var")
                     .to_owned(),
             );
         } else {
@@ -88,17 +87,22 @@ fn main() {
             vsync: false,
             ..default()
         });
-        let connection = geng::net::client::connect::<ServerMessage, ClientMessage>(
-            opt.connect.as_deref().unwrap(),
-        )
-        .then(|connection| async move {
-            let (message, mut connection) = connection.into_future().await;
-            let id = match message {
-                Some(ServerMessage::ClientId(id)) => id,
-                _ => unreachable!(),
-            };
-            connection.send(ClientMessage::Ping);
-            (id, connection)
+        let connection = future::OptionFuture::<_>::from(match opt.connect.as_deref().unwrap() {
+            "singleplayer" => None,
+            addr => Some(geng::net::client::connect::<ServerMessage, ClientMessage>(
+                addr,
+            )),
+        })
+        .then(|connection| {
+            future::OptionFuture::from(connection.map(|connection| async {
+                let (message, mut connection) = connection.into_future().await;
+                let id = match message {
+                    Some(ServerMessage::ClientId(id)) => id,
+                    _ => unreachable!(),
+                };
+                connection.send(ClientMessage::Ping);
+                (id, connection)
+            }))
         });
         let state = geng::LoadingScreen::new(
             &geng,
@@ -121,7 +125,7 @@ fn main() {
             ),
             {
                 let geng = geng.clone();
-                move |((assets, (old_level, new_level)), (client_id, connection))| {
+                move |((assets, (old_level, new_level)), connection_info)| {
                     let mut assets = assets.expect("Failed to load assets");
                     assets.process();
                     let old_level = serde_json::from_str(&old_level.unwrap()).unwrap();
@@ -135,8 +139,7 @@ fn main() {
                             postjam: new_level,
                         },
                         opt,
-                        client_id,
-                        connection,
+                        connection_info,
                     )
                 }
             },

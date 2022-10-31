@@ -34,7 +34,7 @@ pub struct Game {
     pub farticles: Vec<Farticle>,
     pub volume: f32,
     pub client_id: Id,
-    pub connection: Connection,
+    pub connection: Option<Connection>,
     pub customization: Guy,
     pub mute_music: bool,
     pub ui_controller: ui::Controller,
@@ -62,9 +62,12 @@ impl Game {
         assets: &Rc<Assets>,
         levels: Levels,
         opt: Opt,
-        client_id: Id,
-        connection: Connection,
+        connection_info: Option<(Id, Connection)>,
     ) -> Self {
+        let (client_id, connection) = match connection_info {
+            Some((client_id, connection)) => (client_id, Some(connection)),
+            None => (-1, None),
+        };
         let mut result = Self {
             best_time: None,
             emotes: vec![],
@@ -430,16 +433,32 @@ impl geng::State for Game {
             }
             geng::Event::KeyDown {
                 key: geng::Key::Num1,
-            } => self.connection.send(ClientMessage::Emote(0)),
+            } => {
+                if let Some(con) = &mut self.connection {
+                    con.send(ClientMessage::Emote(0));
+                }
+            }
             geng::Event::KeyDown {
                 key: geng::Key::Num2,
-            } => self.connection.send(ClientMessage::Emote(1)),
+            } => {
+                if let Some(con) = &mut self.connection {
+                    con.send(ClientMessage::Emote(1));
+                }
+            }
             geng::Event::KeyDown {
                 key: geng::Key::Num3,
-            } => self.connection.send(ClientMessage::Emote(2)),
+            } => {
+                if let Some(con) = &mut self.connection {
+                    con.send(ClientMessage::Emote(2));
+                }
+            }
             geng::Event::KeyDown {
                 key: geng::Key::Num4,
-            } => self.connection.send(ClientMessage::Emote(3)),
+            } => {
+                if let Some(con) = &mut self.connection {
+                    con.send(ClientMessage::Emote(3));
+                }
+            }
             _ => {}
         }
         self.prev_mouse_pos = self.geng.window().mouse_pos();

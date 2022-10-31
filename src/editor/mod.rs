@@ -326,7 +326,9 @@ impl Game {
                 geng::Key::R => {
                     if !self.geng.window().is_key_pressed(geng::Key::LCtrl) {
                         if let Some(id) = self.my_guy.take() {
-                            self.connection.send(ClientMessage::Despawn);
+                            if let Some(con) = &mut self.connection {
+                                con.send(ClientMessage::Despawn);
+                            }
                             self.guys.remove(&id);
                         } else {
                             self.my_guy = Some(self.client_id);

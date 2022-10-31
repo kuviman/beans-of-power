@@ -32,8 +32,9 @@ impl Game {
         };
         if my_guy.input != new_input {
             my_guy.input = new_input;
-            self.connection
-                .send(ClientMessage::Update(self.simulation_time, my_guy.clone()));
+            if let Some(con) = &mut self.connection {
+                con.send(ClientMessage::Update(self.simulation_time, my_guy.clone()));
+            }
         }
     }
 
@@ -425,18 +426,22 @@ impl Game {
     }
 
     pub fn handle_connection(&mut self) {
-        let messages: Vec<ServerMessage> = self.connection.new_messages().collect();
+        let messages: Vec<ServerMessage> = match &mut self.connection {
+            Some(con) => con.new_messages().collect(),
+            None => return,
+        };
         for message in messages {
             match message {
                 ServerMessage::ForceReset => {
                     self.respawn_my_guy();
                 }
                 ServerMessage::Pong => {
-                    self.connection.send(ClientMessage::Ping);
-                    if let Some(id) = self.my_guy {
-                        let guy = self.guys.get(&id).unwrap();
-                        self.connection
-                            .send(ClientMessage::Update(self.simulation_time, guy.clone()));
+                    if let Some(con) = &mut self.connection {
+                        con.send(ClientMessage::Ping);
+                        if let Some(id) = self.my_guy {
+                            let guy = self.guys.get(&id).unwrap();
+                            con.send(ClientMessage::Update(self.simulation_time, guy.clone()));
+                        }
                     }
                 }
                 ServerMessage::ClientId(_) => unreachable!(),
@@ -476,6 +481,8 @@ impl Game {
         }
         self.guys.insert(new_guy);
         self.simulation_time = 0.0;
-        self.connection.send(ClientMessage::Despawn);
+        if let Some(con) = &mut self.connection {
+            con.send(ClientMessage::Despawn);
+        }
     }
 }
