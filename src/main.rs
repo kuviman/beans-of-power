@@ -409,7 +409,7 @@ pub struct Game {
     farticles: Vec<Farticle>,
     volume: f32,
     client_id: Id,
-    connection: Connection,
+    connection: Option<Connection>,
     customization: Guy,
     ui_controller: ui::Controller,
     buttons: Vec<ui::Button<UiMessage>>,
@@ -431,7 +431,7 @@ impl Game {
         level: Level,
         opt: Opt,
         client_id: Id,
-        connection: Connection,
+        connection: Option<Connection>,
     ) -> Self {
         let mut result = Self {
             emotes: vec![],
@@ -839,8 +839,9 @@ impl Game {
         };
         if my_guy.input != new_input {
             my_guy.input = new_input;
-            self.connection
-                .send(ClientMessage::Update(self.simulation_time, my_guy.clone()));
+            if let Some(con) = &mut self.connection {
+                con.send(ClientMessage::Update(self.simulation_time, my_guy.clone()));
+            }
         }
     }
 
@@ -1062,7 +1063,9 @@ impl Game {
                 geng::Key::R => {
                     if !self.geng.window().is_key_pressed(geng::Key::LCtrl) {
                         if let Some(id) = self.my_guy.take() {
-                            self.connection.send(ClientMessage::Despawn);
+                            if let Some(con) = &mut self.connection {
+                                con.send(ClientMessage::Despawn);
+                            }
                             self.guys.remove(&id);
                         } else {
                             self.my_guy = Some(self.client_id);
@@ -1163,15 +1166,18 @@ impl Game {
     }
 
     pub fn handle_connection(&mut self) {
-        let messages: Vec<ServerMessage> = self.connection.new_messages().collect();
+        let con = match &mut self.connection {
+            Some(con) => con,
+            None => return,
+        };
+        let messages: Vec<ServerMessage> = con.new_messages().collect();
         for message in messages {
             match message {
                 ServerMessage::Pong => {
-                    self.connection.send(ClientMessage::Ping);
+                    con.send(ClientMessage::Ping);
                     if let Some(id) = self.my_guy {
                         let guy = self.guys.get(&id).unwrap();
-                        self.connection
-                            .send(ClientMessage::Update(self.simulation_time, guy.clone()));
+                        con.send(ClientMessage::Update(self.simulation_time, guy.clone()));
                     }
                 }
                 ServerMessage::ClientId(_) => unreachable!(),
@@ -1501,23 +1507,41 @@ impl geng::State for Game {
                 }
                 self.guys.insert(new_guy);
                 self.simulation_time = 0.0;
-                self.connection.send(ClientMessage::Despawn);
+                if let Some(con) = &mut self.connection {
+                    con.send(ClientMessage::Despawn);
+                }
             }
             geng::Event::KeyDown { key: geng::Key::H } => {
                 self.show_names = !self.show_names;
             }
             geng::Event::KeyDown {
                 key: geng::Key::Num1,
-            } => self.connection.send(ClientMessage::Emote(0)),
+            } => {
+                if let Some(con) = &mut self.connection {
+                    con.send(ClientMessage::Emote(0));
+                }
+            }
             geng::Event::KeyDown {
                 key: geng::Key::Num2,
-            } => self.connection.send(ClientMessage::Emote(1)),
+            } => {
+                if let Some(con) = &mut self.connection {
+                    con.send(ClientMessage::Emote(1));
+                }
+            }
             geng::Event::KeyDown {
                 key: geng::Key::Num3,
-            } => self.connection.send(ClientMessage::Emote(2)),
+            } => {
+                if let Some(con) = &mut self.connection {
+                    con.send(ClientMessage::Emote(2));
+                }
+            }
             geng::Event::KeyDown {
                 key: geng::Key::Num4,
-            } => self.connection.send(ClientMessage::Emote(3)),
+            } => {
+                if let Some(con) = &mut self.connection {
+                    con.send(ClientMessage::Emote(3));
+                }
+            }
             _ => {}
         }
         self.prev_mouse_pos = self.geng.window().mouse_pos();
@@ -1542,8 +1566,8 @@ fn main() {
         if cfg!(target_arch = "wasm32") {
             opt.connect = Some(
                 option_env!("CONNECT")
-                    .unwrap_or("ws://127.0.0.1:1155")
-                    // .expect("Set CONNECT compile time env var")
+                    // .unwrap_or("ws://127.0.0.1:1155")
+                    .expect("Set CONNECT compile time env var")
                     .to_owned(),
             );
         } else {
@@ -1577,17 +1601,22 @@ fn main() {
             vsync: false,
             ..default()
         });
-        let connection = geng::net::client::connect::<ServerMessage, ClientMessage>(
-            opt.connect.as_deref().unwrap(),
-        )
-        .then(|connection| async move {
-            let (message, mut connection) = connection.into_future().await;
-            let id = match message {
-                Some(ServerMessage::ClientId(id)) => id,
-                _ => unreachable!(),
-            };
-            connection.send(ClientMessage::Ping);
-            (id, connection)
+        let connection = future::OptionFuture::from(match opt.connect.as_deref().unwrap() {
+            "singleplayer" => None,
+            addr => Some(geng::net::client::connect::<ServerMessage, ClientMessage>(
+                addr,
+            )),
+        })
+        .then(|connection| {
+            future::OptionFuture::from(connection.map(|connection| async {
+                let (message, mut connection) = connection.into_future().await;
+                let id = match message {
+                    Some(ServerMessage::ClientId(id)) => id,
+                    _ => unreachable!(),
+                };
+                connection.send(ClientMessage::Ping);
+                (id, connection)
+            }))
         });
         let state = geng::LoadingScreen::new(
             &geng,
@@ -1601,7 +1630,7 @@ fn main() {
             ),
             {
                 let geng = geng.clone();
-                move |((assets, level), (client_id, connection))| {
+                move |((assets, level), connection_info)| {
                     let mut assets = assets.expect("Failed to load assets");
                     assets.process();
                     let level = match level {
@@ -1609,6 +1638,10 @@ fn main() {
                         Err(_) => Level::empty(),
                     };
                     let assets = Rc::new(assets);
+                    let (client_id, connection) = match connection_info {
+                        Some((id, con)) => (id, Some(con)),
+                        None => (-1, None),
+                    };
                     Game::new(&geng, &assets, level, opt, client_id, connection)
                 }
             },
