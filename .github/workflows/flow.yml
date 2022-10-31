@@ -33,11 +33,6 @@ jobs:
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v2
-      - name: Deploy GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: web
       - name: Upload itch.io (Web)
         uses: josephbmanley/butler-publish-itchio-action@master
         env:
@@ -61,3 +56,18 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: systemctl --user restart gfo
+
+  deploy-dev:
+    name: Deploy (Dev)
+    if: github.ref == 'refs/heads/dev' && github.repository_owner == 'kuviman'
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+      - name: Deploy GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: web
