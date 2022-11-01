@@ -81,7 +81,7 @@ impl Game {
             },
             framebuffer_size: vec2(1.0, 1.0),
             editor: if opt.editor {
-                Some(EditorState::new())
+                Some(EditorState::new(geng, assets))
             } else {
                 None
             },

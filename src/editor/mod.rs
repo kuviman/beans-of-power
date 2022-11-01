@@ -1,25 +1,45 @@
 use super::*;
 
+mod tools;
+
+use tools::*;
+
+pub struct Cursor {
+    pub screen_pos: Vec2<f32>,
+    pub world_pos: Vec2<f32>,
+    pub snapped_world_pos: Vec2<f32>,
+}
+
 pub struct EditorState {
+    geng: Geng,
+    cursor: Cursor,
     next_autosave: f32,
-    start_drag: Option<Vec2<f32>>,
     face_points: Vec<Vec2<f32>>,
-    selected_surface: String,
     selected_tile: String,
     wind_drag: Option<(usize, Vec2<f32>)>,
     selected_object: String,
+    tool: Box<dyn DynEditorTool>,
 }
 
 impl EditorState {
-    pub fn new() -> Self {
+    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         Self {
+            geng: geng.clone(),
+            cursor: Cursor {
+                screen_pos: Vec2::ZERO,
+                world_pos: Vec2::ZERO,
+                snapped_world_pos: Vec2::ZERO,
+            },
             next_autosave: 0.0,
-            start_drag: None,
             face_points: vec![],
-            selected_surface: "".to_owned(),
             selected_tile: "".to_owned(),
             selected_object: "".to_owned(),
             wind_drag: None,
+            tool: Box::new(SurfaceTool::new(
+                geng,
+                assets,
+                SurfaceToolConfig::default(assets),
+            )),
         }
     }
     pub fn update(&mut self, levels: &mut Levels, delta_time: f32) {
@@ -65,22 +85,6 @@ impl Game {
         closest_point.unwrap_or(pos)
     }
 
-    pub fn find_hovered_surface(&self, level: &Level) -> Option<usize> {
-        let cursor = self.camera.screen_to_world(
-            self.framebuffer_size,
-            self.geng.window().mouse_pos().map(|x| x as f32),
-        );
-        level
-            .surfaces
-            .iter()
-            .enumerate()
-            .filter(|(_index, surface)| {
-                surface.vector_from(cursor).len() < self.config.snap_distance
-            })
-            .min_by_key(|(_index, surface)| r32(surface.vector_from(cursor).len()))
-            .map(|(index, _surface)| index)
-    }
-
     pub fn find_hovered_tile(&self, level: &Level) -> Option<usize> {
         let p = self.camera.screen_to_world(
             self.framebuffer_size,
@@ -102,30 +106,9 @@ impl Game {
     pub fn draw_level_editor(&self, framebuffer: &mut ugli::Framebuffer) {
         let level = &self.levels.postjam;
         if let Some(editor) = &self.editor {
-            if let Some(p1) = editor.start_drag {
-                let p2 = self.snapped_cursor_position(level);
-                self.geng.draw_2d(
-                    framebuffer,
-                    &self.camera,
-                    &draw_2d::Segment::new(
-                        Segment::new(p1, p2),
-                        0.1,
-                        Rgba::new(1.0, 1.0, 1.0, 0.5),
-                    ),
-                );
-            }
-            if let Some(index) = self.find_hovered_surface(level) {
-                let surface = &level.surfaces[index];
-                self.geng.draw_2d(
-                    framebuffer,
-                    &self.camera,
-                    &draw_2d::Segment::new(
-                        Segment::new(surface.p1, surface.p2),
-                        0.2,
-                        Rgba::new(1.0, 0.0, 0.0, 0.5),
-                    ),
-                );
-            }
+            editor
+                .tool
+                .draw(&editor.cursor, level, &self.camera, framebuffer);
             if let Some(index) = self.find_hovered_tile(level) {
                 let tile = &level.tiles[index];
                 self.geng.draw_2d(
@@ -203,7 +186,6 @@ impl Game {
     }
 
     pub fn handle_event_editor(&mut self, event: &geng::Event) {
-        let level = &self.levels.postjam;
         macro_rules! level_mut {
             () => {{
                 self.levels.postjam.mesh.take();
@@ -219,7 +201,7 @@ impl Game {
             )
         {
             if self.editor.is_none() {
-                self.editor = Some(EditorState::new());
+                self.editor = Some(EditorState::new(&self.geng, &self.assets));
             } else {
                 self.editor = None;
             }
@@ -227,12 +209,17 @@ impl Game {
         if self.editor.is_none() {
             return;
         }
-        let cursor_pos = self.snapped_cursor_position(level);
+        let cursor_pos = self.snapped_cursor_position(&self.levels.postjam);
         let editor = self.editor.as_mut().unwrap();
+        editor.cursor = Cursor {
+            screen_pos: self.geng.window().mouse_pos().map(|x| x as f32),
+            world_pos: self.camera.screen_to_world(
+                self.framebuffer_size,
+                self.geng.window().mouse_pos().map(|x| x as f32),
+            ),
+            snapped_world_pos: cursor_pos,
+        };
 
-        if !self.assets.surfaces.contains_key(&editor.selected_surface) {
-            editor.selected_surface = self.assets.surfaces.keys().next().unwrap().clone();
-        }
         if !self.assets.tiles.contains_key(&editor.selected_tile) {
             editor.selected_tile = self.assets.tiles.keys().next().unwrap().clone();
         }
@@ -240,39 +227,11 @@ impl Game {
             editor.selected_object = self.assets.objects.keys().next().unwrap().clone();
         }
 
-        match event {
-            geng::Event::MouseDown {
-                button: geng::MouseButton::Left,
-                ..
-            } => {
-                if let Some(editor) = &mut self.editor {
-                    editor.start_drag = Some(cursor_pos);
-                }
-            }
-            geng::Event::MouseUp {
-                button: geng::MouseButton::Left,
-                ..
-            } => {
-                let p2 = cursor_pos;
+        editor
+            .tool
+            .handle_event(&editor.cursor, event, level_mut!());
 
-                if let Some(p1) = editor.start_drag.take() {
-                    if (p1 - p2).len() > self.config.snap_distance {
-                        level_mut!().surfaces.push(Surface {
-                            p1,
-                            p2,
-                            type_name: editor.selected_surface.clone(),
-                        });
-                    }
-                }
-            }
-            geng::Event::MouseDown {
-                button: geng::MouseButton::Right,
-                ..
-            } => {
-                if let Some(index) = self.find_hovered_surface(level) {
-                    level_mut!().surfaces.remove(index);
-                }
-            }
+        match event {
             geng::Event::KeyUp { key } => match key {
                 geng::Key::W => {
                     if let Some((index, start)) = editor.wind_drag.take() {
@@ -289,7 +248,7 @@ impl Game {
                 geng::Key::W => {
                     if editor.wind_drag.is_none() {
                         self.editor.as_mut().unwrap().wind_drag =
-                            self.find_hovered_tile(level).map(|index| {
+                            self.find_hovered_tile(&self.levels.postjam).map(|index| {
                                 (
                                     index,
                                     self.camera.screen_to_world(
@@ -316,7 +275,7 @@ impl Game {
                     }
                 }
                 geng::Key::D => {
-                    if let Some(index) = self.find_hovered_tile(level) {
+                    if let Some(index) = self.find_hovered_tile(&self.levels.postjam) {
                         level_mut!().tiles.remove(index);
                     }
                 }
@@ -366,15 +325,6 @@ impl Game {
                         self.framebuffer_size,
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     );
-                }
-                geng::Key::Z => {
-                    let mut options: Vec<&String> = self.assets.surfaces.keys().collect();
-                    options.sort();
-                    let idx = options
-                        .iter()
-                        .position(|&s| s == &editor.selected_surface)
-                        .unwrap_or(0);
-                    editor.selected_surface = options[(idx + 1) % options.len()].clone();
                 }
                 geng::Key::X => {
                     let mut options: Vec<&String> = self.assets.tiles.keys().collect();
