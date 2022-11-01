@@ -125,7 +125,28 @@ impl EditorTool for TileTool {
                 ..
             } => {
                 self.points.push(cursor.snapped_world_pos);
+                // Check points are not too close
+                for i in 0..self.points.len() {
+                    for j in 0..i {
+                        if (self.points[j] - self.points[i]).len() < self.config.snap_distance {
+                            self.points.pop();
+                            return;
+                        }
+                    }
+                }
                 if self.points.len() == 3 {
+                    // Check triangle is not too small
+                    for i in 0..3 {
+                        let p1 = self.points[i];
+                        let p2 = self.points[(i + 1) % 3];
+                        let p3 = self.points[(i + 2) % 3];
+                        if Vec2::skew((p2 - p1).normalize_or_zero(), p3 - p1).abs()
+                            < self.config.snap_distance
+                        {
+                            self.points.pop();
+                            return;
+                        }
+                    }
                     let mut vertices: [Vec2<f32>; 3] =
                         mem::take(&mut self.points).try_into().unwrap();
                     if Vec2::skew(vertices[1] - vertices[0], vertices[2] - vertices[0]) < 0.0 {
