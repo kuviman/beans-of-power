@@ -39,13 +39,12 @@ impl Game {
     }
 
     pub fn update_guys(&mut self, delta_time: f32) {
-        let level = self.levels.get(self.customization.postjam);
         for guy in &mut self.guys {
-            if (guy.pos - level.finish_point).len() < 1.5 {
+            if (guy.pos - self.level.finish_point).len() < 1.5 {
                 guy.finished = true;
             }
             if !guy.touched_a_unicorn {
-                for object in &level.objects {
+                for object in &self.level.objects {
                     if (guy.pos - object.pos).len() < 1.5 && object.type_name == "unicorn" {
                         guy.touched_a_unicorn = true;
                         guy.fart_pressure = self.config.max_fart_pressure;
@@ -56,8 +55,8 @@ impl Game {
             if guy.finished {
                 guy.fart_pressure = 0.0;
                 guy.rot -= delta_time;
-                guy.pos = level.finish_point
-                    + (guy.pos - level.finish_point)
+                guy.pos = self.level.finish_point
+                    + (guy.pos - self.level.finish_point)
                         .normalize_or_zero()
                         .rotate(delta_time)
                         * 1.0;
@@ -76,7 +75,7 @@ impl Game {
             let mut in_water = false;
             let butt = guy.pos + vec2(0.0, -self.config.guy_radius * 0.9).rotate(guy.rot);
             if self.customization.postjam {
-                'tile_loop: for tile in &level.tiles {
+                'tile_loop: for tile in &self.level.tiles {
                     for i in 0..3 {
                         let p1 = tile.vertices[i];
                         let p2 = tile.vertices[(i + 1) % 3];
@@ -95,7 +94,7 @@ impl Game {
                         (force_along_flow + params.additional_force + friction_force) * delta_time;
                     guy.w -= guy.w * params.friction * delta_time;
                 }
-                'tile_loop: for tile in &level.tiles {
+                'tile_loop: for tile in &self.level.tiles {
                     for i in 0..3 {
                         let p1 = tile.vertices[i];
                         let p2 = tile.vertices[(i + 1) % 3];
@@ -318,7 +317,7 @@ impl Game {
             let mut collision_to_resolve = None;
             let mut was_colliding_water = guy.colliding_water;
             guy.colliding_water = false;
-            for surface in &level.surfaces {
+            for surface in &self.level.surfaces {
                 let v = surface.vector_from(guy.pos);
                 let penetration = self.config.guy_radius - v.len();
                 if penetration > EPS {
@@ -471,11 +470,7 @@ impl Game {
 
     pub fn respawn_my_guy(&mut self) {
         // COPYPASTA MMMMM 🍝 or is it anymore?
-        let new_guy = Guy::new(
-            self.client_id,
-            self.levels.get(self.customization.postjam).spawn_point,
-            true,
-        );
+        let new_guy = Guy::new(self.client_id, self.level.spawn_point, true);
         if self.my_guy.is_none() {
             self.my_guy = Some(self.client_id);
         }

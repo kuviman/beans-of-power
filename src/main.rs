@@ -110,37 +110,18 @@ fn main() {
             future::join(
                 future::join(
                     <Assets as geng::LoadAsset>::load(&geng, &static_path()),
-                    future::join(
-                        <String as geng::LoadAsset>::load(
-                            &geng,
-                            &static_path().join("old_level.json"),
-                        ),
-                        <String as geng::LoadAsset>::load(
-                            &geng,
-                            &static_path().join("new_level.json"),
-                        ),
-                    ),
+                    <String as geng::LoadAsset>::load(&geng, &static_path().join("level.json")),
                 ),
                 connection,
             ),
             {
                 let geng = geng.clone();
-                move |((assets, (old_level, new_level)), connection_info)| {
+                move |((assets, level), connection_info)| {
                     let mut assets = assets.expect("Failed to load assets");
+                    let level = serde_json::from_str(&level.unwrap()).unwrap();
                     assets.process();
-                    let old_level = serde_json::from_str(&old_level.unwrap()).unwrap();
-                    let new_level = serde_json::from_str(&new_level.unwrap()).unwrap();
                     let assets = Rc::new(assets);
-                    Game::new(
-                        &geng,
-                        &assets,
-                        Levels {
-                            jam: old_level,
-                            postjam: new_level,
-                        },
-                        opt,
-                        connection_info,
-                    )
+                    Game::new(&geng, &assets, level, opt, connection_info)
                 }
             },
         );

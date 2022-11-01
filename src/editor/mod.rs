@@ -41,19 +41,19 @@ impl EditorState {
             available_tools,
         }
     }
-    pub fn update(&mut self, levels: &mut Levels, delta_time: f32) {
+    pub fn update(&mut self, level: &mut Level, delta_time: f32) {
         self.next_autosave -= delta_time;
         if self.next_autosave < 0.0 {
             self.next_autosave = 10.0;
-            self.save_level(levels);
+            self.save_level(level);
         }
     }
 
-    pub fn save_level(&self, levels: &Levels) {
+    pub fn save_level(&self, level: &Level) {
         #[cfg(not(target_arch = "wasm32"))]
         serde_json::to_writer_pretty(
-            std::fs::File::create(static_path().join("new_level.json")).unwrap(),
-            &levels.postjam,
+            std::fs::File::create(static_path().join("level.json")).unwrap(),
+            level,
         )
         .unwrap();
         info!("LVL SAVED");
@@ -85,16 +85,15 @@ impl Game {
     }
 
     pub fn draw_level_editor(&self, framebuffer: &mut ugli::Framebuffer) {
-        let level = &self.levels.postjam;
         if let Some(editor) = &self.editor {
             editor
                 .tool
-                .draw(&editor.cursor, level, &self.camera, framebuffer);
+                .draw(&editor.cursor, &self.level, &self.camera, framebuffer);
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
                 &draw_2d::Quad::new(
-                    AABB::point(self.snapped_cursor_position(level)).extend_uniform(0.1),
+                    AABB::point(self.snapped_cursor_position(&self.level)).extend_uniform(0.1),
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );
@@ -103,7 +102,7 @@ impl Game {
                 framebuffer,
                 &self.camera,
                 &draw_2d::Quad::new(
-                    AABB::point(level.spawn_point).extend_uniform(0.1),
+                    AABB::point(self.level.spawn_point).extend_uniform(0.1),
                     Rgba::new(1.0, 0.8, 0.8, 0.5),
                 ),
             );
@@ -111,12 +110,12 @@ impl Game {
                 framebuffer,
                 &self.camera,
                 &draw_2d::Quad::new(
-                    AABB::point(level.finish_point).extend_uniform(0.1),
+                    AABB::point(self.level.finish_point).extend_uniform(0.1),
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );
 
-            for (i, &p) in level.expected_path.iter().enumerate() {
+            for (i, &p) in self.level.expected_path.iter().enumerate() {
                 self.assets.font.draw(
                     framebuffer,
                     &self.camera,
@@ -131,16 +130,10 @@ impl Game {
     }
 
     pub fn handle_event_editor(&mut self, event: &geng::Event) {
-        macro_rules! level_mut {
-            () => {{
-                self.levels.postjam.mesh.take();
-                &mut self.levels.postjam
-            }};
-        }
         if self.editor.is_none() {
             return;
         }
-        let cursor_pos = self.snapped_cursor_position(&self.levels.postjam);
+        let cursor_pos = self.snapped_cursor_position(&self.level);
         let editor = self.editor.as_mut().unwrap();
         editor.cursor = Cursor {
             screen_pos: self.geng.window().mouse_pos().map(|x| x as f32),
@@ -157,7 +150,7 @@ impl Game {
 
         editor
             .tool
-            .handle_event(&editor.cursor, event, level_mut!());
+            .handle_event(&editor.cursor, event, &mut self.level);
 
         match event {
             geng::Event::KeyDown { key } => match key {
@@ -181,19 +174,19 @@ impl Game {
                     }
                 }
                 geng::Key::P => {
-                    level_mut!().spawn_point = self.camera.screen_to_world(
+                    self.level.spawn_point = self.camera.screen_to_world(
                         self.framebuffer_size,
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     );
                 }
                 geng::Key::I => {
-                    level_mut!().expected_path.push(self.camera.screen_to_world(
+                    self.level.expected_path.push(self.camera.screen_to_world(
                         self.framebuffer_size,
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     ));
                 }
                 geng::Key::O => {
-                    level_mut!().objects.push(Object {
+                    self.level.objects.push(Object {
                         type_name: editor.selected_object.to_owned(),
                         pos: self.camera.screen_to_world(
                             self.framebuffer_size,
@@ -202,16 +195,16 @@ impl Game {
                     });
                 }
                 geng::Key::Backspace => {
-                    level_mut!().expected_path.pop();
+                    self.level.expected_path.pop();
                 }
                 geng::Key::K => {
-                    level_mut!().finish_point = self.camera.screen_to_world(
+                    self.level.finish_point = self.camera.screen_to_world(
                         self.framebuffer_size,
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     );
                 }
                 geng::Key::S if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
-                    editor.save_level(&self.levels);
+                    editor.save_level(&self.level);
                 }
                 _ => {}
             },

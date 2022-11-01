@@ -21,7 +21,7 @@ pub struct Game {
     pub config: Config,
     pub assets: Rc<Assets>,
     pub camera: geng::Camera2d,
-    pub levels: Levels,
+    pub level: Level,
     pub editor: Option<EditorState>,
     pub guys: Collection<Guy>,
     pub my_guy: Option<Id>,
@@ -51,7 +51,7 @@ pub struct Game {
 impl Drop for Game {
     fn drop(&mut self) {
         if let Some(editor) = &mut self.editor {
-            editor.save_level(&self.levels);
+            editor.save_level(&self.level);
         }
     }
 }
@@ -60,7 +60,7 @@ impl Game {
     pub fn new(
         geng: &Geng,
         assets: &Rc<Assets>,
-        levels: Levels,
+        level: Level,
         opt: Opt,
         connection_info: Option<(Id, Connection)>,
     ) -> Self {
@@ -85,7 +85,7 @@ impl Game {
             } else {
                 None
             },
-            levels,
+            level,
             guys: Collection::new(),
             my_guy: None,
             real_time: 0.0,
@@ -144,11 +144,9 @@ impl Game {
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
-            result.guys.insert(Guy::new(
-                client_id,
-                result.levels.get(result.customization.postjam).spawn_point,
-                true,
-            ));
+            result
+                .guys
+                .insert(Guy::new(client_id, result.level.spawn_point, true));
         }
         result
     }
@@ -176,9 +174,8 @@ impl Game {
                 );
             }
             let progress = {
-                let level = self.levels.get(self.customization.postjam);
                 let mut total_len = 0.0;
-                for window in level.expected_path.windows(2) {
+                for window in self.level.expected_path.windows(2) {
                     let a = window[0];
                     let b = window[1];
                     total_len += (b - a).len();
@@ -186,7 +183,7 @@ impl Game {
                 let mut progress = 0.0;
                 let mut closest_point_distance = 1e9;
                 let mut prefix_len = 0.0;
-                for window in level.expected_path.windows(2) {
+                for window in self.level.expected_path.windows(2) {
                     let a = window[0];
                     let b = window[1];
                     let v = Surface {
@@ -277,13 +274,11 @@ impl geng::State for Game {
         self.framebuffer_size = framebuffer.size().map(|x| x as f32);
         ugli::clear(framebuffer, Some(self.config.background_color), None, None);
 
-        let level = self.levels.get(self.customization.postjam);
-
-        self.draw_level_back(level, framebuffer);
+        self.draw_level_back(&self.level, framebuffer);
         test += &format!("lvl back {}\n", timer.tick());
         self.draw_guys(framebuffer);
         test += &format!("guys {}\n", timer.tick());
-        self.draw_level_front(level, framebuffer);
+        self.draw_level_front(&self.level, framebuffer);
         test += &format!("lvl front {}\n", timer.tick());
         self.draw_farticles(framebuffer);
         test += &format!("farticles {}\n", timer.tick());
@@ -357,7 +352,7 @@ impl geng::State for Game {
         }
 
         if let Some(editor) = &mut self.editor {
-            editor.update(&mut self.levels, delta_time);
+            editor.update(&mut self.level, delta_time);
         }
 
         self.handle_connection();
