@@ -14,7 +14,6 @@ pub struct EditorState {
     geng: Geng,
     cursor: Cursor,
     next_autosave: f32,
-    selected_object: String,
     available_tools: Vec<Box<dyn ToolConstructor>>,
     selected_tool_index: usize,
     tool: Box<dyn DynEditorTool>,
@@ -25,6 +24,7 @@ impl EditorState {
         let available_tools = vec![
             tool_constructor::<SurfaceTool>(geng, assets),
             tool_constructor::<TileTool>(geng, assets),
+            tool_constructor::<ObjectTool>(geng, assets),
         ];
         let selected_tool_index = 0;
         Self {
@@ -35,7 +35,6 @@ impl EditorState {
                 snapped_world_pos: Vec2::ZERO,
             },
             next_autosave: 0.0,
-            selected_object: "".to_owned(),
             selected_tool_index,
             tool: available_tools[selected_tool_index].create(),
             available_tools,
@@ -144,10 +143,6 @@ impl Game {
             snapped_world_pos: cursor_pos,
         };
 
-        if !self.assets.objects.contains_key(&editor.selected_object) {
-            editor.selected_object = self.assets.objects.keys().next().unwrap().clone();
-        }
-
         editor
             .tool
             .handle_event(&editor.cursor, event, &mut self.level);
@@ -187,15 +182,6 @@ impl Game {
                             self.framebuffer_size,
                             self.geng.window().mouse_pos().map(|x| x as f32),
                         ));
-                }
-                geng::Key::O => {
-                    self.level.modify().objects.push(Object {
-                        type_name: editor.selected_object.to_owned(),
-                        pos: self.camera.screen_to_world(
-                            self.framebuffer_size,
-                            self.geng.window().mouse_pos().map(|x| x as f32),
-                        ),
-                    });
                 }
                 geng::Key::Backspace => {
                     self.level.modify().expected_path.pop();

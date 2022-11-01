@@ -1,8 +1,10 @@
 use super::*;
 
+mod object;
 mod surface;
 mod tile;
 
+pub use object::*;
 pub use surface::*;
 pub use tile::*;
 
