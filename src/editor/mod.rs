@@ -10,16 +10,29 @@ pub struct Cursor {
     pub snapped_world_pos: Vec2<f32>,
 }
 
+type ToolConstructor = Box<dyn Fn(&Geng, &Rc<Assets>) -> Box<dyn DynEditorTool>>;
+
+fn tool_constructor<T: EditorTool>() -> ToolConstructor {
+    Box::new(|geng, assets| Box::new(T::new(geng, assets, T::Config::default(assets))))
+}
+
 pub struct EditorState {
     geng: Geng,
     cursor: Cursor,
     next_autosave: f32,
     selected_object: String,
+    available_tools: Vec<ToolConstructor>,
+    selected_tool_index: usize,
     tool: Box<dyn DynEditorTool>,
 }
 
 impl EditorState {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+        let available_tools = vec![
+            tool_constructor::<SurfaceTool>(),
+            tool_constructor::<TileTool>(),
+        ];
+        let selected_tool_index = 0;
         Self {
             geng: geng.clone(),
             cursor: Cursor {
@@ -29,12 +42,9 @@ impl EditorState {
             },
             next_autosave: 0.0,
             selected_object: "".to_owned(),
-            // tool: Box::new(SurfaceTool::new(
-            //     geng,
-            //     assets,
-            //     SurfaceToolConfig::default(assets),
-            // )),
-            tool: Box::new(TileTool::new(geng, assets, TileToolConfig::default(assets))),
+            selected_tool_index,
+            tool: available_tools[selected_tool_index](geng, assets),
+            available_tools,
         }
     }
     pub fn update(&mut self, levels: &mut Levels, delta_time: f32) {
@@ -133,20 +143,6 @@ impl Game {
                 &mut self.levels.postjam
             }};
         }
-        if self.opt.editor
-            && matches!(
-                event,
-                geng::Event::KeyDown {
-                    key: geng::Key::Tab
-                }
-            )
-        {
-            if self.editor.is_none() {
-                self.editor = Some(EditorState::new(&self.geng, &self.assets));
-            } else {
-                self.editor = None;
-            }
-        }
         if self.editor.is_none() {
             return;
         }
@@ -171,6 +167,14 @@ impl Game {
 
         match event {
             geng::Event::KeyDown { key } => match key {
+                geng::Key::Tab => {
+                    editor.selected_tool_index =
+                        (editor.selected_tool_index + 1) % editor.available_tools.len();
+                    editor.tool = editor.available_tools[editor.selected_tool_index](
+                        &self.geng,
+                        &self.assets,
+                    );
+                }
                 geng::Key::R => {
                     if !self.geng.window().is_key_pressed(geng::Key::LCtrl) {
                         if let Some(id) = self.my_guy.take() {

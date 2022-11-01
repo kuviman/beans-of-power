@@ -6,7 +6,7 @@ mod tile;
 pub use surface::*;
 pub use tile::*;
 
-pub trait EditorTool {
+pub trait EditorTool: 'static {
     type Config: EditorToolConfig;
     fn new(geng: &Geng, assets: &Rc<Assets>, config: Self::Config) -> Self;
     fn draw(
