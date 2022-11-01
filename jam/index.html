@@ -5,6 +5,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=1" name="viewport" />
+    <title>Getting Farted On</title>
     <style>
         * {
             margin: 0;
@@ -17,24 +18,19 @@
             overflow: hidden;
         }
 
-        #geng-canvas {
+        #container-wrapper {
             width: 100%;
             height: 100%;
+            background-color: white;
         }
 
-        #geng-error-screen {
-            width: 100%;
-            height: 100%;
-            background-color: black;
-        }
-
-        #geng-error-screen .error-container {
+        #container {
             width: 80%;
             padding: 2em;
             border-radius: 2em;
-            border: 2px solid darkred;
-            box-shadow: 0 0 2em red;
-            color: white;
+            border: 2px solid darkblue;
+            box-shadow: 0 0 2em blue;
+            color: black;
             position: absolute;
             top: 50%;
             left: 50%;
@@ -45,20 +41,65 @@
             transform: translate(-50%, -50%);
             text-align: center;
         }
+
+        #play-button {
+            display: inline-block;
+            margin: 25px;
+            padding: 5px 25px;
+            font-size: 24px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            outline: none;
+            color: #fff;
+            background-color: blue;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 9px #999;
+        }
+
+        #play-button:hover {
+            background-color: darkblue;
+        }
+
+        #play-button:active {
+            background-color: darkblue;
+            box-shadow: 0 5px #666;
+            transform: translateY(4px);
+        }
+
+        #game-iframe {
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
     </style>
 </head>
 
 <body>
-    <div id="geng-error-screen" style="display: none;">
-        <div class="error-container">
-            <h1>Whoops...</h1>
-            <pre id="error-message">Something went wrong</pre>
+    <div id="container-wrapper">
+        <div id="container">
+            <h1>Getting Farted On</h1>
+            <p>
+                Made for <a href="https://ldjam.com/events/ludum-dare/51/getting-farted-on">Ludum Dare 51</a> in 48
+                hours
+            </p>
+            <button id="play-button">Play</button>
+            <p><a href="https://github.com/kuviman/getting-farted-on/tree/jam-version">source code</a></p>
+            <p>Checkout the <a href="https://kuviman.itch.io/getting-farted-on">postjam version on itch.io</a></p>
         </div>
     </div>
-    <canvas id="geng-canvas"></canvas>
+    <iframe id="game-iframe" mozallowfullscreen="true" msallowfullscreen="true"
+        allow="autoplay; fullscreen *; geolocation; microphone; camera; midi; monetization; xr-spatial-tracking; gamepad; gyroscope; accelerometer; xr; cross-origin-isolated"
+        scrolling="no" allowfullscreen="true" webkitallowfullscreen="true" allowtransparency="true" frameborder="0"
+        style="display: hidden"></iframe>
     <script type="module">
-        import init from "./getting-farted-on.js";
-        init()
+        document.getElementById("play-button").onclick = function () {
+            document.getElementById("container-wrapper").remove();
+            let iframe = document.getElementById("game-iframe");
+            iframe.style.display = "block";
+            iframe.setAttribute("src", "game.html");
+        }
     </script>
 </body>
 
