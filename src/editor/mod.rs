@@ -26,6 +26,7 @@ impl EditorState {
             tool_constructor::<TileTool>(geng, assets),
             tool_constructor::<ObjectTool>(geng, assets),
             tool_constructor::<EndpointTool>(geng, assets),
+            tool_constructor::<ProgressTool>(geng, assets),
         ];
         let selected_tool_index = 0;
         Self {
@@ -97,18 +98,6 @@ impl Game {
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );
-
-            for (i, &p) in self.level.expected_path.iter().enumerate() {
-                self.assets.font.draw(
-                    framebuffer,
-                    &self.camera,
-                    &i.to_string(),
-                    p,
-                    geng::TextAlign::CENTER,
-                    0.1,
-                    Rgba::new(0.0, 0.0, 0.0, 0.5),
-                );
-            }
         }
     }
 
@@ -151,18 +140,6 @@ impl Game {
                                 .insert(Guy::new(self.client_id, cursor_pos, false));
                         }
                     }
-                }
-                geng::Key::I => {
-                    self.level
-                        .modify()
-                        .expected_path
-                        .push(self.camera.screen_to_world(
-                            self.framebuffer_size,
-                            self.geng.window().mouse_pos().map(|x| x as f32),
-                        ));
-                }
-                geng::Key::Backspace => {
-                    self.level.modify().expected_path.pop();
                 }
                 geng::Key::S if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
                     editor.save_level(&self.level);
