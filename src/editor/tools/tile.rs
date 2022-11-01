@@ -211,4 +211,29 @@ impl EditorTool for TileTool {
     }
 
     const NAME: &'static str = "Tile";
+
+    fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a> {
+        use geng::ui::*;
+
+        let mut options: Vec<&String> = self.assets.tiles.keys().collect();
+        options.sort();
+        let options = column(
+            options
+                .into_iter()
+                .map(|name| {
+                    let button = Button::new(cx, name);
+                    if button.was_clicked() {
+                        self.config.selected_type = name.clone();
+                    }
+                    let mut widget: Box<dyn Widget> =
+                        Box::new(button.uniform_padding(8.0).align(vec2(0.0, 0.0)));
+                    if *name == self.config.selected_type {
+                        widget = Box::new(widget.background_color(Rgba::new(0.5, 0.5, 1.0, 0.5)))
+                    }
+                    widget
+                })
+                .collect(),
+        );
+        options.boxed()
+    }
 }

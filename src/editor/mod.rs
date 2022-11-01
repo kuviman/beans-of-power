@@ -236,6 +236,15 @@ impl Game {
             }
             column(tools)
         };
-        tool_selection.align(vec2(0.0, 1.0)).boxed()
+        let tool_config = editor.tool.ui(cx);
+        (
+            tool_selection.align(vec2(0.0, 1.0)),
+            tool_config.align(vec2(0.0, 1.0)),
+        )
+            .row()
+            .uniform_padding(16.0)
+            .background_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
+            .align(vec2(0.0, 1.0))
+            .boxed()
     }
 }

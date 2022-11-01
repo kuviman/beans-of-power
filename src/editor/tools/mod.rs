@@ -18,6 +18,7 @@ pub trait EditorTool: 'static {
         framebuffer: &mut ugli::Framebuffer,
     );
     fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level);
+    fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a>;
 }
 
 pub trait EditorToolConfig {
@@ -33,6 +34,7 @@ pub trait DynEditorTool {
         framebuffer: &mut ugli::Framebuffer,
     );
     fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level);
+    fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a>;
 }
 
 impl<T: EditorTool> DynEditorTool for T {
@@ -47,6 +49,9 @@ impl<T: EditorTool> DynEditorTool for T {
     }
     fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level) {
         <T as EditorTool>::handle_event(self, cursor, event, level)
+    }
+    fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a> {
+        <T as EditorTool>::ui(self, cx)
     }
 }
 
