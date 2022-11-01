@@ -86,7 +86,7 @@ impl EditorTool for SurfaceTool {
                 let p2 = cursor.snapped_world_pos;
                 if let Some(p1) = self.start_drag.take() {
                     if (p1 - p2).len() > self.config.snap_distance {
-                        level.surfaces.push(Surface {
+                        level.modify().surfaces.push(Surface {
                             p1,
                             p2,
                             type_name: self.config.selected_type.clone(),
@@ -99,7 +99,7 @@ impl EditorTool for SurfaceTool {
                 ..
             } => {
                 if let Some(index) = self.find_hovered_surface(cursor, level) {
-                    level.surfaces.remove(index);
+                    level.modify().surfaces.remove(index);
                 }
             }
             geng::Event::KeyDown { key: geng::Key::Z } => {

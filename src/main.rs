@@ -118,7 +118,7 @@ fn main() {
                 let geng = geng.clone();
                 move |((assets, level), connection_info)| {
                     let mut assets = assets.expect("Failed to load assets");
-                    let level = serde_json::from_str(&level.unwrap()).unwrap();
+                    let level = Level::new(serde_json::from_str(&level.unwrap()).unwrap());
                     assets.process();
                     let assets = Rc::new(assets);
                     Game::new(&geng, &assets, level, opt, connection_info)

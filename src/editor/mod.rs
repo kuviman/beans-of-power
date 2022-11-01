@@ -53,7 +53,7 @@ impl EditorState {
         #[cfg(not(target_arch = "wasm32"))]
         serde_json::to_writer_pretty(
             std::fs::File::create(static_path().join("level.json")).unwrap(),
-            level,
+            level.info(),
         )
         .unwrap();
         info!("LVL SAVED");
@@ -174,19 +174,22 @@ impl Game {
                     }
                 }
                 geng::Key::P => {
-                    self.level.spawn_point = self.camera.screen_to_world(
+                    self.level.modify().spawn_point = self.camera.screen_to_world(
                         self.framebuffer_size,
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     );
                 }
                 geng::Key::I => {
-                    self.level.expected_path.push(self.camera.screen_to_world(
-                        self.framebuffer_size,
-                        self.geng.window().mouse_pos().map(|x| x as f32),
-                    ));
+                    self.level
+                        .modify()
+                        .expected_path
+                        .push(self.camera.screen_to_world(
+                            self.framebuffer_size,
+                            self.geng.window().mouse_pos().map(|x| x as f32),
+                        ));
                 }
                 geng::Key::O => {
-                    self.level.objects.push(Object {
+                    self.level.modify().objects.push(Object {
                         type_name: editor.selected_object.to_owned(),
                         pos: self.camera.screen_to_world(
                             self.framebuffer_size,
@@ -195,10 +198,10 @@ impl Game {
                     });
                 }
                 geng::Key::Backspace => {
-                    self.level.expected_path.pop();
+                    self.level.modify().expected_path.pop();
                 }
                 geng::Key::K => {
-                    self.level.finish_point = self.camera.screen_to_world(
+                    self.level.modify().finish_point = self.camera.screen_to_world(
                         self.framebuffer_size,
                         self.geng.window().mouse_pos().map(|x| x as f32),
                     );

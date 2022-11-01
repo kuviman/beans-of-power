@@ -131,7 +131,7 @@ impl EditorTool for TileTool {
                     if Vec2::skew(vertices[1] - vertices[0], vertices[2] - vertices[0]) < 0.0 {
                         vertices.reverse();
                     }
-                    level.tiles.push(Tile {
+                    level.modify().tiles.push(Tile {
                         vertices,
                         flow: Vec2::ZERO,
                         type_name: self.config.selected_type.clone(),
@@ -144,7 +144,7 @@ impl EditorTool for TileTool {
             } => {
                 if self.points.is_empty() {
                     if let Some(index) = self.find_hovered_tile(cursor, level) {
-                        level.tiles.remove(index);
+                        level.modify().tiles.remove(index);
                     }
                 } else {
                     self.points.clear();
