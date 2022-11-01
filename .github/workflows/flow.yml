@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - run: cargo geng build --release --target wasm32-unknown-unknown
+      - run: cargo geng build --release --target wasm32-unknown-unknown --index-file game.html
       - name: Upload artifacts (web)
         uses: actions/upload-artifact@v2
         with:
