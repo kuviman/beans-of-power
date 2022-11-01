@@ -173,33 +173,7 @@ impl Game {
                     Rgba::BLACK,
                 );
             }
-            let progress = {
-                let mut total_len = 0.0;
-                for window in self.level.expected_path.windows(2) {
-                    let a = window[0];
-                    let b = window[1];
-                    total_len += (b - a).len();
-                }
-                let mut progress = 0.0;
-                let mut closest_point_distance = 1e9;
-                let mut prefix_len = 0.0;
-                for window in self.level.expected_path.windows(2) {
-                    let a = window[0];
-                    let b = window[1];
-                    let v = Surface {
-                        p1: a,
-                        p2: b,
-                        type_name: String::new(),
-                    }
-                    .vector_from(guy.pos);
-                    if v.len() < closest_point_distance {
-                        closest_point_distance = v.len();
-                        progress = (prefix_len + (guy.pos + v - a).len()) / total_len;
-                    }
-                    prefix_len += (b - a).len();
-                }
-                progress
-            };
+            let progress = self.level.progress_at(guy.pos);
             guy.progress = progress;
             self.best_progress = self.best_progress.max(progress);
             guy.best_progress = self.best_progress;

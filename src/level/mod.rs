@@ -2,6 +2,7 @@ use super::*;
 
 mod draw;
 mod object;
+mod progress;
 mod surface;
 mod tile;
 

@@ -79,6 +79,21 @@ impl EditorTool for ProgressTool {
                 ),
             );
         }
+        self.geng.draw_2d(
+            framebuffer,
+            &geng::Camera2d {
+                center: Vec2::ZERO,
+                rotation: 0.0,
+                fov: 15.0,
+            },
+            &draw_2d::Text::unit(
+                &**self.geng.default_font(),
+                format!("{}%", (level.progress_at(cursor.world_pos) * 100.0) as i32),
+                Rgba::BLACK,
+            )
+            .scale_uniform(0.2)
+            .translate(vec2(0.0, -6.0)),
+        )
     }
     fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level) {
         match event {
