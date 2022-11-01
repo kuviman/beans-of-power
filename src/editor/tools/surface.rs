@@ -114,4 +114,6 @@ impl EditorTool for SurfaceTool {
             _ => {}
         }
     }
+
+    const NAME: &'static str = "Surface";
 }

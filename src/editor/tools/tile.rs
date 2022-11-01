@@ -188,4 +188,6 @@ impl EditorTool for TileTool {
             _ => {}
         }
     }
+
+    const NAME: &'static str = "Tile";
 }

@@ -10,18 +10,12 @@ pub struct Cursor {
     pub snapped_world_pos: Vec2<f32>,
 }
 
-type ToolConstructor = Box<dyn Fn(&Geng, &Rc<Assets>) -> Box<dyn DynEditorTool>>;
-
-fn tool_constructor<T: EditorTool>() -> ToolConstructor {
-    Box::new(|geng, assets| Box::new(T::new(geng, assets, T::Config::default(assets))))
-}
-
 pub struct EditorState {
     geng: Geng,
     cursor: Cursor,
     next_autosave: f32,
     selected_object: String,
-    available_tools: Vec<ToolConstructor>,
+    available_tools: Vec<Box<dyn ToolConstructor>>,
     selected_tool_index: usize,
     tool: Box<dyn DynEditorTool>,
 }
@@ -29,8 +23,8 @@ pub struct EditorState {
 impl EditorState {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         let available_tools = vec![
-            tool_constructor::<SurfaceTool>(),
-            tool_constructor::<TileTool>(),
+            tool_constructor::<SurfaceTool>(geng, assets),
+            tool_constructor::<TileTool>(geng, assets),
         ];
         let selected_tool_index = 0;
         Self {
@@ -43,7 +37,7 @@ impl EditorState {
             next_autosave: 0.0,
             selected_object: "".to_owned(),
             selected_tool_index,
-            tool: available_tools[selected_tool_index](geng, assets),
+            tool: available_tools[selected_tool_index].create(),
             available_tools,
         }
     }
@@ -170,10 +164,7 @@ impl Game {
                 geng::Key::Tab => {
                     editor.selected_tool_index =
                         (editor.selected_tool_index + 1) % editor.available_tools.len();
-                    editor.tool = editor.available_tools[editor.selected_tool_index](
-                        &self.geng,
-                        &self.assets,
-                    );
+                    editor.tool = editor.available_tools[editor.selected_tool_index].create();
                 }
                 geng::Key::R => {
                     if !self.geng.window().is_key_pressed(geng::Key::LCtrl) {
@@ -226,5 +217,29 @@ impl Game {
             },
             _ => {}
         }
+    }
+    pub fn editor_ui<'a>(
+        &'a mut self,
+        cx: &'a geng::ui::Controller,
+    ) -> Box<dyn geng::ui::Widget + 'a> {
+        let editor = self.editor.as_mut().unwrap();
+        use geng::ui::*;
+        let tool_selection = {
+            let mut tools: Vec<Box<dyn Widget>> = vec![];
+            for (index, constructor) in editor.available_tools.iter().enumerate() {
+                let button = Button::new(cx, constructor.name());
+                if button.was_clicked() {
+                    editor.selected_tool_index = index;
+                    editor.tool = constructor.create();
+                }
+                let mut widget: Box<dyn Widget> = Box::new(button.uniform_padding(8.0).center());
+                if index == editor.selected_tool_index {
+                    widget = Box::new(widget.background_color(Rgba::new(0.5, 0.5, 1.0, 0.5)));
+                }
+                tools.push(widget);
+            }
+            column(tools)
+        };
+        tool_selection.align(vec2(0.0, 1.0)).boxed()
     }
 }

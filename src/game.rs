@@ -463,4 +463,11 @@ impl geng::State for Game {
         }
         self.prev_mouse_pos = self.geng.window().mouse_pos();
     }
+    fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a> {
+        if self.editor.is_some() {
+            self.editor_ui(cx)
+        } else {
+            Box::new(geng::ui::Void)
+        }
+    }
 }
