@@ -1,8 +1,10 @@
 use super::*;
 
 mod surface;
+mod tile;
 
 pub use surface::*;
+pub use tile::*;
 
 pub trait EditorTool {
     type Config: EditorToolConfig;
