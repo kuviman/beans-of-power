@@ -25,6 +25,7 @@ impl EditorState {
             tool_constructor::<SurfaceTool>(geng, assets),
             tool_constructor::<TileTool>(geng, assets),
             tool_constructor::<ObjectTool>(geng, assets),
+            tool_constructor::<EndpointTool>(geng, assets),
         ];
         let selected_tool_index = 0;
         Self {
@@ -97,23 +98,6 @@ impl Game {
                 ),
             );
 
-            self.geng.draw_2d(
-                framebuffer,
-                &self.camera,
-                &draw_2d::Quad::new(
-                    AABB::point(self.level.spawn_point).extend_uniform(0.1),
-                    Rgba::new(1.0, 0.8, 0.8, 0.5),
-                ),
-            );
-            self.geng.draw_2d(
-                framebuffer,
-                &self.camera,
-                &draw_2d::Quad::new(
-                    AABB::point(self.level.finish_point).extend_uniform(0.1),
-                    Rgba::new(1.0, 0.0, 0.0, 0.5),
-                ),
-            );
-
             for (i, &p) in self.level.expected_path.iter().enumerate() {
                 self.assets.font.draw(
                     framebuffer,
@@ -168,12 +152,6 @@ impl Game {
                         }
                     }
                 }
-                geng::Key::P => {
-                    self.level.modify().spawn_point = self.camera.screen_to_world(
-                        self.framebuffer_size,
-                        self.geng.window().mouse_pos().map(|x| x as f32),
-                    );
-                }
                 geng::Key::I => {
                     self.level
                         .modify()
@@ -185,12 +163,6 @@ impl Game {
                 }
                 geng::Key::Backspace => {
                     self.level.modify().expected_path.pop();
-                }
-                geng::Key::K => {
-                    self.level.modify().finish_point = self.camera.screen_to_world(
-                        self.framebuffer_size,
-                        self.geng.window().mouse_pos().map(|x| x as f32),
-                    );
                 }
                 geng::Key::S if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
                     editor.save_level(&self.level);
@@ -229,7 +201,7 @@ impl Game {
         )
             .row()
             .uniform_padding(16.0)
-            .background_color(Rgba::new(0.0, 0.0, 0.0, 0.5))
+            .background_color(Rgba::new(0.0, 0.0, 0.0, 0.8))
             .align(vec2(0.0, 1.0))
             .boxed()
     }

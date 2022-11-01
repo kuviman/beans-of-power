@@ -1,9 +1,11 @@
 use super::*;
 
+mod endpoint;
 mod object;
 mod surface;
 mod tile;
 
+pub use endpoint::*;
 pub use object::*;
 pub use surface::*;
 pub use tile::*;
