@@ -1,14 +1,12 @@
 # Getting Farted On
 
-A game created for [LD51 game jam](https://ldjam.com/events/ludum-dare/51/getting-farted-on) in 48 hours.
-
-This now contains some postjam updates, jam version source is available at [jam-version branch](https://github.com/kuviman/getting-farted-on/tree/jam-version).
-
 ![farts](images/farts.gif)
 
 ## Play
 
 You can play the game on [itch.io](https://kuviman.itch.io/getting-farted-on).
+
+*The game was initially created for [Ludum Dare 51](https://ldjam.com/events/ludum-dare/51/getting-farted-on) game jam in 48 hours (the theme was "Every 10 Seconds"), you can check out the [jam version here](https://kuviman.github.io/getting-farted-on/jam/), jam version source is available at [jam-version branch](https://github.com/kuviman/getting-farted-on/tree/jam-version)*
 
 ## Description
 
@@ -30,11 +28,9 @@ You are really trying to hold it so you cant even walk like a human. All you can
 
 **Use A/D or Left/Right to roll in desired direction**.
 
-You are farting every 10 seconds. A fart forces you in the direction opposite of your back.
+~~You are farting every 10 seconds~~. Ok, the jam is over, so no more every 10 seconds nonsense. Your chamber is building up pressure, if it reaches the limit, you are going to auto fart.
 
-**You can force a fart by pressing W/Up/Space**. This does not stop or delay the autofart. You may only force another fart in 5 seconds. Your stomach growls when this ability recharges.
-
-Will you be able to make the ascend to stop this every 10 seconds nonsense
+**You can force a fart by pressing W/Up/Space**. This, same as auto fart, releases some of the pressure. Although, you have to build a minimum to be able to do it, otherwise you are only going to accelerate pressure building up. If you continue forcing a fart by not releasing the button, you are going to do a long fart, until your inner pressure reaches zero.
 
 Fart your way to the top as soon as possible
 
@@ -61,9 +57,9 @@ Tools used to make this
 
 ## Some videos
 
-- [Trailer (cringe)](https://www.youtube.com/watch?v=91N8bYAOuKg)
-- [Creation timelapse](https://www.youtube.com/watch?v=zxApycDzn78)
-- [Streamers compilation](https://www.youtube.com/watch?v=dd9-6KY7-6k)
+- [Trailer](https://www.youtube.com/watch?v=91N8bYAOuKg) (cringe)
+- [Creation timelapse](https://www.youtube.com/watch?v=zxApycDzn78) (meh)
+- [Streamers compilation](https://www.youtube.com/watch?v=dd9-6KY7-6k) (pog)
 
 ## Building & running from source
 
