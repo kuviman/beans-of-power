@@ -134,9 +134,9 @@ impl Game {
                     }
                     let fadeout = (self.real_time - sfx.finish_time.unwrap()) / 0.2;
                     if fadeout >= 1.0 {
-                        sfx.sfx.pause();
-                        sfx.bubble_sfx.pause();
-                        sfx.rainbow_sfx.pause();
+                        sfx.sfx.stop();
+                        sfx.bubble_sfx.stop();
+                        sfx.rainbow_sfx.stop();
                         self.long_fart_sfx.remove(&guy.id);
                     } else {
                         let active_index = if in_water {
@@ -247,9 +247,9 @@ impl Game {
                             rainbow_sfx,
                         },
                     ) {
-                        sfx.bubble_sfx.pause();
-                        sfx.sfx.pause();
-                        sfx.rainbow_sfx.pause();
+                        sfx.bubble_sfx.stop();
+                        sfx.sfx.stop();
+                        sfx.rainbow_sfx.stop();
                     }
                 }
                 for _ in 0..self.config.farticle_count {
