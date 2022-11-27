@@ -101,9 +101,6 @@ impl Game {
             remote_updates: default(),
             customization: {
                 let mut guy = Guy::new(-1, vec2(0.0, 0.0), false);
-                if opt.postjam {
-                    guy.postjam = true;
-                }
                 guy
             },
             mute_music: false,
@@ -117,13 +114,6 @@ impl Game {
                     0.7,
                     0.0,
                     UiMessage::RandomizeSkin,
-                ),
-                ui::Button::new(
-                    &format!("postjam ({})", if opt.postjam { "on" } else { "off" }),
-                    vec2(0.0, -4.0),
-                    0.7,
-                    0.5,
-                    UiMessage::TogglePostJam,
                 ),
             ],
             show_customizer: !opt.editor,
@@ -295,7 +285,7 @@ impl geng::State for Game {
         if self.mute_music {
             self.new_music.set_volume(0.0);
             self.old_music.set_volume(0.0);
-        } else if self.customization.postjam {
+        } else if true {
             self.new_music.set_volume(self.volume as f64);
             self.old_music.set_volume(0.0);
         } else {
@@ -336,7 +326,6 @@ impl geng::State for Game {
             let guy = self.guys.get_mut(&id).unwrap();
             guy.name = self.customization.name.clone();
             guy.colors = self.customization.colors.clone();
-            guy.postjam = self.customization.postjam;
         }
     }
 
@@ -396,9 +385,7 @@ impl geng::State for Game {
                 self.show_names = !self.show_names;
             }
             geng::Event::KeyDown { key: geng::Key::L } if !self.show_customizer => {
-                if self.customization.postjam {
-                    self.show_leaderboard = !self.show_leaderboard;
-                }
+                self.show_leaderboard = !self.show_leaderboard;
             }
             geng::Event::KeyDown {
                 key: geng::Key::Num1,

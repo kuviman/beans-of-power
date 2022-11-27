@@ -4,7 +4,6 @@ use super::*;
 pub enum UiMessage {
     Play,
     RandomizeSkin,
-    TogglePostJam,
 }
 
 impl Game {
@@ -62,27 +61,6 @@ impl Game {
                 }
                 UiMessage::RandomizeSkin => {
                     self.customization.colors = Guy::new(-1, Vec2::ZERO, true).colors;
-                }
-                UiMessage::TogglePostJam => {
-                    if self.customization.postjam {
-                        self.customization.postjam = false;
-                    } else {
-                        self.customization.postjam = true;
-                    }
-                    self.buttons
-                        .iter_mut()
-                        .find(|button| button.text.starts_with("postjam"))
-                        .unwrap()
-                        .text = format!(
-                        "postjam ({})",
-                        if self.customization.postjam {
-                            "on"
-                        } else {
-                            "off"
-                        }
-                    );
-
-                    self.respawn_my_guy();
                 }
             }
         }

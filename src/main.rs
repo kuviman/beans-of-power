@@ -39,16 +39,11 @@ pub struct Opt {
     pub server: Option<String>,
     #[clap(long)]
     pub connect: Option<String>,
-    #[clap(long)]
-    pub postjam: bool,
 }
 
 fn main() {
     geng::setup_panic_handler();
     let mut opt: Opt = program_args::parse();
-
-    // Postjam by default since jam is finished
-    opt.postjam = true;
 
     if opt.connect.is_none() && opt.server.is_none() {
         if cfg!(target_arch = "wasm32") {

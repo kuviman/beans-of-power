@@ -178,11 +178,7 @@ impl Game {
                     guy.pos + vec2(0.0, self.config.guy_radius * 1.1),
                     geng::TextAlign::CENTER,
                     0.1,
-                    if guy.postjam {
-                        Rgba::BLACK
-                    } else {
-                        Rgba::new(0.0, 0.0, 0.0, 0.5)
-                    },
+                    Rgba::BLACK,
                 );
             }
         }

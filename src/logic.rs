@@ -74,37 +74,35 @@ impl Game {
 
             let mut in_water = false;
             let butt = guy.pos + vec2(0.0, -self.config.guy_radius * 0.9).rotate(guy.rot);
-            if self.customization.postjam {
-                'tile_loop: for tile in &self.level.tiles {
-                    for i in 0..3 {
-                        let p1 = tile.vertices[i];
-                        let p2 = tile.vertices[(i + 1) % 3];
-                        if Vec2::skew(p2 - p1, guy.pos - p1) < 0.0 {
-                            continue 'tile_loop;
-                        }
+            'tile_loop: for tile in &self.level.tiles {
+                for i in 0..3 {
+                    let p1 = tile.vertices[i];
+                    let p2 = tile.vertices[(i + 1) % 3];
+                    if Vec2::skew(p2 - p1, guy.pos - p1) < 0.0 {
+                        continue 'tile_loop;
                     }
-                    let relative_vel = guy.vel - tile.flow;
-                    let flow_direction = tile.flow.normalize_or_zero();
-                    let relative_vel_along_flow = Vec2::dot(flow_direction, relative_vel);
-                    let params = &self.assets.tiles[&tile.type_name].params;
-                    let force_along_flow =
-                        -flow_direction * relative_vel_along_flow * params.friction_along_flow;
-                    let friction_force = -relative_vel * params.friction;
-                    guy.vel +=
-                        (force_along_flow + params.additional_force + friction_force) * delta_time;
-                    guy.w -= guy.w * params.friction * delta_time;
                 }
-                'tile_loop: for tile in &self.level.tiles {
-                    for i in 0..3 {
-                        let p1 = tile.vertices[i];
-                        let p2 = tile.vertices[(i + 1) % 3];
-                        if Vec2::skew(p2 - p1, butt - p1) < 0.0 {
-                            continue 'tile_loop;
-                        }
+                let relative_vel = guy.vel - tile.flow;
+                let flow_direction = tile.flow.normalize_or_zero();
+                let relative_vel_along_flow = Vec2::dot(flow_direction, relative_vel);
+                let params = &self.assets.tiles[&tile.type_name].params;
+                let force_along_flow =
+                    -flow_direction * relative_vel_along_flow * params.friction_along_flow;
+                let friction_force = -relative_vel * params.friction;
+                guy.vel +=
+                    (force_along_flow + params.additional_force + friction_force) * delta_time;
+                guy.w -= guy.w * params.friction * delta_time;
+            }
+            'tile_loop: for tile in &self.level.tiles {
+                for i in 0..3 {
+                    let p1 = tile.vertices[i];
+                    let p2 = tile.vertices[(i + 1) % 3];
+                    if Vec2::skew(p2 - p1, butt - p1) < 0.0 {
+                        continue 'tile_loop;
                     }
-                    if tile.type_name == "water" {
-                        in_water = true;
-                    }
+                }
+                if tile.type_name == "water" {
+                    in_water = true;
                 }
             }
 
@@ -409,7 +407,7 @@ impl Game {
                 guy.w -= friction_impulse / self.config.guy_radius;
                 if let Some(sound) = &collision.assets.sound {
                     let volume = ((-0.5 + impulse / 2.0) / 2.0).clamp(0.0, 1.0);
-                    if volume > 0.0 && self.customization.postjam {
+                    if volume > 0.0 {
                         let mut effect = sound.effect();
                         effect.set_volume(
                             (self.volume

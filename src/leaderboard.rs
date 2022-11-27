@@ -2,10 +2,10 @@ use super::*;
 
 impl Game {
     pub fn draw_leaderboard(&self, framebuffer: &mut ugli::Framebuffer) {
-        if !self.show_leaderboard || !self.customization.postjam {
+        if !self.show_leaderboard {
             return;
         }
-        let mut guys: Vec<&Guy> = self.guys.iter().filter(|guy| guy.postjam).collect();
+        let mut guys: Vec<&Guy> = self.guys.iter().collect();
         guys.sort_by(|a, b| match (a.best_time, b.best_time) {
             (Some(a), Some(b)) => a.partial_cmp(&b).unwrap(),
             (Some(_), None) => std::cmp::Ordering::Less,

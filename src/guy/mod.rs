@@ -23,7 +23,6 @@ pub struct Guy {
     pub fart_pressure: f32,
     pub finished: bool,
     pub colors: GuyColors,
-    pub postjam: bool,
     pub progress: f32,
     pub best_progress: f32,
     pub best_time: Option<f32>,
@@ -76,7 +75,6 @@ impl Guy {
                     Rgba::new(tone, tone, tone, 1.0)
                 },
             },
-            postjam: false,
             progress: 0.0,
             best_progress: 0.0,
             best_time: None,
