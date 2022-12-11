@@ -100,7 +100,7 @@ impl Server {
             move || {
                 while running.load(std::sync::atomic::Ordering::Relaxed) {
                     unprocessed_time += timer.tick() as f32;
-                    unprocessed_time = unprocessed_time.min(1.0);
+                    unprocessed_time = unprocessed_time.min(10.0 / TICKS_PER_SECOND); // Max skip 10 ticks
                     {
                         let mut state = state.lock().unwrap();
                         let state: &mut ServerState = &mut state;
