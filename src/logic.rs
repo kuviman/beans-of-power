@@ -202,17 +202,17 @@ impl Game {
                         pos: butt,
                         vel: guy.vel
                             + vec2(
-                                global_rng().gen_range(0.0..=self.config.farticle_additional_vel),
+                                thread_rng().gen_range(0.0..=self.config.farticle_additional_vel),
                                 0.0,
                             )
-                            .rotate(global_rng().gen_range(0.0..=2.0 * f32::PI))
+                            .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI))
                             + vec2(0.0, -self.config.long_fart_farticle_speed).rotate(guy.rot),
-                        rot: global_rng().gen_range(0.0..2.0 * f32::PI),
-                        w: global_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
+                        rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
+                        w: thread_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
                         color: if in_water {
                             self.config.bubble_fart_color
                         } else if guy.touched_a_unicorn {
-                            Hsva::new(global_rng().gen_range(0.0..1.0), 1.0, 1.0, 0.5).into()
+                            Hsva::new(thread_rng().gen_range(0.0..1.0), 1.0, 1.0, 0.5).into()
                         } else {
                             self.config.fart_color
                         },
@@ -256,16 +256,16 @@ impl Game {
                         pos: butt,
                         vel: guy.vel
                             + vec2(
-                                global_rng().gen_range(0.0..=self.config.farticle_additional_vel),
+                                thread_rng().gen_range(0.0..=self.config.farticle_additional_vel),
                                 0.0,
                             )
-                            .rotate(global_rng().gen_range(0.0..=2.0 * f32::PI)),
-                        rot: global_rng().gen_range(0.0..2.0 * f32::PI),
-                        w: global_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
+                            .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI)),
+                        rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
+                        w: thread_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
                         color: if in_water {
                             self.config.bubble_fart_color
                         } else if guy.touched_a_unicorn {
-                            Hsva::new(global_rng().gen_range(0.0..1.0), 1.0, 1.0, 0.5).into()
+                            Hsva::new(thread_rng().gen_range(0.0..1.0), 1.0, 1.0, 0.5).into()
                         } else {
                             self.config.fart_color
                         },
@@ -280,7 +280,7 @@ impl Game {
                 } else {
                     &self.assets.sfx.fart
                 };
-                let mut effect = sounds.choose(&mut global_rng()).unwrap().effect();
+                let mut effect = sounds.choose(&mut thread_rng()).unwrap().effect();
                 effect.set_volume(
                     (self.volume * (1.0 - (guy.pos - self.camera.center).len() / self.camera.fov))
                         .clamp(0.0, 1.0) as f64,
@@ -342,7 +342,7 @@ impl Game {
                                         pos: guy.pos
                                             + v
                                             + vec2(
-                                                global_rng().gen_range(
+                                                thread_rng().gen_range(
                                                     -self.config.guy_radius
                                                         ..=self.config.guy_radius,
                                                 ),
@@ -350,17 +350,17 @@ impl Game {
                                             ),
                                         vel: {
                                             let mut v =
-                                                vec2(0.0, global_rng().gen_range(0.0..=1.0))
+                                                vec2(0.0, thread_rng().gen_range(0.0..=1.0))
                                                     .rotate(
-                                                        global_rng().gen_range(
+                                                        thread_rng().gen_range(
                                                             -f32::PI / 4.0..=f32::PI / 4.0,
                                                         ),
                                                     );
                                             v.y *= 0.3;
                                             v * 2.0
                                         },
-                                        rot: global_rng().gen_range(0.0..2.0 * f32::PI),
-                                        w: global_rng().gen_range(
+                                        rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
+                                        w: thread_rng().gen_range(
                                             -self.config.farticle_w..=self.config.farticle_w,
                                         ),
                                         color: self.config.bubble_fart_color,
