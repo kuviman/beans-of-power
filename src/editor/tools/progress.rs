@@ -62,7 +62,7 @@ impl EditorTool for ProgressTool {
                 framebuffer,
                 camera,
                 &draw_2d::Segment::new(
-                    Segment::new(seg[0], seg[1]),
+                    Segment(seg[0], seg[1]),
                     0.1,
                     Rgba::new(0.0, 0.0, 0.0, 0.25),
                 ),
@@ -74,7 +74,7 @@ impl EditorTool for ProgressTool {
                 framebuffer,
                 camera,
                 &draw_2d::Quad::new(
-                    AABB::point(point).extend_uniform(0.2),
+                    Aabb2::point(point).extend_uniform(0.2),
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );
@@ -82,7 +82,7 @@ impl EditorTool for ProgressTool {
         self.geng.draw_2d(
             framebuffer,
             &geng::Camera2d {
-                center: Vec2::ZERO,
+                center: vec2::ZERO,
                 rotation: 0.0,
                 fov: 15.0,
             },

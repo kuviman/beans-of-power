@@ -104,8 +104,11 @@ fn main() {
             geng::EmptyLoadingScreen,
             future::join(
                 future::join(
-                    <Assets as geng::LoadAsset>::load(&geng, &static_path()),
-                    <String as geng::LoadAsset>::load(&geng, &static_path().join("level.json")),
+                    <Assets as geng::LoadAsset>::load(&geng, &run_dir().join("assets")),
+                    <String as geng::LoadAsset>::load(
+                        &geng,
+                        &run_dir().join("assets").join("level.json"),
+                    ),
                 ),
                 connection,
             ),

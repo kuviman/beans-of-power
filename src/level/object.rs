@@ -3,7 +3,7 @@ use super::*;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Object {
     pub type_name: String,
-    pub pos: Vec2<f32>,
+    pub pos: vec2<f32>,
 }
 
 pub fn load_objects_assets(

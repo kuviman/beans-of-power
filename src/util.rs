@@ -34,8 +34,8 @@ impl geng::LoadAsset for Texture {
     const DEFAULT_EXT: Option<&'static str> = Some("png");
 }
 
-pub fn zero_vec() -> Vec2<f32> {
-    Vec2::ZERO
+pub fn zero_vec() -> vec2<f32> {
+    vec2::ZERO
 }
 
 impl Game {

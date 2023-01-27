@@ -17,8 +17,8 @@ impl EditorToolConfig for TileToolConfig {
 pub struct TileTool {
     geng: Geng,
     assets: Rc<Assets>,
-    points: Vec<Vec2<f32>>,
-    // wind_drag: Option<(usize, Vec2<f32>)>,
+    points: Vec<vec2<f32>>,
+    // wind_drag: Option<(usize, vec2<f32>)>,
     config: TileToolConfig,
 }
 
@@ -28,7 +28,7 @@ impl TileTool {
             for i in 0..3 {
                 let p1 = tile.vertices[i];
                 let p2 = tile.vertices[(i + 1) % 3];
-                if Vec2::skew(p2 - p1, cursor.world_pos - p1) < 0.0 {
+                if vec2::skew(p2 - p1, cursor.world_pos - p1) < 0.0 {
                     continue 'tile_loop;
                 }
             }
@@ -70,7 +70,7 @@ impl EditorTool for TileTool {
                     framebuffer,
                     camera,
                     &draw_2d::Quad::new(
-                        AABB::point(p).extend_uniform(0.1),
+                        Aabb2::point(p).extend_uniform(0.1),
                         Rgba::new(0.0, 1.0, 0.0, 0.5),
                     ),
                 );
@@ -81,7 +81,7 @@ impl EditorTool for TileTool {
                         framebuffer,
                         camera,
                         &draw_2d::Segment::new(
-                            Segment::new(p1, cursor.snapped_world_pos),
+                            Segment(p1, cursor.snapped_world_pos),
                             0.1,
                             Rgba::new(1.0, 1.0, 1.0, 0.5),
                         ),
@@ -140,21 +140,21 @@ impl EditorTool for TileTool {
                         let p1 = self.points[i];
                         let p2 = self.points[(i + 1) % 3];
                         let p3 = self.points[(i + 2) % 3];
-                        if Vec2::skew((p2 - p1).normalize_or_zero(), p3 - p1).abs()
+                        if vec2::skew((p2 - p1).normalize_or_zero(), p3 - p1).abs()
                             < self.config.snap_distance
                         {
                             self.points.pop();
                             return;
                         }
                     }
-                    let mut vertices: [Vec2<f32>; 3] =
+                    let mut vertices: [vec2<f32>; 3] =
                         mem::take(&mut self.points).try_into().unwrap();
-                    if Vec2::skew(vertices[1] - vertices[0], vertices[2] - vertices[0]) < 0.0 {
+                    if vec2::skew(vertices[1] - vertices[0], vertices[2] - vertices[0]) < 0.0 {
                         vertices.reverse();
                     }
                     level.modify().tiles.push(Tile {
                         vertices,
-                        flow: Vec2::ZERO,
+                        flow: vec2::ZERO,
                         type_name: self.config.selected_type.clone(),
                     });
                 }

@@ -17,7 +17,7 @@ impl Game {
                 .reverse(),
         });
         let mut camera = geng::Camera2d {
-            center: Vec2::ZERO,
+            center: vec2::ZERO,
             rotation: 0.0,
             fov: 40.0,
         };

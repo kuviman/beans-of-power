@@ -78,13 +78,13 @@ impl Game {
                 for i in 0..3 {
                     let p1 = tile.vertices[i];
                     let p2 = tile.vertices[(i + 1) % 3];
-                    if Vec2::skew(p2 - p1, guy.pos - p1) < 0.0 {
+                    if vec2::skew(p2 - p1, guy.pos - p1) < 0.0 {
                         continue 'tile_loop;
                     }
                 }
                 let relative_vel = guy.vel - tile.flow;
                 let flow_direction = tile.flow.normalize_or_zero();
-                let relative_vel_along_flow = Vec2::dot(flow_direction, relative_vel);
+                let relative_vel_along_flow = vec2::dot(flow_direction, relative_vel);
                 let params = &self.assets.tiles[&tile.type_name].params;
                 let force_along_flow =
                     -flow_direction * relative_vel_along_flow * params.friction_along_flow;
@@ -97,7 +97,7 @@ impl Game {
                 for i in 0..3 {
                     let p1 = tile.vertices[i];
                     let p2 = tile.vertices[(i + 1) % 3];
-                    if Vec2::skew(p2 - p1, butt - p1) < 0.0 {
+                    if vec2::skew(p2 - p1, butt - p1) < 0.0 {
                         continue 'tile_loop;
                     }
                 }
@@ -308,7 +308,7 @@ impl Game {
 
             struct Collision<'a> {
                 penetration: f32,
-                normal: Vec2<f32>,
+                normal: vec2<f32>,
                 assets: &'a SurfaceAssets,
             }
 
@@ -325,7 +325,7 @@ impl Game {
                         guy.colliding_water = true;
                         if !was_colliding_water {
                             was_colliding_water = true;
-                            if Vec2::dot(v, guy.vel).abs() > 0.5 {
+                            if vec2::dot(v, guy.vel).abs() > 0.5 {
                                 let mut effect = self.assets.sfx.water_splash.effect();
                                 effect.set_volume(
                                     (self.volume
@@ -374,7 +374,7 @@ impl Game {
                     if assets.params.non_collidable {
                         continue;
                     }
-                    if Vec2::dot(v, guy.vel) > EPS {
+                    if vec2::dot(v, guy.vel) > EPS {
                         let collision = Collision {
                             penetration,
                             normal: -v.normalize_or_zero(),
@@ -395,9 +395,9 @@ impl Game {
             }
             if let Some(collision) = collision_to_resolve {
                 guy.pos += collision.normal * collision.penetration;
-                let normal_vel = Vec2::dot(guy.vel, collision.normal);
+                let normal_vel = vec2::dot(guy.vel, collision.normal);
                 let tangent = collision.normal.rotate_90();
-                let tangent_vel = Vec2::dot(guy.vel, tangent) - guy.w * self.config.guy_radius;
+                let tangent_vel = vec2::dot(guy.vel, tangent) - guy.w * self.config.guy_radius;
                 let impulse = (-normal_vel * (1.0 + collision.assets.params.bounciness))
                     .max(-normal_vel + collision.assets.params.min_bounce_vel);
                 guy.vel += collision.normal * impulse;

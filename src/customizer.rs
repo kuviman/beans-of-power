@@ -12,7 +12,7 @@ impl Game {
             return;
         }
         let camera = geng::Camera2d {
-            center: Vec2::ZERO,
+            center: vec2::ZERO,
             rotation: 0.0,
             fov: 10.0,
         };
@@ -60,7 +60,7 @@ impl Game {
                     self.show_customizer = false;
                 }
                 UiMessage::RandomizeSkin => {
-                    self.customization.colors = Guy::new(-1, Vec2::ZERO, true).colors;
+                    self.customization.colors = Guy::new(-1, vec2::ZERO, true).colors;
                 }
             }
         }

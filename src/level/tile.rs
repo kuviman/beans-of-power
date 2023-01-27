@@ -2,9 +2,9 @@ use super::*;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Tile {
-    pub vertices: [Vec2<f32>; 3],
+    pub vertices: [vec2<f32>; 3],
     #[serde(default = "zero_vec")]
-    pub flow: Vec2<f32>,
+    pub flow: vec2<f32>,
     pub type_name: String,
 }
 
@@ -21,7 +21,7 @@ pub struct TileParams {
     #[serde(default)]
     pub texture_movement_amplitude: f32,
     #[serde(default = "zero_vec")]
-    pub additional_force: Vec2<f32>,
+    pub additional_force: vec2<f32>,
 }
 
 pub struct TileAssets {

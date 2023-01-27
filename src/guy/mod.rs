@@ -14,8 +14,8 @@ pub struct Guy {
     pub colliding_water: bool,
     pub growl_progress: Option<f32>,
     pub id: Id,
-    pub pos: Vec2<f32>,
-    pub vel: Vec2<f32>,
+    pub pos: vec2<f32>,
+    pub vel: vec2<f32>,
     pub rot: f32,
     pub w: f32,
     pub farting: bool,
@@ -39,7 +39,7 @@ pub struct GuyColors {
 }
 
 impl Guy {
-    pub fn new(id: Id, pos: Vec2<f32>, rng: bool) -> Self {
+    pub fn new(id: Id, pos: vec2<f32>, rng: bool) -> Self {
         let random_hue = || {
             let hue = thread_rng().gen_range(0.0..1.0);
             Hsva::new(hue, 1.0, 1.0, 1.0).into()
@@ -54,9 +54,9 @@ impl Guy {
                 + if rng {
                     vec2(thread_rng().gen_range(-1.0..=1.0), 0.0)
                 } else {
-                    Vec2::ZERO
+                    vec2::ZERO
                 },
-            vel: Vec2::ZERO,
+            vel: vec2::ZERO,
             rot: if rng {
                 thread_rng().gen_range(-1.0..=1.0)
             } else {

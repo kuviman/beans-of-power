@@ -2,8 +2,8 @@ use super::*;
 
 pub struct Farticle {
     pub size: f32,
-    pub pos: Vec2<f32>,
-    pub vel: Vec2<f32>,
+    pub pos: vec2<f32>,
+    pub vel: vec2<f32>,
     pub color: Rgba<f32>,
     pub rot: f32,
     pub w: f32,
@@ -20,10 +20,10 @@ impl Game {
             for surface in &self.level.surfaces {
                 let v = surface.vector_from(farticle.pos);
                 let penetration = self.config.farticle_size / 2.0 - v.len();
-                if penetration > EPS && Vec2::dot(v, farticle.vel) > 0.0 {
+                if penetration > EPS && vec2::dot(v, farticle.vel) > 0.0 {
                     let normal = -v.normalize_or_zero();
                     farticle.pos += normal * penetration;
-                    farticle.vel -= normal * Vec2::dot(farticle.vel, normal);
+                    farticle.vel -= normal * vec2::dot(farticle.vel, normal);
                 }
             }
         }
@@ -42,7 +42,7 @@ impl Game {
                         ..farticle.color
                     },
                 )
-                .transform(Mat3::rotate(farticle.rot))
+                .transform(mat3::rotate(farticle.rot))
                 .scale_uniform(self.config.farticle_size * farticle.size)
                 .translate(farticle.pos),
             )

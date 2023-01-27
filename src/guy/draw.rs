@@ -20,7 +20,7 @@ impl Game {
                     )
                     .translate(shift)
                     .scale_uniform(self.config.guy_radius * scale)
-                    .transform(Mat3::rotate(guy.rot))
+                    .transform(mat3::rotate(guy.rot))
                     .translate(guy.pos),
                 );
                 self.geng.draw_2d(
@@ -32,7 +32,7 @@ impl Game {
                     )
                     .translate(shift)
                     .scale_uniform(self.config.guy_radius * scale)
-                    .transform(Mat3::rotate(guy.rot))
+                    .transform(mat3::rotate(guy.rot))
                     .translate(guy.pos),
                 );
             }
@@ -45,7 +45,7 @@ impl Game {
                     &self.camera,
                     &draw_2d::TexturedQuad::unit(&custom.body)
                         .scale_uniform(self.config.guy_radius)
-                        .transform(Mat3::rotate(guy.rot))
+                        .transform(mat3::rotate(guy.rot))
                         .translate(guy.pos),
                 );
                 (
@@ -63,7 +63,7 @@ impl Game {
                         guy.colors.bottom,
                     )
                     .scale_uniform(self.config.guy_radius)
-                    .transform(Mat3::rotate(guy.rot))
+                    .transform(mat3::rotate(guy.rot))
                     .translate(guy.pos),
                 );
                 self.geng.draw_2d(
@@ -74,7 +74,7 @@ impl Game {
                         guy.colors.top,
                     )
                     .scale_uniform(self.config.guy_radius)
-                    .transform(Mat3::rotate(guy.rot))
+                    .transform(mat3::rotate(guy.rot))
                     .translate(guy.pos),
                 );
                 self.geng.draw_2d(
@@ -82,7 +82,7 @@ impl Game {
                     &self.camera,
                     &draw_2d::TexturedQuad::unit_colored(&self.assets.guy.hair, guy.colors.hair)
                         .scale_uniform(self.config.guy_radius)
-                        .transform(Mat3::rotate(guy.rot))
+                        .transform(mat3::rotate(guy.rot))
                         .translate(guy.pos),
                 );
                 self.geng.draw_2d(
@@ -90,7 +90,7 @@ impl Game {
                     &self.camera,
                     &draw_2d::TexturedQuad::unit_colored(&self.assets.guy.skin, guy.colors.skin)
                         .scale_uniform(self.config.guy_radius)
-                        .transform(Mat3::rotate(guy.rot))
+                        .transform(mat3::rotate(guy.rot))
                         .translate(guy.pos),
                 );
                 (
@@ -108,7 +108,7 @@ impl Game {
                     framebuffer,
                     &self.camera,
                     &draw_2d::Quad::new(
-                        AABB::point(guy.pos + vec2(0.0, self.config.guy_radius * 1.2))
+                        Aabb2::point(guy.pos + vec2(0.0, self.config.guy_radius * 1.2))
                             .extend_symmetric(vec2(0.5, 0.02)),
                         Rgba::BLACK,
                     ),
@@ -117,7 +117,7 @@ impl Game {
                     framebuffer,
                     &self.camera,
                     &draw_2d::Quad::new(
-                        AABB::point(
+                        Aabb2::point(
                             guy.pos + vec2(-0.5 + fart_progress, self.config.guy_radius * 1.2),
                         )
                         .extend_uniform(0.04),
@@ -133,7 +133,7 @@ impl Game {
                     &draw_2d::TexturedQuad::unit_colored(closed_eyes, guy.colors.skin)
                         .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * fart_progress)
                         .scale_uniform(self.config.guy_radius * (0.8 + 0.6 * fart_progress))
-                        .transform(Mat3::rotate(guy.rot))
+                        .transform(mat3::rotate(guy.rot))
                         .translate(guy.pos),
                 );
             } else {
@@ -147,7 +147,7 @@ impl Game {
                     })
                     .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * fart_progress)
                     .scale_uniform(self.config.guy_radius * (0.8 + 0.6 * fart_progress))
-                    .transform(Mat3::rotate(guy.rot))
+                    .transform(mat3::rotate(guy.rot))
                     .translate(guy.pos),
                 );
             }
@@ -166,7 +166,7 @@ impl Game {
                     )
                     .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * progress)
                     .scale_uniform(self.config.guy_radius * (0.8 + 0.7 * progress))
-                    .transform(Mat3::rotate(guy.rot))
+                    .transform(mat3::rotate(guy.rot))
                     .translate(guy.pos),
                 );
             }

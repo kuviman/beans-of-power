@@ -55,7 +55,7 @@ impl EditorTool for ObjectTool {
                 framebuffer,
                 camera,
                 &draw_2d::Quad::new(
-                    AABB::point(object.pos).extend_uniform(0.5),
+                    Aabb2::point(object.pos).extend_uniform(0.5),
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );

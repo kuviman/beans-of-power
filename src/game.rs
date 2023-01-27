@@ -15,8 +15,8 @@ pub struct Game {
     pub best_time: Option<f32>,
     pub emotes: Vec<(f32, Id, usize)>,
     pub best_progress: f32,
-    pub framebuffer_size: Vec2<f32>,
-    pub prev_mouse_pos: Vec2<f64>,
+    pub framebuffer_size: vec2<f32>,
+    pub prev_mouse_pos: vec2<f64>,
     pub geng: Geng,
     pub config: Config,
     pub assets: Rc<Assets>,
@@ -75,7 +75,7 @@ impl Game {
             config: assets.config.clone(),
             assets: assets.clone(),
             camera: geng::Camera2d {
-                center: Vec2::ZERO,
+                center: vec2::ZERO,
                 rotation: 0.0,
                 fov: 5.0,
             },
@@ -90,7 +90,7 @@ impl Game {
             my_guy: None,
             real_time: 0.0,
             noise: noise::OpenSimplex::new(),
-            prev_mouse_pos: Vec2::ZERO,
+            prev_mouse_pos: vec2::ZERO,
             opt: opt.clone(),
             farticles: default(),
             volume: assets.config.volume,
@@ -147,7 +147,7 @@ impl Game {
         }
         if let Some(id) = self.my_guy {
             let camera = geng::Camera2d {
-                center: Vec2::ZERO,
+                center: vec2::ZERO,
                 rotation: 0.0,
                 fov: 10.0,
             };
@@ -206,7 +206,7 @@ impl Game {
                 framebuffer,
                 &camera,
                 &draw_2d::Quad::new(
-                    AABB::point(vec2(0.0, -4.5)).extend_symmetric(vec2(3.0, 0.1)),
+                    Aabb2::point(vec2(0.0, -4.5)).extend_symmetric(vec2(3.0, 0.1)),
                     Rgba::BLACK,
                 ),
             );
@@ -214,7 +214,7 @@ impl Game {
                 framebuffer,
                 &camera,
                 &draw_2d::Quad::new(
-                    AABB::point(vec2(-3.0 + 6.0 * self.best_progress, -4.5)).extend_uniform(0.3),
+                    Aabb2::point(vec2(-3.0 + 6.0 * self.best_progress, -4.5)).extend_uniform(0.3),
                     Rgba::new(0.0, 0.0, 0.0, 0.5),
                 ),
             );
@@ -222,7 +222,7 @@ impl Game {
                 framebuffer,
                 &camera,
                 &draw_2d::Quad::new(
-                    AABB::point(vec2(-3.0 + 6.0 * progress, -4.5)).extend_uniform(0.3),
+                    Aabb2::point(vec2(-3.0 + 6.0 * progress, -4.5)).extend_uniform(0.3),
                     Rgba::BLACK,
                 ),
             );
@@ -239,23 +239,24 @@ impl geng::State for Game {
         ugli::clear(framebuffer, Some(self.config.background_color), None, None);
 
         self.draw_level_back(&self.level, framebuffer);
-        test += &format!("lvl back {}\n", timer.tick());
+        // TODO: geng impl Display for time::Duration
+        test += &format!("lvl back {}\n", timer.tick().as_secs_f64());
         self.draw_guys(framebuffer);
-        test += &format!("guys {}\n", timer.tick());
+        test += &format!("guys {}\n", timer.tick().as_secs_f64());
         self.draw_level_front(&self.level, framebuffer);
-        test += &format!("lvl front {}\n", timer.tick());
+        test += &format!("lvl front {}\n", timer.tick().as_secs_f64());
         self.draw_farticles(framebuffer);
-        test += &format!("farticles {}\n", timer.tick());
+        test += &format!("farticles {}\n", timer.tick().as_secs_f64());
         self.draw_level_editor(framebuffer);
-        test += &format!("editor {}\n", timer.tick());
+        test += &format!("editor {}\n", timer.tick().as_secs_f64());
         self.draw_customizer(framebuffer);
-        test += &format!("customizer {}\n", timer.tick());
+        test += &format!("customizer {}\n", timer.tick().as_secs_f64());
         self.draw_leaderboard(framebuffer);
-        test += &format!("lb {}\n", timer.tick());
+        test += &format!("lb {}\n", timer.tick().as_secs_f64());
         self.draw_progress(framebuffer);
-        test += &format!("progress {}\n", timer.tick());
+        test += &format!("progress {}\n", timer.tick().as_secs_f64());
 
-        if timer1.elapsed() > 0.100 {
+        if timer1.elapsed().as_secs_f64() > 0.100 {
             println!("{}", test);
         }
     }

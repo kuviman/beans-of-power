@@ -2,15 +2,15 @@ use super::*;
 
 #[derive(ugli::Vertex)]
 struct TileVertex {
-    a_pos: Vec2<f32>,
-    a_flow: Vec2<f32>,
+    a_pos: vec2<f32>,
+    a_flow: vec2<f32>,
 }
 
 #[derive(ugli::Vertex, Copy, Clone)]
 struct SurfaceVertex {
-    a_pos: Vec2<f32>,
-    a_normal: Vec2<f32>,
-    a_vt: Vec2<f32>,
+    a_pos: vec2<f32>,
+    a_normal: vec2<f32>,
+    a_vt: vec2<f32>,
 }
 
 pub struct LevelMesh {
@@ -174,7 +174,7 @@ impl Game {
                     framebuffer,
                     &self.camera,
                     &draw_2d::TexturedQuad::unit(&self.assets.objects[&obj.type_name])
-                        .transform(Mat3::rotate(if obj.type_name == "unicorn" {
+                        .transform(mat3::rotate(if obj.type_name == "unicorn" {
                             self.real_time
                         } else {
                             0.0

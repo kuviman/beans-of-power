@@ -17,7 +17,7 @@ impl EditorToolConfig for SurfaceToolConfig {
 pub struct SurfaceTool {
     geng: Geng,
     assets: Rc<Assets>,
-    start_drag: Option<Vec2<f32>>,
+    start_drag: Option<vec2<f32>>,
     config: SurfaceToolConfig,
 }
 impl SurfaceTool {
@@ -56,7 +56,7 @@ impl EditorTool for SurfaceTool {
             self.geng.draw_2d(
                 framebuffer,
                 camera,
-                &draw_2d::Segment::new(Segment::new(p1, p2), 0.1, Rgba::new(1.0, 1.0, 1.0, 0.5)),
+                &draw_2d::Segment::new(Segment(p1, p2), 0.1, Rgba::new(1.0, 1.0, 1.0, 0.5)),
             );
         } else if let Some(index) = self.find_hovered_surface(cursor, level) {
             let surface = &level.surfaces[index];
@@ -64,7 +64,7 @@ impl EditorTool for SurfaceTool {
                 framebuffer,
                 camera,
                 &draw_2d::Segment::new(
-                    Segment::new(surface.p1, surface.p2),
+                    Segment(surface.p1, surface.p2),
                     0.2,
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
