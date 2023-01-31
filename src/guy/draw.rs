@@ -6,35 +6,43 @@ impl Game {
             self.guys.iter().filter(|guy| guy.id != self.client_id),
             self.guys.iter().filter(|guy| guy.id == self.client_id),
         ] {
-            if let Some(growl_progress) = guy.animation.growl_progress {
-                let shift = vec2(self.noise(10.0), self.noise(10.0)) * 0.1;
-                let scale = 1.0 - (growl_progress * 2.0 - 1.0).sqr();
-                let scale =
-                    self.config.growl_min_scale * (1.0 - scale) + self.config.growl_scale * scale;
-                self.geng.draw_2d(
-                    framebuffer,
-                    &self.camera,
-                    &draw_2d::TexturedQuad::unit_colored(
-                        &self.assets.guy.growl_bottom,
-                        guy.customization.colors.bottom,
-                    )
-                    .translate(shift)
-                    .scale_uniform(self.config.guy_radius * scale)
-                    .transform(mat3::rotate(guy.ball.rot))
-                    .translate(guy.ball.pos),
-                );
-                self.geng.draw_2d(
-                    framebuffer,
-                    &self.camera,
-                    &draw_2d::TexturedQuad::unit_colored(
-                        &self.assets.guy.growl_top,
-                        guy.customization.colors.top,
-                    )
-                    .translate(shift)
-                    .scale_uniform(self.config.guy_radius * scale)
-                    .transform(mat3::rotate(guy.ball.rot))
-                    .translate(guy.ball.pos),
-                );
+            if self
+                .assets
+                .guy
+                .custom
+                .get(&guy.customization.name)
+                .is_none()
+            {
+                if let Some(growl_progress) = guy.animation.growl_progress {
+                    let shift = vec2(self.noise(10.0), self.noise(10.0)) * 0.1;
+                    let scale = 1.0 - (growl_progress * 2.0 - 1.0).sqr();
+                    let scale = self.config.growl_min_scale * (1.0 - scale)
+                        + self.config.growl_scale * scale;
+                    self.geng.draw_2d(
+                        framebuffer,
+                        &self.camera,
+                        &draw_2d::TexturedQuad::unit_colored(
+                            &self.assets.guy.growl_bottom,
+                            guy.customization.colors.bottom,
+                        )
+                        .translate(shift)
+                        .scale_uniform(self.config.guy_radius * scale)
+                        .transform(mat3::rotate(guy.ball.rot))
+                        .translate(guy.ball.pos),
+                    );
+                    self.geng.draw_2d(
+                        framebuffer,
+                        &self.camera,
+                        &draw_2d::TexturedQuad::unit_colored(
+                            &self.assets.guy.growl_top,
+                            guy.customization.colors.top,
+                        )
+                        .translate(shift)
+                        .scale_uniform(self.config.guy_radius * scale)
+                        .transform(mat3::rotate(guy.ball.rot))
+                        .translate(guy.ball.pos),
+                    );
+                }
             }
 
             let (eyes, closed_eyes, cheeks, cheeks_color) =
@@ -49,7 +57,7 @@ impl Game {
                     );
                     (
                         &custom.eyes,
-                        &self.assets.guy.closed_eyes, // TODO custom
+                        &custom.closed_eyes,
                         &custom.cheeks,
                         Rgba::WHITE,
                     )

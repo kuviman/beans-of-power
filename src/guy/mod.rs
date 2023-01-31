@@ -135,6 +135,7 @@ impl Guy {
 pub struct CustomGuyAssets {
     pub body: Texture,
     pub eyes: Texture,
+    pub closed_eyes: Texture,
     pub cheeks: Texture,
 }
 
