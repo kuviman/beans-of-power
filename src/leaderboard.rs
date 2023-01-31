@@ -6,13 +6,14 @@ impl Game {
             return;
         }
         let mut guys: Vec<&Guy> = self.guys.iter().collect();
-        guys.sort_by(|a, b| match (a.best_time, b.best_time) {
+        guys.sort_by(|a, b| match (a.progress.best_time, b.progress.best_time) {
             (Some(a), Some(b)) => a.partial_cmp(&b).unwrap(),
             (Some(_), None) => std::cmp::Ordering::Less,
             (None, Some(_)) => std::cmp::Ordering::Greater,
             (None, None) => a
-                .best_progress
-                .partial_cmp(&b.best_progress)
+                .progress
+                .best
+                .partial_cmp(&b.progress.best)
                 .unwrap()
                 .reverse(),
         });
@@ -24,10 +25,10 @@ impl Game {
         camera.center.x += camera.fov * self.framebuffer_size.x / self.framebuffer_size.y / 2.0;
         for (place, guy) in guys.into_iter().enumerate() {
             let place = place + 1;
-            let name = &guy.name;
-            let progress = (guy.progress * 100.0).round() as i32;
+            let name = &guy.customization.name;
+            let progress = (guy.progress.current * 100.0).round() as i32;
             let mut text = format!("#{place}: {name} - {progress}% (");
-            if let Some(time) = guy.best_time {
+            if let Some(time) = guy.progress.best_time {
                 let millis = (time * 1000.0).round() as i32;
                 let seconds = millis / 1000;
                 let millis = millis % 1000;
@@ -43,7 +44,7 @@ impl Game {
                 }
                 text += &format!("{}.{}", seconds, millis);
             } else {
-                text += &format!("{}%", (guy.best_progress * 100.0).round() as i32);
+                text += &format!("{}%", (guy.progress.best * 100.0).round() as i32);
             }
             text.push(')');
             self.geng.default_font().draw(

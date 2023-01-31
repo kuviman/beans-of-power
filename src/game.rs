@@ -35,7 +35,7 @@ pub struct Game {
     pub volume: f32,
     pub client_id: Id,
     pub connection: Option<Connection>,
-    pub customization: Guy,
+    pub customization: CustomizationOptions,
     pub mute_music: bool,
     pub ui_controller: ui::Controller,
     pub buttons: Vec<ui::Button<UiMessage>>,
@@ -99,10 +99,7 @@ impl Game {
             simulation_time: 0.0,
             remote_simulation_times: HashMap::new(),
             remote_updates: default(),
-            customization: {
-                let mut guy = Guy::new(-1, vec2(0.0, 0.0), false);
-                guy
-            },
+            customization: CustomizationOptions::random(),
             mute_music: false,
             best_progress: 0.0,
             ui_controller: ui::Controller::new(geng, assets),
@@ -152,7 +149,7 @@ impl Game {
                 fov: 10.0,
             };
             let guy = self.guys.get_mut(&id).unwrap();
-            if guy.finished {
+            if guy.progress.finished {
                 self.assets.font.draw(
                     framebuffer,
                     &camera,
@@ -163,14 +160,14 @@ impl Game {
                     Rgba::BLACK,
                 );
             }
-            let progress = self.level.progress_at(guy.pos);
-            guy.progress = progress;
+            let progress = self.level.progress_at(guy.ball.pos);
+            guy.progress.current = progress;
             self.best_progress = self.best_progress.max(progress);
-            guy.best_progress = self.best_progress;
-            if guy.finished && self.simulation_time < self.best_time.unwrap_or(1e9) {
+            guy.progress.best = self.best_progress;
+            if guy.progress.finished && self.simulation_time < self.best_time.unwrap_or(1e9) {
                 self.best_time = Some(self.simulation_time);
             }
-            guy.best_time = self.best_time;
+            guy.progress.best_time = self.best_time;
             let mut time_text = String::new();
             let seconds = self.simulation_time.round() as i32;
             let minutes = seconds / 60;
@@ -263,7 +260,14 @@ impl geng::State for Game {
 
     fn fixed_update(&mut self, delta_time: f64) {
         let delta_time = delta_time as f32;
-        if self.my_guy.is_none() || !self.guys.get(&self.my_guy.unwrap()).unwrap().finished {
+        if self.my_guy.is_none()
+            || !self
+                .guys
+                .get(&self.my_guy.unwrap())
+                .unwrap()
+                .progress
+                .finished
+        {
             self.simulation_time += delta_time;
         }
         for time in self.remote_simulation_times.values_mut() {
@@ -300,13 +304,13 @@ impl geng::State for Game {
         let mut target_center = self.camera.center;
         if let Some(id) = self.my_guy {
             let guy = self.guys.get(&id).unwrap();
-            target_center = guy.pos;
+            target_center = guy.ball.pos;
             if self.show_customizer {
                 target_center.x += 1.0;
             }
         } else if let Some(id) = self.follow {
             if let Some(guy) = self.guys.get(&id) {
-                target_center = guy.pos;
+                target_center = guy.ball.pos;
             }
         }
         self.camera.center += (target_center - self.camera.center) * (delta_time * 5.0).min(1.0);
@@ -325,8 +329,8 @@ impl geng::State for Game {
 
         if let Some(id) = self.my_guy {
             let guy = self.guys.get_mut(&id).unwrap();
-            guy.name = self.customization.name.clone();
-            guy.colors = self.customization.colors.clone();
+            guy.customization.name = self.customization.name.clone();
+            guy.customization.colors = self.customization.colors.clone();
         }
     }
 
@@ -358,9 +362,9 @@ impl geng::State for Game {
                 if let Some(guy) = self
                     .guys
                     .iter()
-                    .min_by_key(|guy| r32((guy.pos - pos).len()))
+                    .min_by_key(|guy| r32((guy.ball.pos - pos).len()))
                 {
-                    if (guy.pos - pos).len() < self.assets.config.guy_radius {
+                    if (guy.ball.pos - pos).len() < self.assets.config.guy_radius {
                         self.follow = Some(guy.id);
                     }
                 }

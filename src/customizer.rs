@@ -60,7 +60,7 @@ impl Game {
                     self.show_customizer = false;
                 }
                 UiMessage::RandomizeSkin => {
-                    self.customization.colors = Guy::new(-1, vec2::ZERO, true).colors;
+                    self.customization.colors = GuyColors::random();
                 }
             }
         }

@@ -8,25 +8,59 @@ pub struct Input {
     pub force_fart: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, HasId)]
-pub struct Guy {
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CustomizationOptions {
     pub name: String,
-    pub colliding_water: bool,
-    pub growl_progress: Option<f32>,
-    pub id: Id,
+    pub colors: GuyColors,
+}
+
+impl CustomizationOptions {
+    pub fn random() -> Self {
+        Self {
+            name: "".to_owned(),
+            colors: GuyColors::random(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Progress {
+    pub finished: bool,
+    pub current: f32,
+    pub best: f32,
+    pub best_time: Option<f32>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Ball {
     pub pos: vec2<f32>,
     pub vel: vec2<f32>,
     pub rot: f32,
     pub w: f32,
-    pub farting: bool,
-    pub input: Input,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct FartState {
+    pub long_farting: bool,
     pub fart_pressure: f32,
-    pub finished: bool,
-    pub colors: GuyColors,
-    pub progress: f32,
-    pub best_progress: f32,
-    pub best_time: Option<f32>,
-    pub next_farticle: f32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct GuyAnimationState {
+    pub growl_progress: Option<f32>,
+    pub next_farticle_time: f32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, HasId)]
+pub struct Guy {
+    pub id: Id,
+    pub customization: CustomizationOptions,
+    pub ball: Ball,
+    pub fart_state: FartState,
+    pub input: Input,
+    pub animation: GuyAnimationState,
+    pub progress: Progress,
+
     pub touched_a_unicorn: bool,
 }
 
@@ -38,48 +72,61 @@ pub struct GuyColors {
     pub skin: Rgba<f32>,
 }
 
-impl Guy {
-    pub fn new(id: Id, pos: vec2<f32>, rng: bool) -> Self {
+impl GuyColors {
+    pub fn random() -> Self {
         let random_hue = || {
             let hue = thread_rng().gen_range(0.0..1.0);
             Hsva::new(hue, 1.0, 1.0, 1.0).into()
         };
         Self {
-            farting: false,
-            growl_progress: None,
-            colliding_water: false,
-            name: "".to_owned(),
+            top: random_hue(),
+            bottom: random_hue(),
+            hair: random_hue(),
+            skin: {
+                let tone = thread_rng().gen_range(0.5..1.0);
+                Rgba::new(tone, tone, tone, 1.0)
+            },
+        }
+    }
+}
+
+impl Guy {
+    pub fn new(id: Id, pos: vec2<f32>, rng: bool) -> Self {
+        Self {
             id,
-            pos: pos
-                + if rng {
-                    vec2(thread_rng().gen_range(-1.0..=1.0), 0.0)
+            customization: CustomizationOptions::random(),
+            ball: Ball {
+                pos: pos
+                    + if rng {
+                        vec2(thread_rng().gen_range(-1.0..=1.0), 0.0)
+                    } else {
+                        vec2::ZERO
+                    },
+                vel: vec2::ZERO,
+                rot: if rng {
+                    thread_rng().gen_range(-1.0..=1.0)
                 } else {
-                    vec2::ZERO
+                    0.0
                 },
-            vel: vec2::ZERO,
-            rot: if rng {
-                thread_rng().gen_range(-1.0..=1.0)
-            } else {
-                0.0
+                w: 0.0,
             },
-            w: 0.0,
+            fart_state: FartState {
+                long_farting: false,
+                fart_pressure: 0.0,
+            },
             input: Input::default(),
-            fart_pressure: 0.0,
-            finished: false,
-            colors: GuyColors {
-                top: random_hue(),
-                bottom: random_hue(),
-                hair: random_hue(),
-                skin: {
-                    let tone = thread_rng().gen_range(0.5..1.0);
-                    Rgba::new(tone, tone, tone, 1.0)
-                },
+            progress: Progress {
+                finished: false,
+                current: 0.0,
+                best: 0.0,
+                best_time: None,
             },
-            progress: 0.0,
-            best_progress: 0.0,
-            best_time: None,
+            animation: GuyAnimationState {
+                growl_progress: None,
+                next_farticle_time: 0.0,
+            },
+
             touched_a_unicorn: false,
-            next_farticle: 0.0,
         }
     }
 }
