@@ -423,6 +423,13 @@ impl geng::State for Game {
                     con.send(ClientMessage::Emote(3));
                 }
             }
+            geng::Event::KeyDown {
+                key: geng::Key::Tab,
+            } if self.opt.editor => {
+                if self.editor.take().is_none() {
+                    self.editor = Some(EditorState::new(&self.geng, &self.assets));
+                }
+            }
             _ => {}
         }
         self.prev_mouse_pos = self.geng.window().mouse_pos();
