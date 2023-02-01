@@ -4,6 +4,8 @@ use super::*;
 pub struct Surface {
     pub p1: vec2<f32>,
     pub p2: vec2<f32>,
+    #[serde(default)]
+    pub flow: f32,
     pub type_name: String,
 }
 

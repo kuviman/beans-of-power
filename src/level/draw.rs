@@ -11,6 +11,7 @@ struct SurfaceVertex {
     a_pos: vec2<f32>,
     a_normal: vec2<f32>,
     a_vt: vec2<f32>,
+    a_flow: f32,
 }
 
 pub struct LevelMesh {
@@ -46,21 +47,25 @@ impl LevelMesh {
                             SurfaceVertex {
                                 a_pos: surface.p1,
                                 a_normal: normal,
+                                a_flow: surface.flow,
                                 a_vt: vec2(0.0, 0.0),
                             },
                             SurfaceVertex {
                                 a_pos: surface.p2,
                                 a_normal: normal,
+                                a_flow: surface.flow,
                                 a_vt: vec2(len, 0.0),
                             },
                             SurfaceVertex {
                                 a_pos: surface.p2,
                                 a_normal: normal,
+                                a_flow: surface.flow,
                                 a_vt: vec2(len, 1.0),
                             },
                             SurfaceVertex {
                                 a_pos: surface.p1,
                                 a_normal: normal,
+                                a_flow: surface.flow,
                                 a_vt: vec2(0.0, 1.0),
                             },
                         ];

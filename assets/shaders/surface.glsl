@@ -45,13 +45,14 @@ varying vec2 v_vt;
 attribute vec2 a_pos;
 attribute vec2 a_vt;
 attribute vec2 a_normal;
+attribute float a_flow;
 uniform mat3 u_projection_matrix;
 uniform mat3 u_view_matrix;
 uniform float u_simulation_time;
 uniform float u_height;
 uniform float u_texture_shift;
 void main() {
-    v_vt = a_vt + vec2(u_texture_shift, 0.0);
+    v_vt = a_vt + vec2(u_texture_shift - a_flow * u_simulation_time, 0.0);
     vec2 tangent = vec2(-a_normal.y, a_normal.x);
     // vec2 wind_shift = tangent * sin(u_simulation_time * 3.0) * a_vt.y * 0.02;
     vec3 pos = u_projection_matrix * u_view_matrix * vec3(a_pos + a_normal * a_vt.y * u_height, 1.0);

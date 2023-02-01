@@ -330,6 +330,7 @@ impl Game {
             struct Collision<'a> {
                 penetration: f32,
                 normal: vec2<f32>,
+                surface: &'a Surface,
                 assets: &'a SurfaceAssets,
             }
 
@@ -389,6 +390,7 @@ impl Game {
                     if vec2::dot(v, guy.ball.vel) > EPS {
                         let collision = Collision {
                             penetration,
+                            surface,
                             normal: -v.normalize_or_zero(),
                             assets,
                         };
@@ -411,7 +413,8 @@ impl Game {
                 guy.ball.pos += collision.normal * collision.penetration;
                 let normal_vel = vec2::dot(guy.ball.vel, collision.normal);
                 let tangent = collision.normal.rotate_90();
-                let tangent_vel = vec2::dot(guy.ball.vel, tangent) - guy.ball.w * guy.radius();
+                let tangent_vel = vec2::dot(guy.ball.vel, tangent) - guy.ball.w * guy.radius()
+                    + collision.surface.flow;
                 let bounce_impulse = -normal_vel * (1.0 + collision.assets.params.bounciness);
                 let impulse =
                     bounce_impulse.max(-normal_vel + collision.assets.params.min_bounce_vel);

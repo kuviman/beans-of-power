@@ -17,6 +17,7 @@ impl Level {
             let v = Surface {
                 p1: a,
                 p2: b,
+                flow: 0.0,
                 type_name: String::new(),
             }
             .vector_from(pos);
