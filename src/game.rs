@@ -18,7 +18,7 @@ pub struct Game {
     pub framebuffer_size: vec2<f32>,
     pub prev_mouse_pos: vec2<f64>,
     pub geng: Geng,
-    pub config: Config,
+    pub config: Rc<Config>,
     pub assets: Rc<Assets>,
     pub camera: geng::Camera2d,
     pub level: Level,
@@ -131,9 +131,12 @@ impl Game {
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
-            result
-                .guys
-                .insert(Guy::new(client_id, result.level.spawn_point, true));
+            result.guys.insert(Guy::new(
+                client_id,
+                result.level.spawn_point,
+                true,
+                &result.config,
+            ));
         }
         result
     }
@@ -364,7 +367,7 @@ impl geng::State for Game {
                     .iter()
                     .min_by_key(|guy| r32((guy.ball.pos - pos).len()))
                 {
-                    if (guy.ball.pos - pos).len() < self.assets.config.guy_radius {
+                    if (guy.ball.pos - pos).len() < guy.radius() {
                         self.follow = Some(guy.id);
                     }
                 }

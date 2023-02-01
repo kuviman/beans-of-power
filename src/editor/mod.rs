@@ -136,8 +136,12 @@ impl Game {
                             self.guys.remove(&id);
                         } else {
                             self.my_guy = Some(self.client_id);
-                            self.guys
-                                .insert(Guy::new(self.client_id, cursor_pos, false));
+                            self.guys.insert(Guy::new(
+                                self.client_id,
+                                cursor_pos,
+                                false,
+                                &self.config,
+                            ));
                         }
                     }
                 }

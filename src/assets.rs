@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(geng::Assets)]
 pub struct Assets {
-    pub config: Config,
+    pub config: Rc<Config>,
     pub sfx: SfxAssets,
     pub guy: GuyAssets,
     #[asset(load_with = "load_surface_assets(&geng, &base_path.join(\"surfaces\"))")]
@@ -57,6 +57,11 @@ pub struct Config {
     pub farticle_count: usize,
     pub farticle_additional_vel: f32,
     pub background_color: Rgba<f32>,
+    pub max_snow_layer: f32,
+    pub snow_falloff_impulse_min: f32,
+    pub snow_falloff_impulse_max: f32,
+    pub snow_density: f32,
+    pub snow_rotation_friction: f32,
 }
 
 #[derive(geng::Assets)]

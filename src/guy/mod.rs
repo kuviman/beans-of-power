@@ -33,6 +33,7 @@ pub struct Progress {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Ball {
+    pub radius: f32,
     pub pos: vec2<f32>,
     pub vel: vec2<f32>,
     pub rot: f32,
@@ -62,6 +63,7 @@ pub struct Guy {
     pub progress: Progress,
 
     pub touched_a_unicorn: bool,
+    pub snow_layer: f32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -91,11 +93,12 @@ impl GuyColors {
 }
 
 impl Guy {
-    pub fn new(id: Id, pos: vec2<f32>, rng: bool) -> Self {
+    pub fn new(id: Id, pos: vec2<f32>, rng: bool, config: &Config) -> Self {
         Self {
             id,
             customization: CustomizationOptions::random(),
             ball: Ball {
+                radius: config.guy_radius,
                 pos: pos
                     + if rng {
                         vec2(thread_rng().gen_range(-1.0..=1.0), 0.0)
@@ -110,6 +113,7 @@ impl Guy {
                 },
                 w: 0.0,
             },
+            snow_layer: 0.0,
             fart_state: FartState {
                 long_farting: false,
                 fart_pressure: 0.0,
@@ -128,6 +132,14 @@ impl Guy {
 
             touched_a_unicorn: false,
         }
+    }
+
+    pub fn radius(&self) -> f32 {
+        self.ball.radius + self.snow_layer
+    }
+
+    pub fn mass(&self, config: &Config) -> f32 {
+        1.0 + self.snow_layer * config.snow_density
     }
 }
 

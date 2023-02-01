@@ -42,7 +42,7 @@ impl Game {
         let is_colliding = |guy: &Guy, surface_type: &str| -> bool {
             for surface in &self.level.surfaces {
                 let v = surface.vector_from(guy.ball.pos);
-                let penetration = self.config.guy_radius - v.len();
+                let penetration = guy.radius() - v.len();
                 if penetration > EPS && surface.type_name == surface_type {
                     return true;
                 }
@@ -76,6 +76,7 @@ impl Game {
 
             guy.ball.w += (guy.input.roll_direction.clamp(-1.0, 1.0)
                 * self.config.angular_acceleration
+                / guy.mass(&self.config)
                 * delta_time)
                 .clamp(
                     -(guy.ball.w + self.config.max_angular_speed).max(0.0),
@@ -84,7 +85,7 @@ impl Game {
             guy.ball.vel.y -= self.config.gravity * delta_time;
 
             let mut in_water = false;
-            let butt = guy.ball.pos + vec2(0.0, -self.config.guy_radius * 0.9).rotate(guy.ball.rot);
+            let butt = guy.ball.pos + vec2(0.0, -guy.ball.radius * 0.9).rotate(guy.ball.rot);
             'tile_loop: for tile in &self.level.tiles {
                 for i in 0..3 {
                     let p1 = tile.vertices[i];
@@ -100,9 +101,11 @@ impl Game {
                 let force_along_flow =
                     -flow_direction * relative_vel_along_flow * params.friction_along_flow;
                 let friction_force = -relative_vel * params.friction;
-                guy.ball.vel +=
-                    (force_along_flow + params.additional_force + friction_force) * delta_time;
-                guy.ball.w -= guy.ball.w * params.friction * delta_time;
+                guy.ball.vel += (force_along_flow + params.additional_force + friction_force)
+                    * delta_time
+                    / guy.mass(&self.config);
+                guy.ball.w -= guy.ball.w * params.friction * delta_time / guy.mass(&self.config);
+                // TODO inertia?
             }
             'tile_loop: for tile in &self.level.tiles {
                 for i in 0..3 {
@@ -231,8 +234,9 @@ impl Game {
                         t: 1.0,
                     });
                 }
-                guy.ball.vel +=
-                    vec2(0.0, self.config.fart_continued_force * delta_time).rotate(guy.ball.rot);
+                guy.ball.vel += vec2(0.0, self.config.fart_continued_force * delta_time)
+                    .rotate(guy.ball.rot)
+                    / guy.mass(&self.config);
             } else if (guy.fart_state.fart_pressure >= self.config.fart_pressure_released
                 && guy.input.force_fart)
                 || guy.fart_state.fart_pressure >= self.config.max_fart_pressure
@@ -285,7 +289,8 @@ impl Game {
                         t: 1.0,
                     });
                 }
-                guy.ball.vel += vec2(0.0, self.config.fart_strength).rotate(guy.ball.rot);
+                guy.ball.vel += vec2(0.0, self.config.fart_strength).rotate(guy.ball.rot)
+                    / guy.mass(&self.config);
                 let sounds = if in_water {
                     &self.assets.sfx.bubble_fart
                 } else if guy.touched_a_unicorn {
@@ -332,7 +337,7 @@ impl Game {
             let mut was_colliding_water = was_colliding_water;
             for surface in &self.level.surfaces {
                 let v = surface.vector_from(guy.ball.pos);
-                let penetration = self.config.guy_radius - v.len();
+                let penetration = guy.radius() - v.len();
                 if penetration > EPS {
                     let assets = &self.assets.surfaces[&surface.type_name];
 
@@ -355,9 +360,7 @@ impl Game {
                                     pos: guy.ball.pos
                                         + v
                                         + vec2(
-                                            thread_rng().gen_range(
-                                                -self.config.guy_radius..=self.config.guy_radius,
-                                            ),
+                                            thread_rng().gen_range(-guy.radius()..=guy.radius()),
                                             0.0,
                                         ),
                                     vel: {
@@ -403,18 +406,54 @@ impl Game {
                 }
             }
             if let Some(collision) = collision_to_resolve {
+                let before = guy.ball.clone();
+
                 guy.ball.pos += collision.normal * collision.penetration;
                 let normal_vel = vec2::dot(guy.ball.vel, collision.normal);
                 let tangent = collision.normal.rotate_90();
-                let tangent_vel =
-                    vec2::dot(guy.ball.vel, tangent) - guy.ball.w * self.config.guy_radius;
-                let impulse = (-normal_vel * (1.0 + collision.assets.params.bounciness))
-                    .max(-normal_vel + collision.assets.params.min_bounce_vel);
-                guy.ball.vel += collision.normal * impulse;
+                let tangent_vel = vec2::dot(guy.ball.vel, tangent) - guy.ball.w * guy.radius();
+                let bounce_impulse = -normal_vel * (1.0 + collision.assets.params.bounciness);
+                let impulse =
+                    bounce_impulse.max(-normal_vel + collision.assets.params.min_bounce_vel);
+                guy.ball.vel += collision.normal * impulse / guy.mass(&self.config);
                 let max_friction_impulse = normal_vel.abs() * collision.assets.params.friction;
                 let friction_impulse = -tangent_vel.clamp_abs(max_friction_impulse);
-                guy.ball.vel += tangent * friction_impulse;
-                guy.ball.w -= friction_impulse / self.config.guy_radius;
+                guy.ball.vel += tangent * friction_impulse / guy.mass(&self.config);
+                guy.ball.w -= friction_impulse / guy.radius() / guy.mass(&self.config);
+
+                // Snow layer
+                if collision.assets.name == "snow" {
+                    guy.snow_layer += guy.ball.w.abs() * delta_time * 1e-2;
+                    guy.ball.w -=
+                        guy.ball.w * (delta_time * self.config.snow_rotation_friction).min(1.0);
+                }
+
+                {
+                    let snow_falloff = ((bounce_impulse.abs()
+                        - self.config.snow_falloff_impulse_min)
+                        / (self.config.snow_falloff_impulse_max
+                            - self.config.snow_falloff_impulse_min))
+                        .clamp(0.0, 1.0)
+                        * self.config.max_snow_layer;
+                    let snow_falloff = snow_falloff.min(guy.snow_layer);
+                    guy.snow_layer -= snow_falloff;
+                    for _ in 0..(100.0 * snow_falloff / self.config.max_snow_layer) as i32 {
+                        self.farticles.push(Farticle {
+                            size: 0.6,
+                            pos: guy.ball.pos
+                                + vec2(guy.radius(), 0.0)
+                                    .rotate(thread_rng().gen_range(0.0..2.0 * f32::PI)),
+                            vel: thread_rng().gen_circle(before.vel, 1.0),
+                            rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
+                            w: thread_rng()
+                                .gen_range(-self.config.farticle_w..=self.config.farticle_w),
+                            color: Rgba::WHITE,
+                            t: 0.5,
+                        });
+                    }
+                }
+                guy.snow_layer = guy.snow_layer.clamp(0.0, self.config.max_snow_layer);
+
                 if let Some(sound) = &collision.assets.sound {
                     let volume = ((-0.5 + impulse / 2.0) / 2.0).clamp(0.0, 1.0);
                     if volume > 0.0 {
@@ -479,7 +518,7 @@ impl Game {
 
     pub fn respawn_my_guy(&mut self) {
         // COPYPASTA MMMMM 🍝 or is it anymore?
-        let new_guy = Guy::new(self.client_id, self.level.spawn_point, true);
+        let new_guy = Guy::new(self.client_id, self.level.spawn_point, true, &self.config);
         if self.my_guy.is_none() {
             self.my_guy = Some(self.client_id);
         }

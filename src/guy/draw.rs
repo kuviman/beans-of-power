@@ -6,6 +6,14 @@ impl Game {
             self.guys.iter().filter(|guy| guy.id != self.client_id),
             self.guys.iter().filter(|guy| guy.id == self.client_id),
         ] {
+            if guy.snow_layer != 0.0 {
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::Ellipse::circle(guy.ball.pos, guy.radius(), Rgba::WHITE),
+                );
+            }
+
             if self
                 .assets
                 .guy
@@ -26,7 +34,7 @@ impl Game {
                             guy.customization.colors.bottom,
                         )
                         .translate(shift)
-                        .scale_uniform(self.config.guy_radius * scale)
+                        .scale_uniform(guy.ball.radius * scale)
                         .transform(mat3::rotate(guy.ball.rot))
                         .translate(guy.ball.pos),
                     );
@@ -38,7 +46,7 @@ impl Game {
                             guy.customization.colors.top,
                         )
                         .translate(shift)
-                        .scale_uniform(self.config.guy_radius * scale)
+                        .scale_uniform(guy.ball.radius * scale)
                         .transform(mat3::rotate(guy.ball.rot))
                         .translate(guy.ball.pos),
                     );
@@ -51,7 +59,7 @@ impl Game {
                         framebuffer,
                         &self.camera,
                         &draw_2d::TexturedQuad::unit(&custom.body)
-                            .scale_uniform(self.config.guy_radius)
+                            .scale_uniform(guy.ball.radius)
                             .transform(mat3::rotate(guy.ball.rot))
                             .translate(guy.ball.pos),
                     );
@@ -69,7 +77,7 @@ impl Game {
                             &self.assets.guy.clothes_bottom,
                             guy.customization.colors.bottom,
                         )
-                        .scale_uniform(self.config.guy_radius)
+                        .scale_uniform(guy.ball.radius)
                         .transform(mat3::rotate(guy.ball.rot))
                         .translate(guy.ball.pos),
                     );
@@ -80,7 +88,7 @@ impl Game {
                             &self.assets.guy.clothes_top,
                             guy.customization.colors.top,
                         )
-                        .scale_uniform(self.config.guy_radius)
+                        .scale_uniform(guy.ball.radius)
                         .transform(mat3::rotate(guy.ball.rot))
                         .translate(guy.ball.pos),
                     );
@@ -91,7 +99,7 @@ impl Game {
                             &self.assets.guy.hair,
                             guy.customization.colors.hair,
                         )
-                        .scale_uniform(self.config.guy_radius)
+                        .scale_uniform(guy.ball.radius)
                         .transform(mat3::rotate(guy.ball.rot))
                         .translate(guy.ball.pos),
                     );
@@ -102,7 +110,7 @@ impl Game {
                             &self.assets.guy.skin,
                             guy.customization.colors.skin,
                         )
-                        .scale_uniform(self.config.guy_radius)
+                        .scale_uniform(guy.ball.radius)
                         .transform(mat3::rotate(guy.ball.rot))
                         .translate(guy.ball.pos),
                     );
@@ -121,7 +129,7 @@ impl Game {
                     framebuffer,
                     &self.camera,
                     &draw_2d::Quad::new(
-                        Aabb2::point(guy.ball.pos + vec2(0.0, self.config.guy_radius * 1.2))
+                        Aabb2::point(guy.ball.pos + vec2(0.0, guy.ball.radius * 1.2))
                             .extend_symmetric(vec2(0.5, 0.02)),
                         Rgba::BLACK,
                     ),
@@ -131,7 +139,7 @@ impl Game {
                     &self.camera,
                     &draw_2d::Quad::new(
                         Aabb2::point(
-                            guy.ball.pos + vec2(-0.5 + fart_progress, self.config.guy_radius * 1.2),
+                            guy.ball.pos + vec2(-0.5 + fart_progress, guy.ball.radius * 1.2),
                         )
                         .extend_uniform(0.04),
                         Rgba::BLACK,
@@ -148,7 +156,7 @@ impl Game {
                         guy.customization.colors.skin,
                     )
                     .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * fart_progress)
-                    .scale_uniform(self.config.guy_radius * (0.8 + 0.6 * fart_progress))
+                    .scale_uniform(guy.ball.radius * (0.8 + 0.6 * fart_progress))
                     .transform(mat3::rotate(guy.ball.rot))
                     .translate(guy.ball.pos),
                 );
@@ -162,7 +170,7 @@ impl Game {
                         Rgba::new(1.0, 1.0 - t, 1.0 - t, 1.0)
                     })
                     .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * fart_progress)
-                    .scale_uniform(self.config.guy_radius * (0.8 + 0.6 * fart_progress))
+                    .scale_uniform(guy.ball.radius * (0.8 + 0.6 * fart_progress))
                     .transform(mat3::rotate(guy.ball.rot))
                     .translate(guy.ball.pos),
                 );
@@ -181,7 +189,7 @@ impl Game {
                         },
                     )
                     .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * progress)
-                    .scale_uniform(self.config.guy_radius * (0.8 + 0.7 * progress))
+                    .scale_uniform(guy.ball.radius * (0.8 + 0.7 * progress))
                     .transform(mat3::rotate(guy.ball.rot))
                     .translate(guy.ball.pos),
                 );
@@ -191,7 +199,7 @@ impl Game {
                     framebuffer,
                     &self.camera,
                     &guy.customization.name,
-                    guy.ball.pos + vec2(0.0, self.config.guy_radius * 1.1),
+                    guy.ball.pos + vec2(0.0, guy.ball.radius * 1.1),
                     geng::TextAlign::CENTER,
                     0.1,
                     Rgba::BLACK,
@@ -207,7 +215,7 @@ impl Game {
                     &self.camera,
                     &draw_2d::TexturedQuad::unit(&self.assets.emotes[emote])
                         .scale_uniform(0.1)
-                        .translate(guy.ball.pos + vec2(0.0, self.config.guy_radius * 2.0)),
+                        .translate(guy.ball.pos + vec2(0.0, guy.ball.radius * 2.0)),
                 );
             }
         }
