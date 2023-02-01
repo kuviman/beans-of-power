@@ -31,6 +31,10 @@ pub struct SurfaceParams {
     #[serde(default)]
     pub min_bounce_vel: f32,
     pub friction: f32,
+    #[serde(default)]
+    pub speed_friction: f32,
+    #[serde(default)]
+    pub rotation_friction: f32,
     pub front: bool,
     pub back: bool,
     pub sound: bool,

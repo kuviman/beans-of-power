@@ -421,11 +421,14 @@ impl Game {
                 guy.ball.vel += tangent * friction_impulse / guy.mass(&self.config);
                 guy.ball.w -= friction_impulse / guy.radius() / guy.mass(&self.config);
 
+                guy.ball.vel -=
+                    guy.ball.vel * (delta_time * collision.assets.params.speed_friction).min(1.0);
+                guy.ball.w -=
+                    guy.ball.w * (delta_time * collision.assets.params.rotation_friction).min(1.0);
+
                 // Snow layer
                 if collision.assets.name == "snow" {
                     guy.snow_layer += guy.ball.w.abs() * delta_time * 1e-2;
-                    guy.ball.w -=
-                        guy.ball.w * (delta_time * self.config.snow_rotation_friction).min(1.0);
                 }
 
                 {

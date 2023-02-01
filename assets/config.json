@@ -26,6 +26,5 @@
     "max_snow_layer": 0.2,
     "snow_falloff_impulse_min": 5.0,
     "snow_falloff_impulse_max": 8.0,
-    "snow_density": 3.0,
-    "snow_rotation_friction": 2.0
+    "snow_density": 3.0
 }

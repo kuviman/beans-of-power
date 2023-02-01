@@ -61,7 +61,6 @@ pub struct Config {
     pub snow_falloff_impulse_min: f32,
     pub snow_falloff_impulse_max: f32,
     pub snow_density: f32,
-    pub snow_rotation_friction: f32,
 }
 
 #[derive(geng::Assets)]

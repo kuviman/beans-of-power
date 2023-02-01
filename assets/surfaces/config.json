@@ -11,6 +11,16 @@
     "snow": {
         "bounciness": 0.0,
         "friction": 2.0,
+        "rotation_friction": 2.0,
+        "front": true,
+        "back": false,
+        "sound": false
+    },
+    "deep_snow": {
+        "bounciness": 0.0,
+        "friction": 0.0,
+        "rotation_friction": 50.0,
+        "speed_friction": 100.0,
         "front": true,
         "back": false,
         "sound": false
