@@ -18,7 +18,7 @@ pub struct TileTool {
     geng: Geng,
     assets: Rc<Assets>,
     points: Vec<vec2<f32>>,
-    // wind_drag: Option<(usize, vec2<f32>)>,
+    wind_drag: Option<(usize, vec2<f32>)>,
     config: TileToolConfig,
 }
 
@@ -44,6 +44,7 @@ impl EditorTool for TileTool {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
+            wind_drag: None,
             points: vec![],
             config,
         }
@@ -100,23 +101,17 @@ impl EditorTool for TileTool {
                 _ => unreachable!(),
             }
         }
-        // if let Some((_, start)) = editor.wind_drag {
-        //     self.geng.draw_2d(
-        //         framebuffer,
-        //         &self.camera,
-        //         &draw_2d::Segment::new(
-        //             Segment::new(
-        //                 start,
-        //                 self.camera.screen_to_world(
-        //                     self.framebuffer_size,
-        //                     self.geng.window().mouse_pos().map(|x| x as f32),
-        //                 ),
-        //             ),
-        //             0.2,
-        //             Rgba::new(1.0, 0.0, 0.0, 0.5),
-        //         ),
-        //     );
-        // }
+        if let Some((_, start)) = self.wind_drag {
+            self.geng.draw_2d(
+                framebuffer,
+                camera,
+                &draw_2d::Segment::new(
+                    Segment(start, cursor.world_pos),
+                    0.2,
+                    Rgba::new(1.0, 0.0, 0.0, 0.5),
+                ),
+            );
+        }
     }
     fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level) {
         match event {
@@ -180,32 +175,19 @@ impl EditorTool for TileTool {
                     .unwrap_or(0);
                 self.config.selected_type = options[(idx + 1) % options.len()].clone();
             }
-            // geng::Event::KeyUp { key } => match key {
-            //     geng::Key::W => {
-            //         if let Some((index, start)) = editor.wind_drag.take() {
-            //             let to = self.camera.screen_to_world(
-            //                 self.framebuffer_size,
-            //                 self.geng.window().mouse_pos().map(|x| x as f32),
-            //             );
-            //             level_mut!().tiles[index].flow = to - start;
-            //         }
-            //     }
-            //     _ => {}
-            // },
-            // geng::Key::W => {
-            //     if editor.wind_drag.is_none() {
-            //         self.editor.as_mut().unwrap().wind_drag =
-            //             self.find_hovered_tile(&self.levels.postjam).map(|index| {
-            //                 (
-            //                     index,
-            //                     self.camera.screen_to_world(
-            //                         self.framebuffer_size,
-            //                         self.geng.window().mouse_pos().map(|x| x as f32),
-            //                     ),
-            //                 )
-            //             });
-            //     }
-            // }
+
+            geng::Event::KeyDown { key: geng::Key::W } => {
+                if self.wind_drag.is_none() {
+                    self.wind_drag = self
+                        .find_hovered_tile(cursor, level)
+                        .map(|index| (index, cursor.world_pos));
+                }
+            }
+            geng::Event::KeyUp { key: geng::Key::W } => {
+                if let Some((index, start)) = self.wind_drag.take() {
+                    level.modify().tiles[index].flow = cursor.world_pos - start;
+                }
+            }
             _ => {}
         }
     }
