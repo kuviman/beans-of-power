@@ -4,6 +4,7 @@
     "darkstone": {
         "background": true
     },
+    "snow": {},
     "ice": {},
     "wind": {
         "friction_along_flow": 1.0
