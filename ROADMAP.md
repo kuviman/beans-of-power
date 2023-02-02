@@ -57,3 +57,4 @@ Naming sections
 Controls are to stay
 Moving platforms? wheel / swinging axes
 Sections with different/no gravity
+Cannon
