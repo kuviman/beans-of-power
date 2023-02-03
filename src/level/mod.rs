@@ -1,11 +1,13 @@
 use super::*;
 
+mod cannon;
 mod draw;
 mod object;
 mod progress;
 mod surface;
 mod tile;
 
+pub use cannon::*;
 pub use object::*;
 pub use surface::*;
 pub use tile::*;
@@ -18,6 +20,7 @@ pub struct LevelInfo {
     pub tiles: Vec<Tile>,
     pub expected_path: Vec<vec2<f32>>,
     pub objects: Vec<Object>,
+    pub cannons: Vec<Cannon>,
 }
 
 impl LevelInfo {
@@ -29,6 +32,7 @@ impl LevelInfo {
             tiles: vec![],
             expected_path: vec![],
             objects: vec![],
+            cannons: vec![],
         }
     }
 }

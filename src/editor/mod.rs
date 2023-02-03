@@ -27,6 +27,7 @@ impl EditorState {
             tool_constructor::<ObjectTool>(geng, assets),
             tool_constructor::<EndpointTool>(geng, assets),
             tool_constructor::<ProgressTool>(geng, assets),
+            tool_constructor::<CannonTool>(geng, assets),
         ];
         let selected_tool_index = 0;
         Self {

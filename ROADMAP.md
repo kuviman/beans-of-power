@@ -45,6 +45,8 @@ Intro scene
 
 ## Random stuff
 
+how are you doing
+
 Customization options
 Rainbow unicorn - make it affect gameplay?
 Instead of bird we can have a fly showing the way
@@ -58,3 +60,7 @@ Controls are to stay
 Moving platforms? wheel / swinging axes
 Sections with different/no gravity
 Cannon
+Portals
+Soap bubbles
+sticky surface
+slippery surface

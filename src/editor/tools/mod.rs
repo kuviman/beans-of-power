@@ -1,11 +1,13 @@
 use super::*;
 
+mod cannon;
 mod endpoint;
 mod object;
 mod progress;
 mod surface;
 mod tile;
 
+pub use cannon::*;
 pub use endpoint::*;
 pub use object::*;
 pub use progress::*;

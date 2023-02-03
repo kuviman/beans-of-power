@@ -26,5 +26,14 @@
     "max_snow_layer": 0.2,
     "snow_falloff_impulse_min": 5.0,
     "snow_falloff_impulse_max": 8.0,
-    "snow_density": 3.0
+    "snow_density": 3.0,
+    "cannon": {
+        "activate_distance": 1.0,
+        "shoot_time": 1.0,
+        "strength": 10.0,
+        "particle_count": 10,
+        "particle_color": "#555",
+        "particle_size": 2.0,
+        "particle_speed": 1.0
+    }
 }

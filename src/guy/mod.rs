@@ -46,6 +46,15 @@ pub struct FartState {
     pub fart_pressure: f32,
 }
 
+impl Default for FartState {
+    fn default() -> Self {
+        Self {
+            long_farting: false,
+            fart_pressure: 0.0,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GuyAnimationState {
     pub growl_progress: Option<f32>,
@@ -64,6 +73,13 @@ pub struct Guy {
 
     pub touched_a_unicorn: bool,
     pub snow_layer: f32,
+    pub cannon_timer: Option<CannonTimer>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CannonTimer {
+    pub cannon_index: usize,
+    pub time: f32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -114,10 +130,7 @@ impl Guy {
                 w: 0.0,
             },
             snow_layer: 0.0,
-            fart_state: FartState {
-                long_farting: false,
-                fart_pressure: 0.0,
-            },
+            fart_state: default(),
             input: Input::default(),
             progress: Progress {
                 finished: false,
@@ -131,6 +144,7 @@ impl Guy {
             },
 
             touched_a_unicorn: false,
+            cannon_timer: None,
         }
     }
 

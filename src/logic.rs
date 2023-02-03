@@ -63,6 +63,61 @@ impl Game {
                 }
             }
 
+            // This is where we do the cannon mechanics aha
+            if guy.cannon_timer.is_none() {
+                for (index, cannon) in self.level.cannons.iter().enumerate() {
+                    if (guy.ball.pos - cannon.pos).len() < self.config.cannon.activate_distance {
+                        guy.fart_state = default();
+                        guy.cannon_timer = Some(CannonTimer {
+                            cannon_index: index,
+                            time: self.config.cannon.shoot_time,
+                        });
+                    }
+                }
+            }
+            if let Some(timer) = &mut guy.cannon_timer {
+                let cannon = &self.level.cannons[timer.cannon_index];
+                guy.ball.pos = cannon.pos;
+                guy.ball.rot = cannon.rot - f32::PI / 2.0;
+                timer.time -= delta_time;
+                if timer.time < 0.0 {
+                    guy.cannon_timer = None;
+                    let dir = vec2(1.0, 0.0).rotate(cannon.rot);
+                    guy.ball.pos += dir * self.config.cannon.activate_distance * 1.01;
+                    guy.ball.vel = dir * self.config.cannon.strength;
+                    guy.ball.w = 0.0;
+
+                    let mut effect = self.assets.cannon.shot.effect();
+                    effect.set_volume(
+                        (self.volume
+                            * 0.6
+                            * (1.0 - (guy.ball.pos - self.camera.center).len() / self.camera.fov))
+                            .clamp(0.0, 1.0) as f64,
+                    );
+                    effect.play();
+
+                    for _ in 0..self.config.cannon.particle_count {
+                        self.farticles.push(Farticle {
+                            size: self.config.cannon.particle_size,
+                            pos: guy.ball.pos,
+                            vel: dir * self.config.cannon.particle_speed
+                                + vec2(
+                                    thread_rng()
+                                        .gen_range(0.0..=self.config.farticle_additional_vel),
+                                    0.0,
+                                )
+                                .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI)),
+                            rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
+                            w: thread_rng()
+                                .gen_range(-self.config.farticle_w..=self.config.farticle_w),
+                            color: self.config.cannon.particle_color,
+                            t: 1.0,
+                        });
+                    }
+                }
+                return;
+            }
+
             if guy.progress.finished {
                 guy.fart_state.fart_pressure = 0.0;
                 guy.ball.rot -= delta_time;

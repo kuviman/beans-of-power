@@ -161,6 +161,23 @@ impl Game {
         }
     }
 
+    pub fn draw_cannons(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
+        for cannon in &level.cannons {
+            self.geng.draw_2d(
+                framebuffer,
+                &self.camera,
+                &draw_2d::TexturedQuad::unit(&self.assets.cannon.body)
+                    .rotate(cannon.rot)
+                    .translate(cannon.pos),
+            );
+            self.geng.draw_2d(
+                framebuffer,
+                &self.camera,
+                &draw_2d::TexturedQuad::unit(&self.assets.cannon.base).translate(cannon.pos),
+            );
+        }
+    }
+
     pub fn draw_level_back(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
         self.draw_tiles(framebuffer, level, true);
         self.geng.draw_2d(
@@ -207,5 +224,6 @@ impl Game {
             -123.0,
             -1.0,
         );
+        self.draw_cannons(level, framebuffer);
     }
 }
