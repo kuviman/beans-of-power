@@ -46,3 +46,8 @@ impl Game {
         self.noise.get([(self.real_time * frequency) as f64, phase]) as f32
     }
 }
+
+pub fn random_hue() -> Rgba<f32> {
+    let hue = thread_rng().gen_range(0.0..1.0);
+    Hsva::new(hue, 1.0, 1.0, 1.0).into()
+}

@@ -50,6 +50,7 @@ impl Game {
             false
         };
         for guy in &mut self.guys {
+            let prev_state = guy.ball.clone();
             let was_colliding_water = is_colliding(guy, "water");
             if (guy.ball.pos - self.level.finish_point).len() < 1.5 {
                 guy.progress.finished = true;
@@ -527,6 +528,18 @@ impl Game {
                                 .clamp(0.0, 1.0) as f64,
                         );
                         effect.play();
+                    }
+                }
+            }
+
+            // Portals
+            for portal in &self.level.portals {
+                let is_colliding =
+                    |pos: vec2<f32>| -> bool { (pos - portal.pos).len() < self.config.portal.size };
+                if !is_colliding(prev_state.pos) && is_colliding(guy.ball.pos) {
+                    if let Some(dest) = portal.dest {
+                        guy.ball.pos = self.level.portals[dest].pos;
+                        break;
                     }
                 }
             }

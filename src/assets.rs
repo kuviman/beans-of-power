@@ -23,6 +23,7 @@ pub struct Assets {
     pub emotes: Vec<Texture>,
     pub shaders: Shaders,
     pub cannon: CannonAssets,
+    pub portal: Texture,
 }
 
 #[derive(geng::Assets)]
@@ -47,6 +48,11 @@ pub struct CannonConfig {
     pub particle_count: usize,
     pub particle_color: Rgba<f32>,
     pub particle_speed: f32,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct PortalConfig {
+    pub size: f32,
 }
 
 #[derive(geng::Assets, Deserialize, Clone, Debug)]
@@ -81,6 +87,7 @@ pub struct Config {
     pub snow_falloff_impulse_max: f32,
     pub snow_density: f32,
     pub cannon: CannonConfig,
+    pub portal: PortalConfig,
 }
 
 #[derive(geng::Assets)]

@@ -35,5 +35,8 @@
         "particle_color": "#555",
         "particle_size": 2.0,
         "particle_speed": 1.0
+    },
+    "portal": {
+        "size": 0.7
     }
 }

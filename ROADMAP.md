@@ -56,6 +56,7 @@ Naming sections
 
 ## Gameplay
 
+river
 Controls are to stay
 Moving platforms? wheel / swinging axes
 Sections with different/no gravity

@@ -92,10 +92,6 @@ pub struct GuyColors {
 
 impl GuyColors {
     pub fn random() -> Self {
-        let random_hue = || {
-            let hue = thread_rng().gen_range(0.0..1.0);
-            Hsva::new(hue, 1.0, 1.0, 1.0).into()
-        };
         Self {
             top: random_hue(),
             bottom: random_hue(),

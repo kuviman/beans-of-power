@@ -178,6 +178,19 @@ impl Game {
         }
     }
 
+    pub fn draw_portals(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
+        for portal in &level.portals {
+            self.geng.draw_2d(
+                framebuffer,
+                &self.camera,
+                &draw_2d::TexturedQuad::unit_colored(&self.assets.portal, portal.color)
+                    .scale_uniform(self.config.portal.size)
+                    .rotate(self.real_time)
+                    .translate(portal.pos),
+            );
+        }
+    }
+
     pub fn draw_level_back(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
         self.draw_tiles(framebuffer, level, true);
         self.geng.draw_2d(
@@ -213,6 +226,7 @@ impl Game {
             43756.0,
             1.0,
         );
+        self.draw_portals(level, framebuffer);
     }
 
     pub fn draw_level_front(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
