@@ -22,8 +22,9 @@ pub struct EditTool {
     geng: Geng,
     assets: Rc<Assets>,
     config: EditToolConfig,
-    selected_surfaces: HashSet<usize>,
-    selected_tiles: HashSet<usize>,
+    // selected_surfaces: HashSet<usize>,
+    // selected_tiles: HashSet<usize>,
+    selected_vertices: Vec<vec2<f32>>,
     state: State,
 }
 
@@ -31,17 +32,21 @@ impl EditTool {
     fn find_selection_center(&self, level: &Level) -> vec2<f32> {
         let mut sum = vec2::ZERO;
         let mut count = 0;
-        for &index in &self.selected_surfaces {
-            sum += level.surfaces[index].p1;
-            sum += level.surfaces[index].p2;
-            count += 2;
+        for &v in &self.selected_vertices {
+            sum += v;
+            count += 1;
         }
-        for &index in &self.selected_tiles {
-            for &p in &level.tiles[index].vertices {
-                sum += p;
-                count += 1;
-            }
-        }
+        // for &index in &self.selected_surfaces {
+        //     sum += level.surfaces[index].p1;
+        //     sum += level.surfaces[index].p2;
+        //     count += 2;
+        // }
+        // for &index in &self.selected_tiles {
+        //     for &p in &level.tiles[index].vertices {
+        //         sum += p;
+        //         count += 1;
+        //     }
+        // }
         if count == 0 {
             return vec2::ZERO;
         }
@@ -67,9 +72,13 @@ impl EditTool {
             }
         }
     }
+    fn is_selected(&self, p: vec2<f32>) -> bool {
+        self.selected_vertices.contains(&p)
+    }
     fn clear_selection(&mut self) {
-        self.selected_surfaces.clear();
-        self.selected_tiles.clear();
+        // self.selected_surfaces.clear();
+        // self.selected_tiles.clear();
+        self.selected_vertices.clear();
     }
 }
 
@@ -80,8 +89,9 @@ impl EditorTool for EditTool {
             geng: geng.clone(),
             assets: assets.clone(),
             config,
-            selected_surfaces: default(),
-            selected_tiles: default(),
+            // selected_surfaces: default(),
+            // selected_tiles: default(),
+            selected_vertices: default(),
             state: State::Idle,
         }
     }
@@ -93,9 +103,18 @@ impl EditorTool for EditTool {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let transform = self.transform(level, cursor);
-        let transform = |p: vec2<f32>| -> vec2<f32> { (transform * p.extend(1.0)).into_2d() };
+        let transform = |p: vec2<f32>| -> vec2<f32> {
+            if self.is_selected(p) {
+                (transform * p.extend(1.0)).into_2d()
+            } else {
+                p
+            }
+        };
         for (index, surface) in level.surfaces.iter().enumerate() {
-            if self.selected_surfaces.contains(&index) {
+            if [surface.p1, surface.p2]
+                .into_iter()
+                .any(|p| self.is_selected(p))
+            {
                 self.geng.draw_2d(
                     framebuffer,
                     camera,
@@ -108,7 +127,7 @@ impl EditorTool for EditTool {
             }
         }
         for (index, tile) in level.tiles.iter().enumerate() {
-            if self.selected_tiles.contains(&index) {
+            if tile.vertices.into_iter().any(|p| self.is_selected(p)) {
                 self.geng.draw_2d(
                     framebuffer,
                     camera,
@@ -118,6 +137,16 @@ impl EditorTool for EditTool {
                     ),
                 );
             }
+        }
+        for &p in &self.selected_vertices {
+            self.geng.draw_2d(
+                framebuffer,
+                camera,
+                &draw_2d::Quad::new(
+                    Aabb2::point(transform(p)).extend_uniform(0.2),
+                    Rgba::new(1.0, 1.0, 1.0, 0.5),
+                ),
+            );
         }
         if let State::DragSelection { start } = self.state {
             self.geng.draw_2d(
@@ -143,19 +172,24 @@ impl EditorTool for EditTool {
                 State::DragSelection { start } => {}
                 State::Grab { .. } | State::Scale { .. } | State::Rotate { .. } => {
                     if *button == geng::MouseButton::Left {
-                        let transform = self.transform(level, cursor);
+                        let matrix = self.transform(level, cursor);
                         let transform = |p: &mut vec2<f32>| {
-                            *p = (transform * p.extend(1.0)).into_2d();
+                            if self.is_selected(*p) {
+                                *p = (matrix * p.extend(1.0)).into_2d();
+                            }
                         };
                         let level = level.modify();
-                        for &index in &self.selected_surfaces {
-                            transform(&mut level.surfaces[index].p1);
-                            transform(&mut level.surfaces[index].p2);
+                        for surface in &mut level.surfaces {
+                            transform(&mut surface.p1);
+                            transform(&mut surface.p2);
                         }
-                        for &index in &self.selected_tiles {
-                            for p in &mut level.tiles[index].vertices {
+                        for tile in &mut level.tiles {
+                            for p in &mut tile.vertices {
                                 transform(p);
                             }
+                        }
+                        for p in &mut self.selected_vertices {
+                            *p = (matrix * p.extend(1.0)).into_2d();
                         }
                     }
                     self.state = State::Idle;
@@ -203,21 +237,32 @@ impl EditorTool for EditTool {
                     }
 
                     let selection_polygon = aabb.corners();
-                    for (index, surface) in level.surfaces.iter().enumerate() {
-                        if collide_convex_polygons(&selection_polygon, &[surface.p1, surface.p2])
-                            .penetration
-                            > 0.0
-                        {
-                            self.selected_surfaces.insert(index);
+                    for p in itertools::chain![
+                        level
+                            .surfaces
+                            .iter()
+                            .flat_map(|surface| [surface.p1, surface.p2]),
+                        level.tiles.iter().flat_map(|tile| tile.vertices)
+                    ] {
+                        if aabb.contains(p) && !self.is_selected(p) {
+                            self.selected_vertices.push(p);
                         }
                     }
-                    for (index, tile) in level.tiles.iter().enumerate() {
-                        if collide_convex_polygons(&selection_polygon, &tile.vertices).penetration
-                            > 0.0
-                        {
-                            self.selected_tiles.insert(index);
-                        }
-                    }
+                    // for (index, surface) in level.surfaces.iter().enumerate() {
+                    //     if collide_convex_polygons(&selection_polygon, &[surface.p1, surface.p2])
+                    //         .penetration
+                    //         > 0.0
+                    //     {
+                    //         self.selected_surfaces.insert(index);
+                    //     }
+                    // }
+                    // for (index, tile) in level.tiles.iter().enumerate() {
+                    //     if collide_convex_polygons(&selection_polygon, &tile.vertices).penetration
+                    //         > 0.0
+                    //     {
+                    //         self.selected_tiles.insert(index);
+                    //     }
+                    // }
                 }
             }
             geng::Event::KeyDown { key: geng::Key::G } => {
