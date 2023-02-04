@@ -22,6 +22,7 @@ pub struct EditorState {
 impl EditorState {
     pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
         let available_tools = vec![
+            tool_constructor::<EditTool>(geng, assets),
             tool_constructor::<SurfaceTool>(geng, assets),
             tool_constructor::<TileTool>(geng, assets),
             tool_constructor::<ObjectTool>(geng, assets),
@@ -129,7 +130,7 @@ impl Game {
                         (editor.selected_tool_index + 1) % editor.available_tools.len();
                     editor.tool = editor.available_tools[editor.selected_tool_index].create();
                 }
-                geng::Key::R => {
+                geng::Key::Q => {
                     if !self.geng.window().is_key_pressed(geng::Key::LCtrl) {
                         if let Some(id) = self.my_guy.take() {
                             if let Some(con) = &mut self.connection {
