@@ -1,5 +1,3 @@
-use std::cmp::max_by_key;
-
 use super::*;
 
 pub struct EditToolConfig {}

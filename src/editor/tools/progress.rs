@@ -118,7 +118,6 @@ impl EditorTool for ProgressTool {
     const NAME: &'static str = "Progress";
 
     fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a> {
-        use geng::ui::*;
         Box::new(geng::ui::column![
             "left click changes spawn",
             "right click changes finish",
