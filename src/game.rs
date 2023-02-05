@@ -89,7 +89,7 @@ impl Game {
             guys: Collection::new(),
             my_guy: None,
             real_time: 0.0,
-            noise: noise::OpenSimplex::new(),
+            noise: noise::OpenSimplex::new(0),
             prev_mouse_pos: vec2::ZERO,
             opt: opt.clone(),
             farticles: default(),
