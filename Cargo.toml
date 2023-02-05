@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 geng = { git = "https://github.com/kuviman/geng" }
 serde = "1"
-noise = "0.7"
+noise = "0.8.2"
 
 [build-dependencies]
 cmake = "<=0.1.45" # https://github.com/PistonDevelopers/freetype-sys/issues/99
