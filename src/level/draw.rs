@@ -123,7 +123,7 @@ impl Game {
                     geng::camera2d_uniforms(&self.camera, self.framebuffer_size),
                 ),
                 ugli::DrawParameters {
-                    blend_mode: Some(ugli::BlendMode::default()),
+                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
                     ..default()
                 },
             );
@@ -154,7 +154,7 @@ impl Game {
                     geng::camera2d_uniforms(&self.camera, self.framebuffer_size),
                 ),
                 ugli::DrawParameters {
-                    blend_mode: Some(ugli::BlendMode::default()),
+                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
                     ..default()
                 },
             );
