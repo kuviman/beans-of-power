@@ -8,6 +8,30 @@
         "flex_frequency": 0.5,
         "flex_amplitude": 0.03
     },
+    "conveyor": {
+        "bounciness": 0.1,
+        "friction": 1.0,
+        "front": false,
+        "back": true,
+        "sound": false
+    },
+    "snow": {
+        "bounciness": 0.0,
+        "friction": 2.0,
+        "rotation_friction": 2.0,
+        "front": true,
+        "back": false,
+        "sound": false
+    },
+    "deep_snow": {
+        "bounciness": 0.0,
+        "friction": 0.0,
+        "rotation_friction": 50.0,
+        "speed_friction": 100.0,
+        "front": true,
+        "back": false,
+        "sound": false
+    },
     "stone": {
         "bounciness": 0.3,
         "friction": 0.7,
