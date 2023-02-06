@@ -11,6 +11,7 @@ impl EditorToolConfig for EditToolConfig {
 enum State {
     Idle,
     DragSelection { start: vec2<f32> },
+    Copy { start: vec2<f32> },
     Grab { start: vec2<f32> },
     Scale { start: vec2<f32> },
     Rotate { start: vec2<f32> },
@@ -55,7 +56,9 @@ impl EditTool {
         match self.state {
             State::Idle => mat3::identity(),
             State::DragSelection { .. } => mat3::identity(),
-            State::Grab { start } => mat3::translate(cursor.world_pos - start),
+            State::Grab { start } | State::Copy { start } => {
+                mat3::translate(cursor.world_pos - start)
+            }
             State::Scale { start } => {
                 mat3::translate(center)
                     * mat3::scale_uniform(
@@ -192,6 +195,40 @@ impl EditorTool for EditTool {
                     }
                     self.state = State::Idle;
                 }
+                State::Copy { .. } => {
+                    if *button == geng::MouseButton::Left {
+                        let matrix = self.transform(level, cursor);
+                        let transform = |p: &mut vec2<f32>| {
+                            *p = (matrix * p.extend(1.0)).into_2d();
+                        };
+                        let level = level.modify();
+                        let mut new_surfaces = Vec::new();
+                        for surface in &mut level.surfaces {
+                            if self.is_selected(surface.p1) && self.is_selected(surface.p2) {
+                                let mut new_surface = surface.clone();
+                                transform(&mut new_surface.p1);
+                                transform(&mut new_surface.p2);
+                                new_surfaces.push(new_surface);
+                            }
+                        }
+                        level.surfaces.extend(new_surfaces);
+                        let mut new_tiles = Vec::new();
+                        for tile in &mut level.tiles {
+                            if tile.vertices.iter().all(|&p| self.is_selected(p)) {
+                                let mut new_tile = tile.clone();
+                                for p in &mut new_tile.vertices {
+                                    transform(p);
+                                }
+                                new_tiles.push(new_tile);
+                            }
+                        }
+                        level.tiles.extend(new_tiles);
+                        for p in &mut self.selected_vertices {
+                            *p = (matrix * p.extend(1.0)).into_2d();
+                        }
+                    }
+                    self.state = State::Idle;
+                }
             },
             geng::Event::MouseUp {
                 button: geng::MouseButton::Left,
@@ -268,6 +305,13 @@ impl EditorTool for EditTool {
                     start: cursor.world_pos,
                 };
             }
+            geng::Event::KeyDown { key: geng::Key::C }
+                if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
+            {
+                self.state = State::Copy {
+                    start: cursor.world_pos,
+                };
+            }
             geng::Event::KeyDown { key: geng::Key::S } => {
                 self.state = State::Scale {
                     start: cursor.world_pos,
@@ -277,6 +321,21 @@ impl EditorTool for EditTool {
                 self.state = State::Rotate {
                     start: cursor.world_pos,
                 };
+            }
+            geng::Event::KeyDown {
+                key: geng::Key::Delete,
+            } => {
+                if let State::Idle = self.state {
+                    let level = level.modify();
+                    level.surfaces.retain(|surface| {
+                        ![surface.p1, surface.p2]
+                            .iter()
+                            .any(|&p| self.is_selected(p))
+                    });
+                    level
+                        .tiles
+                        .retain(|tile| !tile.vertices.iter().any(|&p| self.is_selected(p)));
+                }
             }
             _ => {}
         }
