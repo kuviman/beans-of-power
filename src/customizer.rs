@@ -67,8 +67,17 @@ impl Game {
         match event {
             geng::Event::KeyDown { key } => {
                 let s = format!("{:?}", key);
-                if s.len() == 1 && self.customization.name.len() < 15 {
-                    self.customization.name.push_str(&s);
+                let c = if s.len() == 1 {
+                    Some(s.as_str())
+                } else if let Some(num) = s.strip_prefix("Num") {
+                    Some(num)
+                } else {
+                    None
+                };
+                if let Some(c) = c {
+                    if self.customization.name.len() < 15 {
+                        self.customization.name.push_str(c);
+                    }
                 }
                 if *key == geng::Key::Backspace {
                     self.customization.name.pop();
