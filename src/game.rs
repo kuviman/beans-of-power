@@ -75,7 +75,7 @@ impl Game {
             config: assets.config.clone(),
             assets: assets.clone(),
             camera: geng::Camera2d {
-                center: vec2::ZERO,
+                center: level.spawn_point,
                 rotation: 0.0,
                 fov: 5.0,
             },
