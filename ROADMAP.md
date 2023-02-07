@@ -63,5 +63,9 @@ Sections with different/no gravity
 Cannon
 Portals
 Soap bubbles
-sticky surface
+sticky surface - allow wall jumps
+one way platform
+invis?
+darkness
 slippery surface
+slowed down time area
