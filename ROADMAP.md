@@ -53,6 +53,8 @@ Instead of bird we can have a fly showing the way
 Daily leaderboards
 Show replays of best/random runs of people
 Naming sections
+Saving progress when exiting the game
+Pause menu
 
 ## Gameplay
 
