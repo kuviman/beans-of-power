@@ -56,6 +56,8 @@ Naming sections
 Saving progress when exiting the game
 Pause menu
 
+Layered level (for parallax)
+
 ## Gameplay
 
 river
