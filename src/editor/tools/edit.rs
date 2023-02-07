@@ -57,18 +57,20 @@ impl EditTool {
             State::Idle => mat3::identity(),
             State::DragSelection { .. } => mat3::identity(),
             State::Grab { start } | State::Copy { start } => {
-                mat3::translate(cursor.world_pos - start)
+                mat3::translate(cursor.snapped_world_pos - start)
             }
             State::Scale { start } => {
                 mat3::translate(center)
                     * mat3::scale_uniform(
-                        (cursor.world_pos - center).len() / (start - center).len(),
+                        (cursor.snapped_world_pos - center).len() / (start - center).len(),
                     )
                     * mat3::translate(-center)
             }
             State::Rotate { start } => {
                 mat3::translate(center)
-                    * mat3::rotate((cursor.world_pos - center).arg() - (start - center).arg())
+                    * mat3::rotate(
+                        (cursor.snapped_world_pos - center).arg() - (start - center).arg(),
+                    )
                     * mat3::translate(-center)
             }
         }
@@ -154,7 +156,7 @@ impl EditorTool for EditTool {
                 framebuffer,
                 camera,
                 &draw_2d::Quad::new(
-                    Aabb2::from_corners(start, cursor.world_pos),
+                    Aabb2::from_corners(start, cursor.snapped_world_pos),
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );
@@ -166,7 +168,7 @@ impl EditorTool for EditTool {
                 State::Idle => {
                     if *button == geng::MouseButton::Left {
                         self.state = State::DragSelection {
-                            start: cursor.world_pos,
+                            start: cursor.snapped_world_pos,
                         };
                     }
                 }
@@ -239,7 +241,7 @@ impl EditorTool for EditTool {
                     if !self.geng.window().is_key_pressed(geng::Key::LShift) {
                         self.clear_selection();
                     }
-                    let aabb = Aabb2::from_corners(start, cursor.world_pos);
+                    let aabb = Aabb2::from_corners(start, cursor.snapped_world_pos);
 
                     struct Collision {
                         normal: vec2<f32>,
@@ -302,24 +304,24 @@ impl EditorTool for EditTool {
             }
             geng::Event::KeyDown { key: geng::Key::G } => {
                 self.state = State::Grab {
-                    start: cursor.world_pos,
+                    start: cursor.snapped_world_pos,
                 };
             }
             geng::Event::KeyDown { key: geng::Key::C }
                 if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
             {
                 self.state = State::Copy {
-                    start: cursor.world_pos,
+                    start: cursor.snapped_world_pos,
                 };
             }
             geng::Event::KeyDown { key: geng::Key::S } => {
                 self.state = State::Scale {
-                    start: cursor.world_pos,
+                    start: cursor.snapped_world_pos,
                 };
             }
             geng::Event::KeyDown { key: geng::Key::R } => {
                 self.state = State::Rotate {
-                    start: cursor.world_pos,
+                    start: cursor.snapped_world_pos,
                 };
             }
             geng::Event::KeyDown {
