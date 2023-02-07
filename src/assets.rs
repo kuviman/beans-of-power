@@ -88,6 +88,7 @@ pub struct Config {
     pub snow_density: f32,
     pub cannon: CannonConfig,
     pub portal: PortalConfig,
+    pub stick_force_fadeout_speed: f32,
 }
 
 #[derive(geng::Assets)]

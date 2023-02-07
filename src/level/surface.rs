@@ -46,6 +46,10 @@ pub struct SurfaceParams {
     pub flex_amplitude: f32,
     #[serde(default)]
     pub texture_speed: f32,
+    #[serde(default)]
+    pub stick_strength: f32,
+    #[serde(default)]
+    pub max_stick_force: f32,
 }
 
 pub struct SurfaceAssets {

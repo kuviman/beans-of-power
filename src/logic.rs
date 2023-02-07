@@ -380,6 +380,11 @@ impl Game {
                 }
             }
 
+            guy.ball.vel += guy.stick_force / guy.mass(&self.config) * delta_time;
+            guy.stick_force -= guy
+                .stick_force
+                .clamp_len(..=self.config.stick_force_fadeout_speed * delta_time);
+
             guy.ball.pos += guy.ball.vel * delta_time;
             guy.ball.rot += guy.ball.w * delta_time;
 
@@ -485,6 +490,15 @@ impl Game {
                 guy.ball.w -=
                     guy.ball.w * (delta_time * collision.assets.params.rotation_friction).min(1.0);
 
+                // Stickiness
+                guy.stick_force = std::cmp::max_by_key(
+                    guy.stick_force,
+                    (normal_vel * collision.assets.params.stick_strength)
+                        .clamp_abs(collision.assets.params.max_stick_force)
+                        * collision.normal,
+                    |force| r32(force.len()),
+                );
+
                 // Snow layer
                 if collision.assets.name == "snow" {
                     guy.snow_layer += guy.ball.w.abs() * delta_time * 1e-2;
@@ -530,6 +544,8 @@ impl Game {
                         effect.play();
                     }
                 }
+            } else {
+                guy.stick_force = vec2::ZERO;
             }
 
             // Portals
