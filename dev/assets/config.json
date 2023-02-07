@@ -38,5 +38,6 @@
     },
     "portal": {
         "size": 0.7
-    }
+    },
+    "stick_force_fadeout_speed": 10.0
 }
