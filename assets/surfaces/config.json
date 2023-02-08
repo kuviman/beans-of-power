@@ -93,5 +93,12 @@
         "texture_speed": 0.2,
         "flex_frequency": 2.0,
         "flex_amplitude": 0.1
+    },
+    "brick": {
+        "bounciness": 0.3,
+        "friction": 0.7,
+        "front": false,
+        "back": true,
+        "sound": true
     }
 }
