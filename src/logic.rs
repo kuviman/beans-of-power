@@ -50,6 +50,24 @@ impl Game {
             false
         };
         for guy in &mut self.guys {
+            let delta_time = {
+                let mut delta_time = delta_time;
+                'tile_loop: for tile in &self.level.tiles {
+                    for i in 0..3 {
+                        let p1 = tile.vertices[i];
+                        let p2 = tile.vertices[(i + 1) % 3];
+                        if vec2::skew(p2 - p1, guy.ball.pos - p1) < 0.0 {
+                            continue 'tile_loop;
+                        }
+                    }
+                    let params = &self.assets.tiles[&tile.type_name].params;
+                    if let Some(time_scale) = params.time_scale {
+                        delta_time *= time_scale;
+                    }
+                }
+                delta_time
+            };
+
             let prev_state = guy.ball.clone();
             let was_colliding_water = is_colliding(guy, "water");
             if (guy.ball.pos - self.level.finish_point).len() < 1.5 {
