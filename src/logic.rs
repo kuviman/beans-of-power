@@ -448,11 +448,17 @@ impl Game {
                     if assets.params.non_collidable {
                         continue;
                     }
-                    if vec2::dot(v, guy.ball.vel) > EPS {
+                    let normal = -v.normalize_or_zero();
+                    let normal_vel = vec2::dot(normal, guy.ball.vel);
+                    if normal_vel < -EPS
+                        && normal_vel > -assets.params.fallthrough_speed.unwrap_or(1e9)
+                        && vec2::skew(surface.p2 - surface.p1, normal) > 0.0
+                        && penetration < self.config.max_penetration
+                    {
                         let collision = Collision {
                             penetration,
                             surface,
-                            normal: -v.normalize_or_zero(),
+                            normal,
                             assets,
                         };
                         collision_to_resolve = std::cmp::max_by_key(
@@ -468,10 +474,10 @@ impl Game {
                     }
                 }
             }
+
             if let Some(collision) = collision_to_resolve {
                 let before = guy.ball.clone();
 
-                guy.ball.pos += collision.normal * collision.penetration;
                 let normal_vel = vec2::dot(guy.ball.vel, collision.normal);
                 let tangent = collision.normal.rotate_90();
                 let tangent_vel = vec2::dot(guy.ball.vel, tangent) - guy.ball.w * guy.radius()
@@ -482,6 +488,8 @@ impl Game {
                 guy.ball.vel += collision.normal * impulse / guy.mass(&self.config);
                 let max_friction_impulse = normal_vel.abs() * collision.assets.params.friction;
                 let friction_impulse = -tangent_vel.clamp_abs(max_friction_impulse);
+
+                guy.ball.pos += collision.normal * collision.penetration;
                 guy.ball.vel += tangent * friction_impulse / guy.mass(&self.config);
                 guy.ball.w -= friction_impulse / guy.radius() / guy.mass(&self.config);
 

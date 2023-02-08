@@ -89,6 +89,7 @@ pub struct Config {
     pub cannon: CannonConfig,
     pub portal: PortalConfig,
     pub stick_force_fadeout_speed: f32,
+    pub max_penetration: f32,
 }
 
 #[derive(geng::Assets)]

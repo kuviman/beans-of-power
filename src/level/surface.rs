@@ -50,6 +50,7 @@ pub struct SurfaceParams {
     pub stick_strength: f32,
     #[serde(default)]
     pub max_stick_force: f32,
+    pub fallthrough_speed: Option<f32>,
 }
 
 pub struct SurfaceAssets {
