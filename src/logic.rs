@@ -82,6 +82,23 @@ impl Game {
                 }
             }
 
+            // Bubble
+            if let Some(time) = &mut guy.bubble_timer {
+                *time -= delta_time;
+                if *time < 0.0 {
+                    guy.bubble_timer = None;
+                }
+                guy.ball.vel += (guy.ball.vel.normalize_or_zero()
+                    * self.config.bubble_target_speed
+                    - guy.ball.vel)
+                    .clamp_len(..=self.config.bubble_acceleration * delta_time);
+            }
+            for object in &self.level.objects {
+                if (guy.ball.pos - object.pos).len() < 1.0 && object.type_name == "bubbler" {
+                    guy.bubble_timer = Some(self.config.bubble_time);
+                }
+            }
+
             // This is where we do the cannon mechanics aha
             if guy.cannon_timer.is_none() {
                 for (index, cannon) in self.level.cannons.iter().enumerate() {
@@ -156,7 +173,10 @@ impl Game {
                     -(guy.ball.w + self.config.max_angular_speed).max(0.0),
                     (self.config.max_angular_speed - guy.ball.w).max(0.0),
                 );
-            guy.ball.vel.y -= self.config.gravity * delta_time;
+
+            if guy.bubble_timer.is_none() {
+                guy.ball.vel.y -= self.config.gravity * delta_time;
+            }
 
             let mut in_water = false;
             let butt = guy.ball.pos + vec2(0.0, -guy.ball.radius * 0.9).rotate(guy.ball.rot);
@@ -315,6 +335,7 @@ impl Game {
                 && guy.input.force_fart)
                 || guy.fart_state.fart_pressure >= self.config.max_fart_pressure
             {
+                guy.bubble_timer = None;
                 guy.fart_state.fart_pressure -= self.config.fart_pressure_released;
                 guy.fart_state.long_farting = true;
                 {
@@ -494,6 +515,8 @@ impl Game {
             }
 
             if let Some(collision) = collision_to_resolve {
+                guy.bubble_timer = None;
+
                 let before = guy.ball.clone();
 
                 let normal_vel = vec2::dot(guy.ball.vel, collision.normal);

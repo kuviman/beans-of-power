@@ -24,6 +24,7 @@ pub struct Assets {
     pub shaders: Shaders,
     pub cannon: CannonAssets,
     pub portal: Texture,
+    pub bubble: Texture,
 }
 
 #[derive(geng::Assets)]
@@ -90,6 +91,10 @@ pub struct Config {
     pub portal: PortalConfig,
     pub stick_force_fadeout_speed: f32,
     pub max_penetration: f32,
+    pub bubble_time: f32,
+    pub bubble_scale: f32,
+    pub bubble_acceleration: f32,
+    pub bubble_target_speed: f32,
 }
 
 #[derive(geng::Assets)]

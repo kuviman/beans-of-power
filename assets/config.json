@@ -40,5 +40,9 @@
         "size": 0.7
     },
     "stick_force_fadeout_speed": 10.0,
-    "max_penetration": 0.1
+    "max_penetration": 0.1,
+    "bubble_time": 2.0,
+    "bubble_scale": 1.5,
+    "bubble_acceleration": 3.0,
+    "bubble_target_speed": 1.0
 }

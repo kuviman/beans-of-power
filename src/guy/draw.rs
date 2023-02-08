@@ -205,6 +205,16 @@ impl Game {
                     Rgba::BLACK,
                 );
             }
+
+            if guy.bubble_timer.is_some() {
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit(&self.assets.bubble)
+                        .scale_uniform(guy.ball.radius * self.config.bubble_scale)
+                        .translate(guy.ball.pos),
+                );
+            }
         }
 
         // Emotes

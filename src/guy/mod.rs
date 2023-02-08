@@ -75,6 +75,7 @@ pub struct Guy {
     pub snow_layer: f32,
     pub cannon_timer: Option<CannonTimer>,
     pub stick_force: vec2<f32>,
+    pub bubble_timer: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -143,6 +144,7 @@ impl Guy {
             touched_a_unicorn: false,
             cannon_timer: None,
             stick_force: vec2::ZERO,
+            bubble_timer: None,
         }
     }
 
