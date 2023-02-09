@@ -123,7 +123,7 @@ impl Game {
                 };
             let fart_progress = guy.fart_state.fart_pressure / self.config.max_fart_pressure;
 
-            if false {
+            if self.opt.editor {
                 // Visualize fart pressure
                 self.geng.draw_2d(
                     framebuffer,
