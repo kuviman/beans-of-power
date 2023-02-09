@@ -44,5 +44,6 @@
     "bubble_time": 2.0,
     "bubble_scale": 1.5,
     "bubble_acceleration": 3.0,
-    "bubble_target_speed": 1.0
+    "bubble_target_speed": 1.0,
+    "camera_fov": 5.0
 }

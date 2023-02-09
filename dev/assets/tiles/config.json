@@ -19,7 +19,7 @@
         "texture_movement_amplitude": 0.5
     },
     "cloud": {
-        "friction": 1.0,
+        "friction": 3.0,
         "additional_force": [
             0.0,
             6.0
@@ -35,6 +35,7 @@
     "light_brick": {
         "background": true
     },
+    "brick": {},
     "roof": {
         "background": true
     }
