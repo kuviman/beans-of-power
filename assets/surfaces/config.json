@@ -62,5 +62,47 @@
         "back": true,
         "sound": false,
         "texture_speed": 0.2
+    },
+    "honey": {
+        "bounciness": 0.0,
+        "friction": 0.0,
+        "speed_friction": 15.0,
+        "stick_strength": 10.0,
+        "max_stick_force": 15.0,
+        "front": true,
+        "back": false,
+        "sound": false
+    },
+    "cloud": {
+        "non_collidable": true,
+        "bounciness": 0.0,
+        "friction": 0.4,
+        "fallthrough_speed": 6.0,
+        "rotation_friction": 1.0,
+        "speed_friction": 2.0,
+        "front": true,
+        "back": false,
+        "sound": false,
+        "texture_speed": 0.2,
+        "flex_frequency": 0.5,
+        "flex_amplitude": 0.1
+    },
+    "slowtime": {
+        "non_collidable": true,
+        "bounciness": 0.1,
+        "friction": 1.0,
+        "front": true,
+        "back": true,
+        "sound": false,
+        "texture_speed": 0.2,
+        "flex_frequency": 2.0,
+        "flex_amplitude": 0.1
+    },
+    "brick": {
+        "bounciness": 0.3,
+        "friction": 0.7,
+        "front": false,
+        "back": true,
+        "sound": true
     }
 }

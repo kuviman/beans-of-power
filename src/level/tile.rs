@@ -22,6 +22,7 @@ pub struct TileParams {
     pub texture_movement_amplitude: f32,
     #[serde(default = "zero_vec")]
     pub additional_force: vec2<f32>,
+    pub time_scale: Option<f32>,
 }
 
 pub struct TileAssets {

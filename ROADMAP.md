@@ -53,6 +53,10 @@ Instead of bird we can have a fly showing the way
 Daily leaderboards
 Show replays of best/random runs of people
 Naming sections
+Saving progress when exiting the game
+Pause menu
+
+Layered level (for parallax)
 
 ## Gameplay
 
@@ -63,5 +67,15 @@ Sections with different/no gravity
 Cannon
 Portals
 Soap bubbles
-sticky surface
+sticky surface - allow wall jumps
+one way platform
+invis?
+darkness
 slippery surface
+slowed down time area
+saving replay
+tas tool in editor
+devlog of february
+gamepad
+wizard that shoots you
+hot pepper

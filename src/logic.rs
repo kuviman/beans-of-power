@@ -50,6 +50,24 @@ impl Game {
             false
         };
         for guy in &mut self.guys {
+            let delta_time = {
+                let mut delta_time = delta_time;
+                'tile_loop: for tile in &self.level.tiles {
+                    for i in 0..3 {
+                        let p1 = tile.vertices[i];
+                        let p2 = tile.vertices[(i + 1) % 3];
+                        if vec2::skew(p2 - p1, guy.ball.pos - p1) < 0.0 {
+                            continue 'tile_loop;
+                        }
+                    }
+                    let params = &self.assets.tiles[&tile.type_name].params;
+                    if let Some(time_scale) = params.time_scale {
+                        delta_time *= time_scale;
+                    }
+                }
+                delta_time
+            };
+
             let prev_state = guy.ball.clone();
             let was_colliding_water = is_colliding(guy, "water");
             if (guy.ball.pos - self.level.finish_point).len() < 1.5 {
@@ -61,6 +79,23 @@ impl Game {
                         guy.touched_a_unicorn = true;
                         guy.fart_state.fart_pressure = self.config.max_fart_pressure;
                     }
+                }
+            }
+
+            // Bubble
+            if let Some(time) = &mut guy.bubble_timer {
+                *time -= delta_time;
+                if *time < 0.0 {
+                    guy.bubble_timer = None;
+                }
+                guy.ball.vel += (guy.ball.vel.normalize_or_zero()
+                    * self.config.bubble_target_speed
+                    - guy.ball.vel)
+                    .clamp_len(..=self.config.bubble_acceleration * delta_time);
+            }
+            for object in &self.level.objects {
+                if (guy.ball.pos - object.pos).len() < 1.0 && object.type_name == "bubbler" {
+                    guy.bubble_timer = Some(self.config.bubble_time);
                 }
             }
 
@@ -138,7 +173,10 @@ impl Game {
                     -(guy.ball.w + self.config.max_angular_speed).max(0.0),
                     (self.config.max_angular_speed - guy.ball.w).max(0.0),
                 );
-            guy.ball.vel.y -= self.config.gravity * delta_time;
+
+            if guy.bubble_timer.is_none() {
+                guy.ball.vel.y -= self.config.gravity * delta_time;
+            }
 
             let mut in_water = false;
             let butt = guy.ball.pos + vec2(0.0, -guy.ball.radius * 0.9).rotate(guy.ball.rot);
@@ -297,6 +335,7 @@ impl Game {
                 && guy.input.force_fart)
                 || guy.fart_state.fart_pressure >= self.config.max_fart_pressure
             {
+                guy.bubble_timer = None;
                 guy.fart_state.fart_pressure -= self.config.fart_pressure_released;
                 guy.fart_state.long_farting = true;
                 {
@@ -380,6 +419,11 @@ impl Game {
                 }
             }
 
+            guy.ball.vel += guy.stick_force / guy.mass(&self.config) * delta_time;
+            guy.stick_force -= guy
+                .stick_force
+                .clamp_len(..=self.config.stick_force_fadeout_speed * delta_time);
+
             guy.ball.pos += guy.ball.vel * delta_time;
             guy.ball.rot += guy.ball.w * delta_time;
 
@@ -443,11 +487,17 @@ impl Game {
                     if assets.params.non_collidable {
                         continue;
                     }
-                    if vec2::dot(v, guy.ball.vel) > EPS {
+                    let normal = -v.normalize_or_zero();
+                    let normal_vel = vec2::dot(normal, guy.ball.vel);
+                    if normal_vel < -EPS
+                        && normal_vel > -assets.params.fallthrough_speed.unwrap_or(1e9)
+                        && vec2::skew(surface.p2 - surface.p1, normal) > 0.0
+                        && penetration < self.config.max_penetration
+                    {
                         let collision = Collision {
                             penetration,
                             surface,
-                            normal: -v.normalize_or_zero(),
+                            normal,
                             assets,
                         };
                         collision_to_resolve = std::cmp::max_by_key(
@@ -463,10 +513,12 @@ impl Game {
                     }
                 }
             }
+
             if let Some(collision) = collision_to_resolve {
+                guy.bubble_timer = None;
+
                 let before = guy.ball.clone();
 
-                guy.ball.pos += collision.normal * collision.penetration;
                 let normal_vel = vec2::dot(guy.ball.vel, collision.normal);
                 let tangent = collision.normal.rotate_90();
                 let tangent_vel = vec2::dot(guy.ball.vel, tangent) - guy.ball.w * guy.radius()
@@ -477,6 +529,8 @@ impl Game {
                 guy.ball.vel += collision.normal * impulse / guy.mass(&self.config);
                 let max_friction_impulse = normal_vel.abs() * collision.assets.params.friction;
                 let friction_impulse = -tangent_vel.clamp_abs(max_friction_impulse);
+
+                guy.ball.pos += collision.normal * collision.penetration;
                 guy.ball.vel += tangent * friction_impulse / guy.mass(&self.config);
                 guy.ball.w -= friction_impulse / guy.radius() / guy.mass(&self.config);
 
@@ -484,6 +538,15 @@ impl Game {
                     guy.ball.vel * (delta_time * collision.assets.params.speed_friction).min(1.0);
                 guy.ball.w -=
                     guy.ball.w * (delta_time * collision.assets.params.rotation_friction).min(1.0);
+
+                // Stickiness
+                guy.stick_force = std::cmp::max_by_key(
+                    guy.stick_force,
+                    (normal_vel * collision.assets.params.stick_strength)
+                        .clamp_abs(collision.assets.params.max_stick_force)
+                        * collision.normal,
+                    |force| r32(force.len()),
+                );
 
                 // Snow layer
                 if collision.assets.name == "snow" {
@@ -530,6 +593,8 @@ impl Game {
                         effect.play();
                     }
                 }
+            } else {
+                guy.stick_force = vec2::ZERO;
             }
 
             // Portals

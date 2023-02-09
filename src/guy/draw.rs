@@ -123,7 +123,7 @@ impl Game {
                 };
             let fart_progress = guy.fart_state.fart_pressure / self.config.max_fart_pressure;
 
-            if false {
+            if self.opt.editor {
                 // Visualize fart pressure
                 self.geng.draw_2d(
                     framebuffer,
@@ -203,6 +203,16 @@ impl Game {
                     geng::TextAlign::CENTER,
                     0.1,
                     Rgba::BLACK,
+                );
+            }
+
+            if guy.bubble_timer.is_some() {
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit(&self.assets.bubble)
+                        .scale_uniform(guy.ball.radius * self.config.bubble_scale)
+                        .translate(guy.ball.pos),
                 );
             }
         }

@@ -75,9 +75,9 @@ impl Game {
             config: assets.config.clone(),
             assets: assets.clone(),
             camera: geng::Camera2d {
-                center: vec2::ZERO,
+                center: level.spawn_point,
                 rotation: 0.0,
-                fov: 5.0,
+                fov: assets.config.camera_fov,
             },
             framebuffer_size: vec2(1.0, 1.0),
             editor: if opt.editor {
@@ -379,7 +379,7 @@ impl geng::State for Game {
                 self.follow = None;
             }
             geng::Event::Wheel { delta } if self.opt.editor => {
-                self.camera.fov = (self.camera.fov * 1.01f32.powf(-delta as f32)).clamp(1.0, 30.0);
+                self.camera.fov = (self.camera.fov * 1.01f32.powf(-delta as f32)).clamp(1.0, 200.0);
             }
             geng::Event::KeyDown { key: geng::Key::R }
                 if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
@@ -429,6 +429,9 @@ impl geng::State for Game {
                 if self.editor.take().is_none() {
                     self.editor = Some(EditorState::new(&self.geng, &self.assets));
                 }
+            }
+            geng::Event::KeyDown { key: geng::Key::I } => {
+                self.camera.fov = self.assets.config.camera_fov;
             }
             _ => {}
         }
