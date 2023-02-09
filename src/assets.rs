@@ -95,6 +95,7 @@ pub struct Config {
     pub bubble_scale: f32,
     pub bubble_acceleration: f32,
     pub bubble_target_speed: f32,
+    pub camera_fov: f32,
 }
 
 #[derive(geng::Assets)]

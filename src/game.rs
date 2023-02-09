@@ -77,7 +77,7 @@ impl Game {
             camera: geng::Camera2d {
                 center: level.spawn_point,
                 rotation: 0.0,
-                fov: 5.0,
+                fov: assets.config.camera_fov,
             },
             framebuffer_size: vec2(1.0, 1.0),
             editor: if opt.editor {
@@ -429,6 +429,9 @@ impl geng::State for Game {
                 if self.editor.take().is_none() {
                     self.editor = Some(EditorState::new(&self.geng, &self.assets));
                 }
+            }
+            geng::Event::KeyDown { key: geng::Key::I } => {
+                self.camera.fov = self.assets.config.camera_fov;
             }
             _ => {}
         }

@@ -81,7 +81,10 @@
         "speed_friction": 2.0,
         "front": true,
         "back": false,
-        "sound": false
+        "sound": false,
+        "texture_speed": 0.2,
+        "flex_frequency": 0.5,
+        "flex_amplitude": 0.1
     },
     "slowtime": {
         "non_collidable": true,

@@ -73,3 +73,9 @@ invis?
 darkness
 slippery surface
 slowed down time area
+saving replay
+tas tool in editor
+devlog of february
+gamepad
+wizard that shoots you
+hot pepper
