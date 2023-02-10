@@ -79,3 +79,6 @@ devlog of february
 gamepad
 wizard that shoots you
 hot pepper
+tournament
+trailer
+references
