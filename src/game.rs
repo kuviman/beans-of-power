@@ -51,7 +51,7 @@ pub struct Game {
 impl Drop for Game {
     fn drop(&mut self) {
         if let Some(editor) = &mut self.editor {
-            editor.save_level(&self.level);
+            editor.save_level(&mut self.level);
         }
     }
 }

@@ -48,21 +48,23 @@ impl EditorState {
     pub fn update(&mut self, level: &mut Level, delta_time: f32) {
         self.next_autosave -= delta_time;
         if self.next_autosave < 0.0 {
-            self.next_autosave = 1.0;
+            self.next_autosave = 10.0;
             self.save_level(level);
         }
     }
 
-    pub fn save_level(&self, level: &Level) {
-        #[cfg(not(target_arch = "wasm32"))]
-        serde_json::to_writer_pretty(
-            std::io::BufWriter::new(
-                std::fs::File::create(run_dir().join("assets").join("level.json")).unwrap(),
-            ),
-            level.info(),
-        )
-        .unwrap();
-        info!("LVL SAVED");
+    pub fn save_level(&self, level: &mut Level) {
+        if level.save() {
+            #[cfg(not(target_arch = "wasm32"))]
+            serde_json::to_writer_pretty(
+                std::io::BufWriter::new(
+                    std::fs::File::create(run_dir().join("assets").join("level.json")).unwrap(),
+                ),
+                level.info(),
+            )
+            .unwrap();
+            info!("LVL SAVED");
+        }
     }
 }
 
@@ -151,7 +153,7 @@ impl Game {
                     }
                 }
                 geng::Key::S if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
-                    editor.save_level(&self.level);
+                    editor.save_level(&mut self.level);
                 }
                 _ => {}
             },

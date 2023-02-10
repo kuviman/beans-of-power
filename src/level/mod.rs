@@ -46,6 +46,7 @@ pub struct Level {
     #[deref]
     info: LevelInfo,
     mesh: RefCell<Option<draw::LevelMesh>>,
+    saved: bool,
 }
 
 impl Level {
@@ -53,6 +54,7 @@ impl Level {
         Self {
             info,
             mesh: RefCell::new(None),
+            saved: true,
         }
     }
     pub fn info(&self) -> &LevelInfo {
@@ -60,6 +62,11 @@ impl Level {
     }
     pub fn modify(&mut self) -> &mut LevelInfo {
         *self.mesh.get_mut() = None;
+        self.saved = false;
         &mut self.info
+    }
+    /// true if need to save now, next call will return false
+    pub fn save(&mut self) -> bool {
+        !mem::replace(&mut self.saved, true)
     }
 }
