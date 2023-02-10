@@ -20,8 +20,13 @@ pub struct ObjectTool {
     config: ObjectToolConfig,
 }
 impl ObjectTool {
-    fn find_hovered_object(&self, cursor: &Cursor, level: &Level) -> Option<usize> {
-        level
+    fn find_hovered_object(
+        &self,
+        cursor: &Cursor,
+        level: &Level,
+        selected_layer: usize,
+    ) -> Option<usize> {
+        level.layers[selected_layer]
             .objects
             .iter()
             .enumerate()
@@ -46,11 +51,12 @@ impl EditorTool for ObjectTool {
         &self,
         cursor: &Cursor,
         level: &Level,
+        selected_layer: usize,
         camera: &geng::Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        if let Some(index) = self.find_hovered_object(cursor, level) {
-            let object = &level.objects[index];
+        if let Some(index) = self.find_hovered_object(cursor, level, selected_layer) {
+            let object = &level.layers[selected_layer].objects[index];
             self.geng.draw_2d(
                 framebuffer,
                 camera,
@@ -61,12 +67,18 @@ impl EditorTool for ObjectTool {
             );
         }
     }
-    fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level) {
+    fn handle_event(
+        &mut self,
+        cursor: &Cursor,
+        event: &geng::Event,
+        level: &mut Level,
+        selected_layer: usize,
+    ) {
         match event {
             geng::Event::MouseDown {
                 button: geng::MouseButton::Left,
                 ..
-            } => level.modify().objects.push(Object {
+            } => level.modify().layers[selected_layer].objects.push(Object {
                 type_name: self.config.selected_type.clone(),
                 pos: cursor.world_pos,
             }),
@@ -74,8 +86,8 @@ impl EditorTool for ObjectTool {
                 button: geng::MouseButton::Right,
                 ..
             } => {
-                if let Some(index) = self.find_hovered_object(cursor, level) {
-                    level.modify().objects.remove(index);
+                if let Some(index) = self.find_hovered_object(cursor, level, selected_layer) {
+                    level.modify().layers[selected_layer].objects.remove(index);
                 }
             }
             _ => {}

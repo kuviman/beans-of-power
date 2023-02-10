@@ -23,8 +23,13 @@ pub struct TileTool {
 }
 
 impl TileTool {
-    fn find_hovered_tile(&self, cursor: &Cursor, level: &Level) -> Option<usize> {
-        'tile_loop: for (index, tile) in level.tiles.iter().enumerate() {
+    fn find_hovered_tile(
+        &self,
+        cursor: &Cursor,
+        level: &Level,
+        selected_layer: usize,
+    ) -> Option<usize> {
+        'tile_loop: for (index, tile) in level.layers[selected_layer].tiles.iter().enumerate() {
             for i in 0..3 {
                 let p1 = tile.vertices[i];
                 let p2 = tile.vertices[(i + 1) % 3];
@@ -53,12 +58,13 @@ impl EditorTool for TileTool {
         &self,
         cursor: &Cursor,
         level: &Level,
+        selected_layer: usize,
         camera: &geng::Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
         if self.points.is_empty() {
-            if let Some(index) = self.find_hovered_tile(cursor, level) {
-                let tile = &level.tiles[index];
+            if let Some(index) = self.find_hovered_tile(cursor, level, selected_layer) {
+                let tile = &level.layers[selected_layer].tiles[index];
                 self.geng.draw_2d(
                     framebuffer,
                     camera,
@@ -113,7 +119,13 @@ impl EditorTool for TileTool {
             );
         }
     }
-    fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level) {
+    fn handle_event(
+        &mut self,
+        cursor: &Cursor,
+        event: &geng::Event,
+        level: &mut Level,
+        selected_layer: usize,
+    ) {
         match event {
             geng::Event::MouseDown {
                 button: geng::MouseButton::Left,
@@ -147,7 +159,7 @@ impl EditorTool for TileTool {
                     if vec2::skew(vertices[1] - vertices[0], vertices[2] - vertices[0]) < 0.0 {
                         vertices.reverse();
                     }
-                    level.modify().tiles.push(Tile {
+                    level.modify().layers[selected_layer].tiles.push(Tile {
                         vertices,
                         flow: vec2::ZERO,
                         type_name: self.config.selected_type.clone(),
@@ -159,8 +171,8 @@ impl EditorTool for TileTool {
                 ..
             } => {
                 if self.points.is_empty() {
-                    if let Some(index) = self.find_hovered_tile(cursor, level) {
-                        level.modify().tiles.remove(index);
+                    if let Some(index) = self.find_hovered_tile(cursor, level, selected_layer) {
+                        level.modify().layers[selected_layer].tiles.remove(index);
                     }
                 } else {
                     self.points.clear();
@@ -179,13 +191,14 @@ impl EditorTool for TileTool {
             geng::Event::KeyDown { key: geng::Key::W } => {
                 if self.wind_drag.is_none() {
                     self.wind_drag = self
-                        .find_hovered_tile(cursor, level)
+                        .find_hovered_tile(cursor, level, selected_layer)
                         .map(|index| (index, cursor.world_pos));
                 }
             }
             geng::Event::KeyUp { key: geng::Key::W } => {
                 if let Some((index, start)) = self.wind_drag.take() {
-                    level.modify().tiles[index].flow = cursor.world_pos - start;
+                    level.modify().layers[selected_layer].tiles[index].flow =
+                        cursor.world_pos - start;
                 }
             }
             _ => {}

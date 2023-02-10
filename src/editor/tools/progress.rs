@@ -43,6 +43,7 @@ impl EditorTool for ProgressTool {
         &self,
         cursor: &Cursor,
         level: &Level,
+        selected_layer: usize,
         camera: &geng::Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -95,7 +96,13 @@ impl EditorTool for ProgressTool {
             .translate(vec2(0.0, -6.0)),
         )
     }
-    fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level) {
+    fn handle_event(
+        &mut self,
+        cursor: &Cursor,
+        event: &geng::Event,
+        level: &mut Level,
+        selected_layer: usize,
+    ) {
         match event {
             geng::Event::MouseDown {
                 button: geng::MouseButton::Left,

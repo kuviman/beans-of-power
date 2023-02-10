@@ -17,7 +17,7 @@ impl Game {
             farticle.pos += farticle.vel * delta_time;
             farticle.rot += farticle.w * delta_time;
 
-            for surface in &self.level.surfaces {
+            for surface in self.level.gameplay_surfaces() {
                 let v = surface.vector_from(farticle.pos);
                 let penetration = self.config.farticle_size / 2.0 - v.len();
                 if penetration > EPS && vec2::dot(v, farticle.vel) > 0.0 {

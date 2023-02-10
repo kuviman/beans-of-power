@@ -102,6 +102,7 @@ impl EditorTool for EditTool {
         &self,
         cursor: &Cursor,
         level: &Level,
+        selected_layer: usize,
         camera: &geng::Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -113,7 +114,7 @@ impl EditorTool for EditTool {
                 p
             }
         };
-        for (index, surface) in level.surfaces.iter().enumerate() {
+        for (index, surface) in level.layers[selected_layer].surfaces.iter().enumerate() {
             if [surface.p1, surface.p2]
                 .into_iter()
                 .any(|p| self.is_selected(p))
@@ -129,7 +130,7 @@ impl EditorTool for EditTool {
                 );
             }
         }
-        for (index, tile) in level.tiles.iter().enumerate() {
+        for (index, tile) in level.layers[selected_layer].tiles.iter().enumerate() {
             if tile.vertices.into_iter().any(|p| self.is_selected(p)) {
                 self.geng.draw_2d(
                     framebuffer,
@@ -162,7 +163,13 @@ impl EditorTool for EditTool {
             );
         }
     }
-    fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level) {
+    fn handle_event(
+        &mut self,
+        cursor: &Cursor,
+        event: &geng::Event,
+        level: &mut Level,
+        selected_layer: usize,
+    ) {
         match event {
             geng::Event::MouseDown { button, .. } => match self.state {
                 State::Idle => {
@@ -182,11 +189,11 @@ impl EditorTool for EditTool {
                             }
                         };
                         let level = level.modify();
-                        for surface in &mut level.surfaces {
+                        for surface in &mut level.layers[selected_layer].surfaces {
                             transform(&mut surface.p1);
                             transform(&mut surface.p2);
                         }
-                        for tile in &mut level.tiles {
+                        for tile in &mut level.layers[selected_layer].tiles {
                             for p in &mut tile.vertices {
                                 transform(p);
                             }
@@ -205,7 +212,7 @@ impl EditorTool for EditTool {
                         };
                         let level = level.modify();
                         let mut new_surfaces = Vec::new();
-                        for surface in &mut level.surfaces {
+                        for surface in &mut level.layers[selected_layer].surfaces {
                             if self.is_selected(surface.p1) && self.is_selected(surface.p2) {
                                 let mut new_surface = surface.clone();
                                 transform(&mut new_surface.p1);
@@ -213,9 +220,9 @@ impl EditorTool for EditTool {
                                 new_surfaces.push(new_surface);
                             }
                         }
-                        level.surfaces.extend(new_surfaces);
+                        level.layers[selected_layer].surfaces.extend(new_surfaces);
                         let mut new_tiles = Vec::new();
-                        for tile in &mut level.tiles {
+                        for tile in &mut level.layers[selected_layer].tiles {
                             if tile.vertices.iter().all(|&p| self.is_selected(p)) {
                                 let mut new_tile = tile.clone();
                                 for p in &mut new_tile.vertices {
@@ -224,7 +231,7 @@ impl EditorTool for EditTool {
                                 new_tiles.push(new_tile);
                             }
                         }
-                        level.tiles.extend(new_tiles);
+                        level.layers[selected_layer].tiles.extend(new_tiles);
                         for p in &mut self.selected_vertices {
                             *p = (matrix * p.extend(1.0)).into_2d();
                         }
@@ -275,11 +282,14 @@ impl EditorTool for EditTool {
 
                     let selection_polygon = aabb.corners();
                     for p in itertools::chain![
-                        level
+                        level.layers[selected_layer]
                             .surfaces
                             .iter()
                             .flat_map(|surface| [surface.p1, surface.p2]),
-                        level.tiles.iter().flat_map(|tile| tile.vertices)
+                        level.layers[selected_layer]
+                            .tiles
+                            .iter()
+                            .flat_map(|tile| tile.vertices)
                     ] {
                         if aabb.contains(p) && !self.is_selected(p) {
                             self.selected_vertices.push(p);
@@ -329,12 +339,12 @@ impl EditorTool for EditTool {
             } => {
                 if let State::Idle = self.state {
                     let level = level.modify();
-                    level.surfaces.retain(|surface| {
+                    level.layers[selected_layer].surfaces.retain(|surface| {
                         ![surface.p1, surface.p2]
                             .iter()
                             .any(|&p| self.is_selected(p))
                     });
-                    level
+                    level.layers[selected_layer]
                         .tiles
                         .retain(|tile| !tile.vertices.iter().any(|&p| self.is_selected(p)));
                 }

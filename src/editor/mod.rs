@@ -16,6 +16,7 @@ pub struct EditorState {
     next_autosave: f32,
     available_tools: Vec<Box<dyn ToolConstructor>>,
     selected_tool_index: usize,
+    selected_layer: usize,
     tool: Box<dyn DynEditorTool>,
 }
 
@@ -41,6 +42,7 @@ impl EditorState {
             },
             next_autosave: 0.0,
             selected_tool_index,
+            selected_layer: 0,
             tool: available_tools[selected_tool_index].create(),
             available_tools,
         }
@@ -82,10 +84,9 @@ impl Game {
     pub fn snap_position(&self, level: &Level, pos: vec2<f32>) -> vec2<f32> {
         let closest_point = itertools::chain![
             level
-                .surfaces
-                .iter()
+                .all_surfaces()
                 .flat_map(|surface| [surface.p1, surface.p2]),
-            level.tiles.iter().flat_map(|tile| tile.vertices)
+            level.all_tiles().flat_map(|tile| tile.vertices)
         ]
         .filter(|&p| (pos - p).len() < self.config.snap_distance)
         .min_by_key(|&p| r32((pos - p).len()));
@@ -94,9 +95,13 @@ impl Game {
 
     pub fn draw_level_editor(&self, framebuffer: &mut ugli::Framebuffer) {
         if let Some(editor) = &self.editor {
-            editor
-                .tool
-                .draw(&editor.cursor, &self.level, &self.camera, framebuffer);
+            editor.tool.draw(
+                &editor.cursor,
+                &self.level,
+                editor.selected_layer,
+                &self.camera,
+                framebuffer,
+            );
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
@@ -123,9 +128,12 @@ impl Game {
             snapped_world_pos: cursor_pos,
         };
 
-        editor
-            .tool
-            .handle_event(&editor.cursor, event, &mut self.level);
+        editor.tool.handle_event(
+            &editor.cursor,
+            event,
+            &mut self.level,
+            editor.selected_layer,
+        );
 
         match event {
             geng::Event::KeyDown { key } => match key {

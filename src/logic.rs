@@ -40,7 +40,7 @@ impl Game {
 
     pub fn update_guys(&mut self, delta_time: f32) {
         let is_colliding = |guy: &Guy, surface_type: &str| -> bool {
-            for surface in &self.level.surfaces {
+            for surface in self.level.gameplay_surfaces() {
                 let v = surface.vector_from(guy.ball.pos);
                 let penetration = guy.radius() - v.len();
                 if penetration > EPS && surface.type_name == surface_type {
@@ -52,7 +52,7 @@ impl Game {
         for guy in &mut self.guys {
             let delta_time = {
                 let mut delta_time = delta_time;
-                'tile_loop: for tile in &self.level.tiles {
+                'tile_loop: for tile in self.level.gameplay_tiles() {
                     for i in 0..3 {
                         let p1 = tile.vertices[i];
                         let p2 = tile.vertices[(i + 1) % 3];
@@ -74,7 +74,7 @@ impl Game {
                 guy.progress.finished = true;
             }
             if !guy.touched_a_unicorn {
-                for object in &self.level.objects {
+                for object in self.level.gameplay_objects() {
                     if (guy.ball.pos - object.pos).len() < 1.5 && object.type_name == "unicorn" {
                         guy.touched_a_unicorn = true;
                         guy.fart_state.fart_pressure = self.config.max_fart_pressure;
@@ -93,7 +93,7 @@ impl Game {
                     - guy.ball.vel)
                     .clamp_len(..=self.config.bubble_acceleration * delta_time);
             }
-            for object in &self.level.objects {
+            for object in self.level.gameplay_objects() {
                 if (guy.ball.pos - object.pos).len() < 1.0 && object.type_name == "bubbler" {
                     guy.bubble_timer = Some(self.config.bubble_time);
                 }
@@ -180,7 +180,7 @@ impl Game {
 
             let mut in_water = false;
             let butt = guy.ball.pos + vec2(0.0, -guy.ball.radius * 0.9).rotate(guy.ball.rot);
-            'tile_loop: for tile in &self.level.tiles {
+            'tile_loop: for tile in self.level.gameplay_tiles() {
                 for i in 0..3 {
                     let p1 = tile.vertices[i];
                     let p2 = tile.vertices[(i + 1) % 3];
@@ -201,7 +201,7 @@ impl Game {
                 guy.ball.w -= guy.ball.w * params.friction * delta_time / guy.mass(&self.config);
                 // TODO inertia?
             }
-            'tile_loop: for tile in &self.level.tiles {
+            'tile_loop: for tile in self.level.gameplay_tiles() {
                 for i in 0..3 {
                     let p1 = tile.vertices[i];
                     let p2 = tile.vertices[(i + 1) % 3];
@@ -436,7 +436,7 @@ impl Game {
 
             let mut collision_to_resolve = None;
             let mut was_colliding_water = was_colliding_water;
-            for surface in &self.level.surfaces {
+            for surface in self.level.gameplay_surfaces() {
                 let v = surface.vector_from(guy.ball.pos);
                 let penetration = guy.radius() - v.len();
                 if penetration > EPS {

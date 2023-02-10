@@ -1,3 +1,5 @@
+// wtf is Rust, I don't get it
+
 use super::*;
 
 mod cannon;
@@ -26,10 +28,17 @@ pub trait EditorTool: 'static {
         &self,
         cursor: &Cursor,
         level: &Level,
+        selected_layer: usize,
         camera: &geng::Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     );
-    fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level);
+    fn handle_event(
+        &mut self,
+        cursor: &Cursor,
+        event: &geng::Event,
+        level: &mut Level,
+        selected_layer: usize,
+    );
     fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a>;
 }
 
@@ -42,10 +51,17 @@ pub trait DynEditorTool {
         &self,
         cursor: &Cursor,
         level: &Level,
+        selected_layer: usize,
         camera: &geng::Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     );
-    fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level);
+    fn handle_event(
+        &mut self,
+        cursor: &Cursor,
+        event: &geng::Event,
+        level: &mut Level,
+        selected_layer: usize,
+    );
     fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a>;
 }
 
@@ -54,13 +70,20 @@ impl<T: EditorTool> DynEditorTool for T {
         &self,
         cursor: &Cursor,
         level: &Level,
+        selected_layer: usize,
         camera: &geng::Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        <T as EditorTool>::draw(self, cursor, level, camera, framebuffer)
+        <T as EditorTool>::draw(self, cursor, level, selected_layer, camera, framebuffer)
     }
-    fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level) {
-        <T as EditorTool>::handle_event(self, cursor, event, level)
+    fn handle_event(
+        &mut self,
+        cursor: &Cursor,
+        event: &geng::Event,
+        level: &mut Level,
+        selected_layer: usize,
+    ) {
+        <T as EditorTool>::handle_event(self, cursor, event, level, selected_layer)
     }
     fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a> {
         <T as EditorTool>::ui(self, cx)

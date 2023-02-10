@@ -22,8 +22,13 @@ pub struct SurfaceTool {
     config: SurfaceToolConfig,
 }
 impl SurfaceTool {
-    fn find_hovered_surface(&self, cursor: &Cursor, level: &Level) -> Option<usize> {
-        level
+    fn find_hovered_surface(
+        &self,
+        cursor: &Cursor,
+        level: &Level,
+        selected_layer: usize,
+    ) -> Option<usize> {
+        level.layers[selected_layer]
             .surfaces
             .iter()
             .enumerate()
@@ -50,6 +55,7 @@ impl EditorTool for SurfaceTool {
         &self,
         cursor: &Cursor,
         level: &Level,
+        selected_layer: usize,
         camera: &geng::Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
@@ -60,8 +66,8 @@ impl EditorTool for SurfaceTool {
                 camera,
                 &draw_2d::Segment::new(Segment(p1, p2), 0.1, Rgba::new(1.0, 1.0, 1.0, 0.5)),
             );
-        } else if let Some(index) = self.find_hovered_surface(cursor, level) {
-            let surface = &level.surfaces[index];
+        } else if let Some(index) = self.find_hovered_surface(cursor, level, selected_layer) {
+            let surface = &level.layers[selected_layer].surfaces[index];
             self.geng.draw_2d(
                 framebuffer,
                 camera,
@@ -84,7 +90,13 @@ impl EditorTool for SurfaceTool {
             );
         }
     }
-    fn handle_event(&mut self, cursor: &Cursor, event: &geng::Event, level: &mut Level) {
+    fn handle_event(
+        &mut self,
+        cursor: &Cursor,
+        event: &geng::Event,
+        level: &mut Level,
+        selected_layer: usize,
+    ) {
         match event {
             geng::Event::MouseDown {
                 button: geng::MouseButton::Left,
@@ -99,12 +111,14 @@ impl EditorTool for SurfaceTool {
                 let p2 = cursor.snapped_world_pos;
                 if let Some(p1) = self.start_drag.take() {
                     if (p1 - p2).len() > self.config.snap_distance {
-                        level.modify().surfaces.push(Surface {
-                            p1,
-                            p2,
-                            flow: 0.0,
-                            type_name: self.config.selected_type.clone(),
-                        });
+                        level.modify().layers[selected_layer]
+                            .surfaces
+                            .push(Surface {
+                                p1,
+                                p2,
+                                flow: 0.0,
+                                type_name: self.config.selected_type.clone(),
+                            });
                     }
                 }
             }
@@ -112,22 +126,22 @@ impl EditorTool for SurfaceTool {
                 button: geng::MouseButton::Right,
                 ..
             } => {
-                if let Some(index) = self.find_hovered_surface(cursor, level) {
-                    level.modify().surfaces.remove(index);
+                if let Some(index) = self.find_hovered_surface(cursor, level, selected_layer) {
+                    level.modify().layers[selected_layer].surfaces.remove(index);
                 }
             }
 
             geng::Event::KeyDown { key: geng::Key::W } => {
                 if self.wind_drag.is_none() {
                     self.wind_drag = self
-                        .find_hovered_surface(cursor, level)
+                        .find_hovered_surface(cursor, level, selected_layer)
                         .map(|index| (index, cursor.world_pos));
                 }
             }
             geng::Event::KeyUp { key: geng::Key::W } => {
                 if let Some((index, start)) = self.wind_drag.take() {
                     let level = level.modify();
-                    let surface = &mut level.surfaces[index];
+                    let surface = &mut level.layers[selected_layer].surfaces[index];
                     surface.flow = vec2::dot(
                         cursor.world_pos - start,
                         (surface.p2 - surface.p1).normalize_or_zero(),
