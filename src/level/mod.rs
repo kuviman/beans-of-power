@@ -16,6 +16,7 @@ pub use tile::*;
 
 #[derive(Serialize, Deserialize)]
 pub struct LevelLayer {
+    pub name:String,
     pub gameplay: bool,
     pub surfaces: Vec<Surface>,
     pub tiles: Vec<Tile>,
@@ -28,7 +29,6 @@ pub struct LevelInfo {
     pub finish_point: vec2<f32>,
     pub expected_path: Vec<vec2<f32>>,
     pub layers: Vec<LevelLayer>,
-    pub main_layer: usize,
     pub cannons: Vec<Cannon>,
     pub portals: Vec<Portal>,
 }
@@ -40,7 +40,6 @@ impl LevelInfo {
             finish_point: vec2::ZERO,
             expected_path: vec![],
             layers: vec![],
-            main_layer: 0,
             cannons: vec![],
             portals: vec![],
         }

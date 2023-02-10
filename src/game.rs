@@ -237,7 +237,7 @@ impl geng::State for Game {
 
         for (index, layer) in self.level.layers.iter().enumerate() {
             self.draw_layer_back(&self.level, index, framebuffer);
-            if index == self.level.main_layer {
+            if layer.name == "main" {
                 self.draw_guys(framebuffer);
                 self.draw_farticles(framebuffer);
             }
