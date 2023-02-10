@@ -72,9 +72,14 @@ impl EditorState {
 
 impl Game {
     pub fn snapped_cursor_position(&self, level: &Level) -> vec2<f32> {
+        let Some(editor) = &self.editor else { return vec2::ZERO; };
+        let camera = geng::Camera2d {
+            center: self.camera.center * level.layers[editor.selected_layer].parallax,
+            ..self.camera
+        };
         self.snap_position(
             level,
-            self.camera.screen_to_world(
+            camera.screen_to_world(
                 self.framebuffer_size,
                 self.geng.window().mouse_pos().map(|x| x as f32),
             ),
@@ -95,16 +100,20 @@ impl Game {
 
     pub fn draw_level_editor(&self, framebuffer: &mut ugli::Framebuffer) {
         if let Some(editor) = &self.editor {
+            let camera = geng::Camera2d {
+                center: self.camera.center * self.level.layers[editor.selected_layer].parallax,
+                ..self.camera
+            };
             editor.tool.draw(
                 &editor.cursor,
                 &self.level,
                 editor.selected_layer,
-                &self.camera,
+                &camera,
                 framebuffer,
             );
             self.geng.draw_2d(
                 framebuffer,
-                &self.camera,
+                &camera,
                 &draw_2d::Quad::new(
                     Aabb2::point(self.snapped_cursor_position(&self.level)).extend_uniform(0.1),
                     Rgba::new(1.0, 0.0, 0.0, 0.5),

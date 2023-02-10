@@ -16,11 +16,17 @@ pub use tile::*;
 
 #[derive(Serialize, Deserialize)]
 pub struct LevelLayer {
-    pub name:String,
+    pub name: String,
     pub gameplay: bool,
     pub surfaces: Vec<Surface>,
     pub tiles: Vec<Tile>,
     pub objects: Vec<Object>,
+    #[serde(default = "default_parallax")]
+    pub parallax: vec2<f32>,
+}
+
+fn default_parallax() -> vec2<f32> {
+    vec2(1.0, 1.0)
 }
 
 #[derive(Serialize, Deserialize)]

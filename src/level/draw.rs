@@ -108,6 +108,10 @@ impl Game {
         texture_shift: f32,
         texture_move_direction: f32,
     ) {
+        let camera = geng::Camera2d {
+            center: self.camera.center * level.layers[layer_index].parallax,
+            ..self.camera
+        };
         let mesh = self.get_mesh(level);
         for (index, surface) in level.layers[layer_index].surfaces.iter().enumerate() {
             let assets = &self.assets.surfaces[&surface.type_name];
@@ -133,7 +137,7 @@ impl Game {
                         u_flex_amplitude: assets.params.flex_amplitude,
                         u_texture_shift: texture_shift,
                     },
-                    geng::camera2d_uniforms(&self.camera, self.framebuffer_size),
+                    geng::camera2d_uniforms(&camera, self.framebuffer_size),
                 ),
                 ugli::DrawParameters {
                     blend_mode: Some(ugli::BlendMode::straight_alpha()),
@@ -150,6 +154,10 @@ impl Game {
         layer_index: usize,
         background: bool,
     ) {
+        let camera = geng::Camera2d {
+            center: self.camera.center * level.layers[layer_index].parallax,
+            ..self.camera
+        };
         let mesh = self.get_mesh(level);
         for (index, tile) in level.layers[layer_index].tiles.iter().enumerate() {
             let assets = &self.assets.tiles[&tile.type_name];
@@ -172,7 +180,7 @@ impl Game {
                             self.noise(assets.params.texture_movement_frequency),
                         ) * assets.params.texture_movement_amplitude,
                     },
-                    geng::camera2d_uniforms(&self.camera, self.framebuffer_size),
+                    geng::camera2d_uniforms(&camera, self.framebuffer_size),
                 ),
                 ugli::DrawParameters {
                     blend_mode: Some(ugli::BlendMode::straight_alpha()),
