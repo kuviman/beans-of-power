@@ -200,7 +200,30 @@ impl Game {
             column(tools)
         };
         let tool_config = editor.tool.ui(cx);
+        let layer_selection = {
+            column(
+                self.level
+                    .layers
+                    .iter()
+                    .enumerate()
+                    .map(|(index, layer)| {
+                        let button = Button::new(cx, &layer.name);
+                        if button.was_clicked() {
+                            editor.selected_layer = index;
+                        }
+                        let mut widget: Box<dyn Widget> =
+                            Box::new(button.uniform_padding(8.0).center());
+                        if index == editor.selected_layer {
+                            widget =
+                                Box::new(widget.background_color(Rgba::new(0.5, 0.5, 1.0, 0.5)));
+                        }
+                        widget
+                    })
+                    .collect(),
+            )
+        };
         (
+            layer_selection.align(vec2(0.0, 1.0)),
             tool_selection.align(vec2(0.0, 1.0)),
             tool_config.align(vec2(0.0, 1.0)),
         )
