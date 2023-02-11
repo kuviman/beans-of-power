@@ -15,8 +15,8 @@ struct SurfaceVertex {
 }
 
 pub struct LayerMesh {
-    tiles: ugli::VertexBuffer<TileVertex>,
-    surfaces: ugli::VertexBuffer<SurfaceVertex>,
+    tiles: HashMap<String, ugli::VertexBuffer<TileVertex>>,
+    surfaces: HashMap<String, ugli::VertexBuffer<SurfaceVertex>>,
 }
 
 pub struct LevelMesh {
@@ -30,57 +30,69 @@ impl LevelMesh {
                 .layers
                 .iter()
                 .map(|layer| LayerMesh {
-                    tiles: ugli::VertexBuffer::new_static(
-                        geng.ugli(),
-                        layer
-                            .tiles
-                            .iter()
-                            .flat_map(|tile| {
-                                tile.vertices.into_iter().map(|v| TileVertex {
+                    tiles: {
+                        let mut vertex_data: HashMap<String, Vec<TileVertex>> = HashMap::new();
+                        for tile in &layer.tiles {
+                            vertex_data
+                                .entry(tile.type_name.clone())
+                                .or_default()
+                                .extend(tile.vertices.into_iter().map(|v| TileVertex {
                                     a_pos: v,
                                     a_flow: tile.flow,
-                                })
+                                }));
+                        }
+                        vertex_data
+                            .into_iter()
+                            .map(|(type_name, data)| {
+                                (type_name, ugli::VertexBuffer::new_static(geng.ugli(), data))
                             })
-                            .collect(),
-                    ),
-                    surfaces: ugli::VertexBuffer::new_static(
-                        geng.ugli(),
-                        layer
-                            .surfaces
-                            .iter()
-                            .flat_map(|surface| {
-                                let normal = (surface.p2 - surface.p1).normalize().rotate_90();
-                                let len = (surface.p2 - surface.p1).len();
-                                let vs = [
-                                    SurfaceVertex {
-                                        a_pos: surface.p1,
-                                        a_normal: normal,
-                                        a_flow: surface.flow,
-                                        a_vt: vec2(0.0, 0.0),
-                                    },
-                                    SurfaceVertex {
-                                        a_pos: surface.p2,
-                                        a_normal: normal,
-                                        a_flow: surface.flow,
-                                        a_vt: vec2(len, 0.0),
-                                    },
-                                    SurfaceVertex {
-                                        a_pos: surface.p2,
-                                        a_normal: normal,
-                                        a_flow: surface.flow,
-                                        a_vt: vec2(len, 1.0),
-                                    },
-                                    SurfaceVertex {
-                                        a_pos: surface.p1,
-                                        a_normal: normal,
-                                        a_flow: surface.flow,
-                                        a_vt: vec2(0.0, 1.0),
-                                    },
-                                ];
-                                [vs[0], vs[1], vs[2], vs[0], vs[2], vs[3]]
+                            .collect()
+                    },
+                    surfaces: {
+                        let mut vertex_data: HashMap<String, Vec<SurfaceVertex>> = HashMap::new();
+                        for surface in &layer.surfaces {
+                            vertex_data
+                                .entry(surface.type_name.clone())
+                                .or_default()
+                                .extend({
+                                    let normal = (surface.p2 - surface.p1).normalize().rotate_90();
+                                    let len = (surface.p2 - surface.p1).len();
+                                    let vs = [
+                                        SurfaceVertex {
+                                            a_pos: surface.p1,
+                                            a_normal: normal,
+                                            a_flow: surface.flow,
+                                            a_vt: vec2(0.0, 0.0),
+                                        },
+                                        SurfaceVertex {
+                                            a_pos: surface.p2,
+                                            a_normal: normal,
+                                            a_flow: surface.flow,
+                                            a_vt: vec2(len, 0.0),
+                                        },
+                                        SurfaceVertex {
+                                            a_pos: surface.p2,
+                                            a_normal: normal,
+                                            a_flow: surface.flow,
+                                            a_vt: vec2(len, 1.0),
+                                        },
+                                        SurfaceVertex {
+                                            a_pos: surface.p1,
+                                            a_normal: normal,
+                                            a_flow: surface.flow,
+                                            a_vt: vec2(0.0, 1.0),
+                                        },
+                                    ];
+                                    [vs[0], vs[1], vs[2], vs[0], vs[2], vs[3]]
+                                });
+                        }
+                        vertex_data
+                            .into_iter()
+                            .map(|(type_name, data)| {
+                                (type_name, ugli::VertexBuffer::new_static(geng.ugli(), data))
                             })
-                            .collect(),
-                    ),
+                            .collect()
+                    },
                 })
                 .collect(),
         }
@@ -113,8 +125,9 @@ impl Game {
             ..self.camera
         };
         let mesh = self.get_mesh(level);
-        for (index, surface) in level.layers[layer_index].surfaces.iter().enumerate() {
-            let assets = &self.assets.surfaces[&surface.type_name];
+
+        for (type_name, data) in &mesh.layers[layer_index].surfaces {
+            let assets = &self.assets.surfaces[type_name];
             let texture = match texture(assets) {
                 Some(texture) => texture,
                 None => continue,
@@ -125,9 +138,7 @@ impl Game {
                 framebuffer,
                 &self.assets.shaders.surface,
                 ugli::DrawMode::Triangles,
-                mesh.layers[layer_index]
-                    .surfaces
-                    .slice(index * 6..index * 6 + 6),
+                data,
                 (
                     ugli::uniforms! {
                         u_texture: &**texture,
@@ -159,8 +170,9 @@ impl Game {
             ..self.camera
         };
         let mesh = self.get_mesh(level);
-        for (index, tile) in level.layers[layer_index].tiles.iter().enumerate() {
-            let assets = &self.assets.tiles[&tile.type_name];
+
+        for (type_name, data) in &mesh.layers[layer_index].tiles {
+            let assets = &self.assets.tiles[type_name];
             if assets.params.background != background {
                 continue;
             }
@@ -168,9 +180,7 @@ impl Game {
                 framebuffer,
                 &self.assets.shaders.tile,
                 ugli::DrawMode::Triangles,
-                mesh.layers[layer_index]
-                    .tiles
-                    .slice(index * 3..index * 3 + 3),
+                data,
                 (
                     ugli::uniforms! {
                         u_texture: &*assets.texture,
