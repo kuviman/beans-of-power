@@ -162,7 +162,7 @@ impl Game {
                             self.my_guy = Some(self.client_id);
                             self.guys.insert(Guy::new(
                                 self.client_id,
-                                cursor_pos,
+                                editor.cursor.world_pos,
                                 false,
                                 &self.config,
                             ));
