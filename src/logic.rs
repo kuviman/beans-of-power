@@ -224,7 +224,7 @@ impl Game {
                 }
             }
 
-            let farticle_colors = {
+            let farticle_colors = || {
                 if in_water {
                     self.config.bubble_fart_colors.clone()
                 } else {
@@ -359,7 +359,7 @@ impl Game {
                             + vec2(0.0, -self.config.long_fart_farticle_speed).rotate(guy.ball.rot),
                         rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
                         w: thread_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
-                        colors: farticle_colors.clone(),
+                        colors: farticle_colors(),
                         t: 1.0,
                     });
                 }
@@ -413,7 +413,7 @@ impl Game {
                             .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI)),
                         rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
                         w: thread_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
-                        colors: farticle_colors.clone(),
+                        colors: farticle_colors(),
                         t: 1.0,
                     });
                 }
