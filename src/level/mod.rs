@@ -23,6 +23,8 @@ pub struct LevelLayer {
     pub objects: Vec<Object>,
     #[serde(default = "default_parallax")]
     pub parallax: vec2<f32>,
+    #[serde(default)]
+    pub reveal_radius: f32,
 }
 
 fn default_parallax() -> vec2<f32> {

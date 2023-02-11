@@ -189,6 +189,7 @@ impl Game {
                             self.noise(assets.params.texture_movement_frequency),
                             self.noise(assets.params.texture_movement_frequency),
                         ) * assets.params.texture_movement_amplitude,
+                        u_reveal_radius: level.layers[layer_index].reveal_radius,
                     },
                     geng::camera2d_uniforms(&camera, self.framebuffer_size),
                 ),
