@@ -39,6 +39,8 @@ pub struct Opt {
     pub server: Option<String>,
     #[clap(long)]
     pub connect: Option<String>,
+    #[clap(flatten)]
+    pub geng: geng::CliArgs,
 }
 
 fn main() {
@@ -79,8 +81,7 @@ fn main() {
         let geng = Geng::new_with(geng::ContextOptions {
             title: "LD51 - Getting Farted On".to_owned(),
             fixed_delta_time: 1.0 / 200.0,
-            vsync: false,
-            ..default()
+            ..geng::ContextOptions::from_args(&opt.geng)
         });
         let connection = future::OptionFuture::<_>::from(match opt.connect.as_deref().unwrap() {
             "singleplayer" => None,
