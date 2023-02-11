@@ -73,10 +73,20 @@ impl Game {
             if (guy.ball.pos - self.level.finish_point).len() < 1.5 {
                 guy.progress.finished = true;
             }
-            if !guy.touched_a_unicorn {
+            {
+                let mut new_fart_type = None;
                 for object in self.level.gameplay_objects() {
-                    if (guy.ball.pos - object.pos).len() < 1.5 && object.type_name == "unicorn" {
-                        guy.touched_a_unicorn = true;
+                    if (guy.ball.pos - object.pos).len() < 1.5 {
+                        match object.type_name.as_str() {
+                            "unicorn" => new_fart_type = Some(FartType::Rainbow),
+                            "hot-pepper" => new_fart_type = Some(FartType::Fire),
+                            _ => {}
+                        }
+                    }
+                }
+                if let Some(new_fart_type) = new_fart_type {
+                    if new_fart_type != guy.fart_type {
+                        guy.fart_type = new_fart_type;
                         guy.fart_state.fart_pressure = self.config.max_fart_pressure;
                     }
                 }
@@ -146,7 +156,7 @@ impl Game {
                             rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
                             w: thread_rng()
                                 .gen_range(-self.config.farticle_w..=self.config.farticle_w),
-                            color: self.config.cannon.particle_color,
+                            colors: self.config.cannon.particle_colors.clone(),
                             t: 1.0,
                         });
                     }
@@ -214,6 +224,24 @@ impl Game {
                 }
             }
 
+            let farticle_colors = {
+                if in_water {
+                    self.config.bubble_fart_colors.clone()
+                } else {
+                    match guy.fart_type {
+                        FartType::Normal => self.config.fart_colors.clone(),
+                        FartType::Rainbow => Rc::new(vec![Hsva::new(
+                            thread_rng().gen_range(0.0..1.0),
+                            1.0,
+                            1.0,
+                            0.5,
+                        )
+                        .into()]),
+                        FartType::Fire => self.config.fire_fart_colors.clone(),
+                    }
+                }
+            };
+
             let could_fart = guy.fart_state.fart_pressure >= self.config.fart_pressure_released;
             if self.config.fart_continued_force == 0.0 {
                 guy.fart_state.long_farting = false;
@@ -249,15 +277,21 @@ impl Game {
                     } else {
                         let active_index = if in_water {
                             0
-                        } else if guy.touched_a_unicorn {
-                            1
                         } else {
-                            2
+                            match guy.fart_type {
+                                FartType::Normal => 1,
+                                FartType::Rainbow => 2,
+                                FartType::Fire => 3,
+                            }
                         };
-                        for (index, sfx) in
-                            [&mut sfx.bubble_sfx, &mut sfx.rainbow_sfx, &mut sfx.sfx]
-                                .into_iter()
-                                .enumerate()
+                        for (index, sfx) in [
+                            &mut sfx.bubble_sfx,
+                            &mut sfx.sfx,
+                            &mut sfx.rainbow_sfx,
+                            &mut sfx.fire_sfx,
+                        ]
+                        .into_iter()
+                        .enumerate()
                         {
                             if index == active_index {
                                 sfx.set_volume(
@@ -277,14 +311,21 @@ impl Game {
             } else if let Some(sfx) = self.long_fart_sfx.get_mut(&guy.id) {
                 let active_index = if in_water {
                     0
-                } else if guy.touched_a_unicorn {
-                    1
                 } else {
-                    2
+                    match guy.fart_type {
+                        FartType::Normal => 1,
+                        FartType::Rainbow => 2,
+                        FartType::Fire => 3,
+                    }
                 };
-                for (index, sfx) in [&mut sfx.bubble_sfx, &mut sfx.rainbow_sfx, &mut sfx.sfx]
-                    .into_iter()
-                    .enumerate()
+                for (index, sfx) in [
+                    &mut sfx.bubble_sfx,
+                    &mut sfx.sfx,
+                    &mut sfx.rainbow_sfx,
+                    &mut sfx.fire_sfx,
+                ]
+                .into_iter()
+                .enumerate()
                 {
                     if index == active_index {
                         sfx.set_volume(
@@ -318,13 +359,7 @@ impl Game {
                             + vec2(0.0, -self.config.long_fart_farticle_speed).rotate(guy.ball.rot),
                         rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
                         w: thread_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
-                        color: if in_water {
-                            self.config.bubble_fart_color
-                        } else if guy.touched_a_unicorn {
-                            Hsva::new(thread_rng().gen_range(0.0..1.0), 1.0, 1.0, 0.5).into()
-                        } else {
-                            self.config.fart_color
-                        },
+                        colors: farticle_colors.clone(),
                         t: 1.0,
                     });
                 }
@@ -348,6 +383,9 @@ impl Game {
                     let mut rainbow_sfx = self.assets.sfx.rainbow_long_fart.effect();
                     rainbow_sfx.set_volume(0.0);
                     rainbow_sfx.play();
+                    let mut fire_sfx = self.assets.sfx.explosive_long_fart.effect();
+                    fire_sfx.set_volume(0.0);
+                    fire_sfx.play();
                     if let Some(mut sfx) = self.long_fart_sfx.insert(
                         guy.id,
                         LongFartSfx {
@@ -355,6 +393,7 @@ impl Game {
                             sfx,
                             bubble_sfx,
                             rainbow_sfx,
+                            fire_sfx,
                         },
                     ) {
                         sfx.bubble_sfx.stop();
@@ -374,13 +413,7 @@ impl Game {
                             .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI)),
                         rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
                         w: thread_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
-                        color: if in_water {
-                            self.config.bubble_fart_color
-                        } else if guy.touched_a_unicorn {
-                            Hsva::new(thread_rng().gen_range(0.0..1.0), 1.0, 1.0, 0.5).into()
-                        } else {
-                            self.config.fart_color
-                        },
+                        colors: farticle_colors.clone(),
                         t: 1.0,
                     });
                 }
@@ -388,10 +421,12 @@ impl Game {
                     / guy.mass(&self.config);
                 let sounds = if in_water {
                     &self.assets.sfx.bubble_fart
-                } else if guy.touched_a_unicorn {
-                    &self.assets.sfx.rainbow_fart
                 } else {
-                    &self.assets.sfx.fart
+                    match guy.fart_type {
+                        FartType::Normal => &self.assets.sfx.fart,
+                        FartType::Rainbow => &self.assets.sfx.rainbow_fart,
+                        FartType::Fire => &self.assets.sfx.explosive_fart,
+                    }
                 };
                 let mut effect = sounds.choose(&mut thread_rng()).unwrap().effect();
                 effect.set_volume(
@@ -477,7 +512,7 @@ impl Game {
                                     w: thread_rng().gen_range(
                                         -self.config.farticle_w..=self.config.farticle_w,
                                     ),
-                                    color: self.config.bubble_fart_color,
+                                    colors: self.config.bubble_fart_colors.clone(),
                                     t: 0.5,
                                 });
                             }
@@ -572,7 +607,7 @@ impl Game {
                             rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
                             w: thread_rng()
                                 .gen_range(-self.config.farticle_w..=self.config.farticle_w),
-                            color: Rgba::WHITE,
+                            colors: self.config.snow_particle_colors.clone(),
                             t: 0.5,
                         });
                     }

@@ -16,8 +16,17 @@
     "growl_min_scale": 1.0,
     "growl_scale": 1.1,
     "gravity": 7.0,
-    "fart_color": "#057F2177",
-    "bubble_fart_color": "#0af5",
+    "fart_colors": [
+        "#057F2177"
+    ],
+    "fire_fart_colors": [
+        "#ff07",
+        "#f007",
+        "#000f"
+    ],
+    "bubble_fart_colors": [
+        "#0af5"
+    ],
     "farticle_size": 0.2,
     "farticle_count": 10,
     "farticle_w": 10.0,
@@ -27,12 +36,17 @@
     "snow_falloff_impulse_min": 5.0,
     "snow_falloff_impulse_max": 8.0,
     "snow_density": 3.0,
+    "snow_particle_colors": [
+        "white"
+    ],
     "cannon": {
         "activate_distance": 1.0,
         "shoot_time": 1.0,
         "strength": 10.0,
         "particle_count": 10,
-        "particle_color": "#555",
+        "particle_colors": [
+            "#555"
+        ],
         "particle_size": 2.0,
         "particle_speed": 1.0
     },

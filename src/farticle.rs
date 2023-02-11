@@ -4,7 +4,7 @@ pub struct Farticle {
     pub size: f32,
     pub pos: vec2<f32>,
     pub vel: vec2<f32>,
-    pub color: Rgba<f32>,
+    pub colors: Rc<Vec<Rgba<f32>>>,
     pub rot: f32,
     pub w: f32,
     pub t: f32,
@@ -32,20 +32,32 @@ impl Game {
 
     pub fn draw_farticles(&self, framebuffer: &mut ugli::Framebuffer) {
         for farticle in &self.farticles {
+            let color = {
+                let t = (1.0 - farticle.t) * farticle.colors.len() as f32;
+                let index = t.floor() as usize;
+                let t = t.fract();
+                let color1 = farticle.colors.get(index).copied().unwrap_or(Rgba::WHITE);
+                let color2 = farticle
+                    .colors
+                    .get(index + 1)
+                    .copied()
+                    .unwrap_or(Rgba::WHITE);
+                Rgba::lerp(color1, color2, t)
+            };
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
                 &draw_2d::TexturedQuad::unit_colored(
                     &self.assets.farticle,
                     Rgba {
-                        a: farticle.color.a * farticle.t,
-                        ..farticle.color
+                        a: color.a * farticle.t,
+                        ..color
                     },
                 )
                 .transform(mat3::rotate(farticle.rot))
                 .scale_uniform(self.config.farticle_size * farticle.size)
                 .translate(farticle.pos),
-            )
+            );
         }
     }
 }

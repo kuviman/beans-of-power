@@ -9,6 +9,7 @@ pub struct LongFartSfx {
     pub sfx: geng::SoundEffect,
     pub bubble_sfx: geng::SoundEffect,
     pub rainbow_sfx: geng::SoundEffect,
+    pub fire_sfx: geng::SoundEffect,
 }
 
 pub struct Game {

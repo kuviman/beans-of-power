@@ -254,11 +254,13 @@ impl Game {
                     framebuffer,
                     &self.camera,
                     &draw_2d::TexturedQuad::unit(&self.assets.objects[&obj.type_name])
-                        .transform(mat3::rotate(if obj.type_name == "unicorn" {
-                            self.real_time
-                        } else {
-                            0.0
-                        }))
+                        .transform(mat3::rotate(
+                            if obj.type_name == "unicorn" || obj.type_name == "hot-pepper" {
+                                self.real_time
+                            } else {
+                                0.0
+                            },
+                        ))
                         .scale_uniform(0.6)
                         .translate(obj.pos),
                 );

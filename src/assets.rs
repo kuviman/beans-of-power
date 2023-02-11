@@ -47,7 +47,7 @@ pub struct CannonConfig {
     pub shoot_time: f32,
     pub particle_size: f32,
     pub particle_count: usize,
-    pub particle_color: Rgba<f32>,
+    pub particle_colors: Rc<Vec<Rgba<f32>>>,
     pub particle_speed: f32,
 }
 
@@ -76,8 +76,9 @@ pub struct Config {
     pub fart_strength: f32,
     pub max_fart_pressure: f32,
     pub fart_pressure_released: f32,
-    pub fart_color: Rgba<f32>,
-    pub bubble_fart_color: Rgba<f32>,
+    pub fart_colors: Rc<Vec<Rgba<f32>>>,
+    pub fire_fart_colors: Rc<Vec<Rgba<f32>>>,
+    pub bubble_fart_colors: Rc<Vec<Rgba<f32>>>,
     pub farticle_w: f32,
     pub farticle_size: f32,
     pub farticle_count: usize,
@@ -87,6 +88,7 @@ pub struct Config {
     pub snow_falloff_impulse_min: f32,
     pub snow_falloff_impulse_max: f32,
     pub snow_density: f32,
+    pub snow_particle_colors: Rc<Vec<Rgba<f32>>>,
     pub cannon: CannonConfig,
     pub portal: PortalConfig,
     pub stick_force_fadeout_speed: f32,
@@ -106,12 +108,16 @@ pub struct SfxAssets {
     pub bubble_fart: Vec<geng::Sound>,
     #[asset(range = "1..=1", path = "rainbow_fart/*.wav")]
     pub rainbow_fart: Vec<geng::Sound>,
+    #[asset(range = "1..=1", path = "explosive_fart/*.wav")]
+    pub explosive_fart: Vec<geng::Sound>,
     #[asset(path = "fart/long.wav")]
     pub long_fart: geng::Sound,
     #[asset(path = "bubble_fart/long.wav")]
     pub bubble_long_fart: geng::Sound,
     #[asset(path = "rainbow_fart/long.wav")]
     pub rainbow_long_fart: geng::Sound,
+    #[asset(path = "explosive_fart/long.wav")]
+    pub explosive_long_fart: geng::Sound,
     pub fart_recharge: geng::Sound,
     pub water_splash: geng::Sound,
     #[asset(path = "music.mp3")]

@@ -251,7 +251,8 @@
       "parallax": [
         0.5,
         1.0
-      ]
+      ],
+      "reveal_radius": 0.0
     },
     {
       "name": "near-background",
@@ -262,7 +263,8 @@
       "parallax": [
         1.0,
         1.0
-      ]
+      ],
+      "reveal_radius": 0.0
     },
     {
       "name": "main-background",
@@ -273,7 +275,8 @@
       "parallax": [
         1.0,
         1.0
-      ]
+      ],
+      "reveal_radius": 0.0
     },
     {
       "name": "main",
@@ -22225,12 +22228,20 @@
             19.899855,
             -16.07074
           ]
+        },
+        {
+          "type_name": "hot-pepper",
+          "pos": [
+            76.24426,
+            5.766883
+          ]
         }
       ],
       "parallax": [
         1.0,
         1.0
-      ]
+      ],
+      "reveal_radius": 0.0
     },
     {
       "name": "main-foreground",
@@ -22452,12 +22463,12 @@
       "parallax": [
         1.0,
         1.0
-      ]
+      ],
+      "reveal_radius": 0.0
     },
     {
       "name": "near-foreground",
       "gameplay": false,
-      "reveal_radius": 2.0,
       "surfaces": [],
       "tiles": [
         {
@@ -22591,7 +22602,8 @@
       "parallax": [
         1.0,
         1.0
-      ]
+      ],
+      "reveal_radius": 2.0
     },
     {
       "name": "far-foreground",
@@ -22602,7 +22614,8 @@
       "parallax": [
         1.5,
         1.0
-      ]
+      ],
+      "reveal_radius": 0.0
     }
   ],
   "cannons": [
