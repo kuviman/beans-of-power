@@ -6,10 +6,8 @@ pub const CONTROLS_FORCE_FART: [geng::Key; 3] = [geng::Key::W, geng::Key::Up, ge
 
 pub struct LongFartSfx {
     pub finish_time: Option<f32>,
+    pub type_name: String,
     pub sfx: geng::SoundEffect,
-    pub bubble_sfx: geng::SoundEffect,
-    pub rainbow_sfx: geng::SoundEffect,
-    pub fire_sfx: geng::SoundEffect,
 }
 
 pub struct Game {

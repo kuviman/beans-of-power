@@ -4,6 +4,8 @@ use super::*;
 pub struct Assets {
     pub config: Rc<Config>,
     pub sfx: SfxAssets,
+    #[asset(load_with = "load_fart_assets(&geng, &base_path.join(\"farts\"))")]
+    pub farts: HashMap<String, FartAssets>,
     pub guy: GuyAssets,
     #[asset(load_with = "load_surface_assets(&geng, &base_path.join(\"surfaces\"))")]
     pub surfaces: HashMap<String, SurfaceAssets>,
@@ -68,21 +70,21 @@ pub struct Config {
     pub angular_acceleration: f32,
     pub gravity: f32,
     pub max_angular_speed: f32, // TODO: maybe?
+
     pub fart_continued_force: f32,
     pub fart_continuation_pressure_speed: f32,
     pub force_fart_pressure_multiplier: f32,
-    pub long_fart_farticles_per_second: f32,
-    pub long_fart_farticle_speed: f32,
     pub fart_strength: f32,
     pub max_fart_pressure: f32,
     pub fart_pressure_released: f32,
-    pub fart_colors: Rc<Vec<Rgba<f32>>>,
-    pub fire_fart_colors: Rc<Vec<Rgba<f32>>>,
-    pub bubble_fart_colors: Rc<Vec<Rgba<f32>>>,
+
+    pub long_fart_farticles_per_second: f32,
+    pub long_fart_farticle_speed: f32,
     pub farticle_w: f32,
     pub farticle_size: f32,
     pub farticle_count: usize,
     pub farticle_additional_vel: f32,
+
     pub background_color: Rgba<f32>,
     pub max_snow_layer: f32,
     pub snow_falloff_impulse_min: f32,
@@ -102,22 +104,6 @@ pub struct Config {
 
 #[derive(geng::Assets)]
 pub struct SfxAssets {
-    #[asset(range = "1..=3", path = "fart/*.wav")]
-    pub fart: Vec<geng::Sound>,
-    #[asset(range = "1..=1", path = "bubble_fart/*.wav")]
-    pub bubble_fart: Vec<geng::Sound>,
-    #[asset(range = "1..=1", path = "rainbow_fart/*.wav")]
-    pub rainbow_fart: Vec<geng::Sound>,
-    #[asset(range = "1..=1", path = "explosive_fart/*.wav")]
-    pub explosive_fart: Vec<geng::Sound>,
-    #[asset(path = "fart/long.wav")]
-    pub long_fart: geng::Sound,
-    #[asset(path = "bubble_fart/long.wav")]
-    pub bubble_long_fart: geng::Sound,
-    #[asset(path = "rainbow_fart/long.wav")]
-    pub rainbow_long_fart: geng::Sound,
-    #[asset(path = "explosive_fart/long.wav")]
-    pub explosive_long_fart: geng::Sound,
     pub fart_recharge: geng::Sound,
     pub water_splash: geng::Sound,
     #[asset(path = "music.mp3")]
@@ -148,4 +134,95 @@ impl Assets {
         self.sfx.old_music.looped = true;
         self.sfx.new_music.looped = true;
     }
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum FartColors {
+    Fixed(Rc<Vec<Rgba<f32>>>),
+    RandomHue { alpha: f32 },
+}
+
+impl FartColors {
+    pub fn get(&self) -> Rc<Vec<Rgba<f32>>> {
+        match self {
+            FartColors::Fixed(list) => list.clone(),
+            FartColors::RandomHue { alpha } => Rc::new(vec![Rgba {
+                a: *alpha,
+                ..random_hue()
+            }]),
+        }
+    }
+}
+
+#[derive(geng::Assets, Serialize, Deserialize)]
+#[asset(json)]
+pub struct FartConfig {
+    #[serde(default = "one")]
+    pub sfx_count: usize,
+    pub colors: FartColors,
+}
+
+fn one() -> usize {
+    1
+}
+
+pub struct FartAssets {
+    pub config: FartConfig,
+    pub farticle_texture: Texture,
+    pub sfx: Vec<geng::Sound>,
+    pub long_sfx: geng::Sound,
+}
+
+pub fn load_fart_assets(
+    geng: &Geng,
+    path: &std::path::Path,
+) -> geng::AssetFuture<HashMap<String, FartAssets>> {
+    let geng = geng.clone();
+    let path = path.to_owned();
+    async move {
+        let list: Vec<String> = file::load_json(path.join("_list.json"))
+            .await
+            .context("Failed to load _list.json")?;
+        future::join_all(list.into_iter().map(|fart_type| async {
+            let path = path.join(&fart_type);
+            let config: FartConfig = file::load_json(path.join("config.json"))
+                .await
+                .context("Failed to load config.json")?;
+            let farticle_texture = geng
+                .load_asset(path.join("farticle.png"))
+                .await
+                .context("Failed to load farticle.png")?;
+            let sfx_count = config.sfx_count;
+            let sfx = future::join_all((0..sfx_count).map(|index| {
+                let filename = if sfx_count == 1 {
+                    "sfx.wav".to_owned()
+                } else {
+                    format!("sfx{}.wav", index + 1)
+                };
+                geng.load_asset::<geng::Sound>(path.join(&filename))
+                    .map(move |result| result.context(format!("Failed to load {filename:?}")))
+            }))
+            .await
+            .into_iter()
+            .collect::<anyhow::Result<Vec<geng::Sound>>>()
+            .context("Failed to load fart sfx")?;
+            let long_sfx = geng
+                .load_asset(path.join("long_sfx.wav"))
+                .await
+                .context("Failed to load long_sfx.wav")?;
+            Ok((
+                fart_type,
+                FartAssets {
+                    config,
+                    farticle_texture,
+                    sfx,
+                    long_sfx,
+                },
+            ))
+        }))
+        .await
+        .into_iter()
+        .collect()
+    }
+    .boxed_local()
 }

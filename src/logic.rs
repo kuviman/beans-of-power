@@ -78,8 +78,8 @@ impl Game {
                 for object in self.level.gameplay_objects() {
                     if (guy.ball.pos - object.pos).len() < 1.5 {
                         match object.type_name.as_str() {
-                            "unicorn" => new_fart_type = Some(FartType::Rainbow),
-                            "hot-pepper" => new_fart_type = Some(FartType::Fire),
+                            "unicorn" => new_fart_type = Some("rainbow".to_owned()),
+                            "hot-pepper" => new_fart_type = Some("fire".to_owned()),
                             _ => {}
                         }
                     }
@@ -224,23 +224,12 @@ impl Game {
                 }
             }
 
-            let farticle_colors = || {
-                if in_water {
-                    self.config.bubble_fart_colors.clone()
-                } else {
-                    match guy.fart_type {
-                        FartType::Normal => self.config.fart_colors.clone(),
-                        FartType::Rainbow => Rc::new(vec![Hsva::new(
-                            thread_rng().gen_range(0.0..1.0),
-                            1.0,
-                            1.0,
-                            0.5,
-                        )
-                        .into()]),
-                        FartType::Fire => self.config.fire_fart_colors.clone(),
-                    }
-                }
+            let fart_type = if in_water {
+                "bubble"
+            } else {
+                guy.fart_type.as_str()
             };
+            let fart_assets = &self.assets.farts[fart_type];
 
             let could_fart = guy.fart_state.fart_pressure >= self.config.fart_pressure_released;
             if self.config.fart_continued_force == 0.0 {
@@ -271,72 +260,38 @@ impl Game {
                     let fadeout = (self.real_time - sfx.finish_time.unwrap()) / 0.2;
                     if fadeout >= 1.0 {
                         sfx.sfx.stop();
-                        sfx.bubble_sfx.stop();
-                        sfx.rainbow_sfx.stop();
                         self.long_fart_sfx.remove(&guy.id);
                     } else {
-                        let active_index = if in_water {
-                            0
-                        } else {
-                            match guy.fart_type {
-                                FartType::Normal => 1,
-                                FartType::Rainbow => 2,
-                                FartType::Fire => 3,
-                            }
-                        };
-                        for (index, sfx) in [
-                            &mut sfx.bubble_sfx,
-                            &mut sfx.sfx,
-                            &mut sfx.rainbow_sfx,
-                            &mut sfx.fire_sfx,
-                        ]
-                        .into_iter()
-                        .enumerate()
-                        {
-                            if index == active_index {
-                                sfx.set_volume(
-                                    (self.volume
-                                        * (1.0
-                                            - (guy.ball.pos - self.camera.center).len()
-                                                / self.camera.fov))
-                                        .clamp(0.0, 1.0) as f64
-                                        * (1.0 - fadeout) as f64,
-                                );
-                            } else {
-                                sfx.set_volume(0.0);
-                            }
-                        }
-                    }
-                }
-            } else if let Some(sfx) = self.long_fart_sfx.get_mut(&guy.id) {
-                let active_index = if in_water {
-                    0
-                } else {
-                    match guy.fart_type {
-                        FartType::Normal => 1,
-                        FartType::Rainbow => 2,
-                        FartType::Fire => 3,
-                    }
-                };
-                for (index, sfx) in [
-                    &mut sfx.bubble_sfx,
-                    &mut sfx.sfx,
-                    &mut sfx.rainbow_sfx,
-                    &mut sfx.fire_sfx,
-                ]
-                .into_iter()
-                .enumerate()
-                {
-                    if index == active_index {
-                        sfx.set_volume(
+                        sfx.sfx.set_volume(
                             (self.volume
                                 * (1.0
                                     - (guy.ball.pos - self.camera.center).len() / self.camera.fov))
-                                .clamp(0.0, 1.0) as f64,
+                                .clamp(0.0, 1.0) as f64
+                                * (1.0 - fadeout) as f64,
                         );
-                    } else {
-                        sfx.set_volume(0.0);
                     }
+                }
+            } else if let Some(sfx) = self.long_fart_sfx.get_mut(&guy.id) {
+                let volume = (self.volume
+                    * (1.0 - (guy.ball.pos - self.camera.center).len() / self.camera.fov))
+                    .clamp(0.0, 1.0) as f64;
+                if fart_type != sfx.type_name {
+                    // TODO: this is copypasta
+                    let mut sfx = fart_assets.long_sfx.effect();
+                    sfx.set_volume(volume);
+                    sfx.play();
+                    if let Some(mut sfx) = self.long_fart_sfx.insert(
+                        guy.id,
+                        LongFartSfx {
+                            type_name: fart_type.to_owned(),
+                            finish_time: None,
+                            sfx,
+                        },
+                    ) {
+                        sfx.sfx.stop();
+                    }
+                } else {
+                    sfx.sfx.set_volume(volume);
                 }
             } else {
                 warn!("No sfx for long fart?");
@@ -359,7 +314,7 @@ impl Game {
                             + vec2(0.0, -self.config.long_fart_farticle_speed).rotate(guy.ball.rot),
                         rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
                         w: thread_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
-                        colors: farticle_colors(),
+                        colors: fart_assets.config.colors.get(),
                         t: 1.0,
                     });
                 }
@@ -374,31 +329,19 @@ impl Game {
                 guy.fart_state.fart_pressure -= self.config.fart_pressure_released;
                 guy.fart_state.long_farting = true;
                 {
-                    let mut sfx = self.assets.sfx.long_fart.effect();
+                    let mut sfx = fart_assets.long_sfx.effect();
                     sfx.set_volume(0.0);
                     sfx.play();
-                    let mut bubble_sfx = self.assets.sfx.bubble_long_fart.effect();
-                    bubble_sfx.set_volume(0.0);
-                    bubble_sfx.play();
-                    let mut rainbow_sfx = self.assets.sfx.rainbow_long_fart.effect();
-                    rainbow_sfx.set_volume(0.0);
-                    rainbow_sfx.play();
-                    let mut fire_sfx = self.assets.sfx.explosive_long_fart.effect();
-                    fire_sfx.set_volume(0.0);
-                    fire_sfx.play();
+                    info!("Started the long fart");
                     if let Some(mut sfx) = self.long_fart_sfx.insert(
                         guy.id,
                         LongFartSfx {
+                            type_name: fart_type.to_owned(),
                             finish_time: None,
                             sfx,
-                            bubble_sfx,
-                            rainbow_sfx,
-                            fire_sfx,
                         },
                     ) {
-                        sfx.bubble_sfx.stop();
                         sfx.sfx.stop();
-                        sfx.rainbow_sfx.stop();
                     }
                 }
                 for _ in 0..self.config.farticle_count {
@@ -413,22 +356,13 @@ impl Game {
                             .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI)),
                         rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
                         w: thread_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
-                        colors: farticle_colors(),
+                        colors: fart_assets.config.colors.get(),
                         t: 1.0,
                     });
                 }
                 guy.ball.vel += vec2(0.0, self.config.fart_strength).rotate(guy.ball.rot)
                     / guy.mass(&self.config);
-                let sounds = if in_water {
-                    &self.assets.sfx.bubble_fart
-                } else {
-                    match guy.fart_type {
-                        FartType::Normal => &self.assets.sfx.fart,
-                        FartType::Rainbow => &self.assets.sfx.rainbow_fart,
-                        FartType::Fire => &self.assets.sfx.explosive_fart,
-                    }
-                };
-                let mut effect = sounds.choose(&mut thread_rng()).unwrap().effect();
+                let mut effect = fart_assets.sfx.choose(&mut thread_rng()).unwrap().effect();
                 effect.set_volume(
                     (self.volume
                         * (1.0 - (guy.ball.pos - self.camera.center).len() / self.camera.fov))
@@ -512,7 +446,7 @@ impl Game {
                                     w: thread_rng().gen_range(
                                         -self.config.farticle_w..=self.config.farticle_w,
                                     ),
-                                    colors: self.config.bubble_fart_colors.clone(),
+                                    colors: self.assets.farts["bubble"].config.colors.get(),
                                     t: 0.5,
                                 });
                             }

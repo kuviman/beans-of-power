@@ -61,13 +61,6 @@ pub struct GuyAnimationState {
     pub next_farticle_time: f32,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum FartType {
-    Normal,
-    Rainbow,
-    Fire,
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug, HasId)]
 pub struct Guy {
     pub id: Id,
@@ -78,7 +71,7 @@ pub struct Guy {
     pub animation: GuyAnimationState,
     pub progress: Progress,
 
-    pub fart_type: FartType,
+    pub fart_type: String,
     pub snow_layer: f32,
     pub cannon_timer: Option<CannonTimer>,
     pub stick_force: vec2<f32>,
@@ -148,7 +141,7 @@ impl Guy {
                 next_farticle_time: 0.0,
             },
 
-            fart_type: FartType::Normal,
+            fart_type: "normal".to_owned(), // TODO
             cannon_timer: None,
             stick_force: vec2::ZERO,
             bubble_timer: None,

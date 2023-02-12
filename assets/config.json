@@ -16,17 +16,6 @@
     "growl_min_scale": 1.0,
     "growl_scale": 1.1,
     "gravity": 7.0,
-    "fart_colors": [
-        "#057F2177"
-    ],
-    "fire_fart_colors": [
-        "#ff07",
-        "#f007",
-        "#000f"
-    ],
-    "bubble_fart_colors": [
-        "#0af5"
-    ],
     "farticle_size": 0.2,
     "farticle_count": 10,
     "farticle_w": 10.0,
