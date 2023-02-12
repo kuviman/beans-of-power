@@ -34,14 +34,10 @@ impl Game {
         for farticle in &self.farticles {
             let color = {
                 let t = (1.0 - farticle.t) * farticle.colors.len() as f32;
-                let index = t.floor() as usize;
+                let index = (t.floor() as usize).min(farticle.colors.len() - 1);
                 let t = t.fract();
-                let color1 = farticle.colors.get(index).copied().unwrap_or(Rgba::WHITE);
-                let color2 = farticle
-                    .colors
-                    .get(index + 1)
-                    .copied()
-                    .unwrap_or(Rgba::WHITE);
+                let color1 = farticle.colors[index];
+                let color2 = farticle.colors[(index + 1).min(farticle.colors.len() - 1)];
                 Rgba::lerp(color1, color2, t)
             };
             self.geng.draw_2d(
