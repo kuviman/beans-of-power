@@ -6,6 +6,18 @@ pub struct Object {
     pub pos: vec2<f32>,
 }
 
+impl Object {
+    // TODO: this should go into config I guess
+    pub fn fart_type(&self) -> Option<&str> {
+        Some(match self.type_name.as_str() {
+            "unicorn" => "rainbow",
+            "hot-pepper" => "fire",
+            "guitar" => "melody",
+            _ => return None,
+        })
+    }
+}
+
 pub fn load_objects_assets(
     geng: &Geng,
     path: &std::path::Path,

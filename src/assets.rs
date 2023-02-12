@@ -13,7 +13,6 @@ pub struct Assets {
     pub tiles: HashMap<String, TileAssets>,
     #[asset(load_with = "load_objects_assets(&geng, &base_path.join(\"objects\"))")]
     pub objects: HashMap<String, Texture>,
-    pub farticle: Texture,
     #[asset(load_with = "load_font(&geng, &base_path.join(\"Ludum-Dairy-0.2.0.ttf\"))")]
     pub font: geng::Font,
     pub closed_outhouse: Texture,
@@ -77,13 +76,6 @@ pub struct Config {
     pub fart_strength: f32,
     pub max_fart_pressure: f32,
     pub fart_pressure_released: f32,
-
-    pub long_fart_farticles_per_second: f32,
-    pub long_fart_farticle_speed: f32,
-    pub farticle_w: f32,
-    pub farticle_size: f32,
-    pub farticle_count: usize,
-    pub farticle_additional_vel: f32,
 
     pub background_color: Rgba<f32>,
     pub max_snow_layer: f32,
@@ -160,6 +152,19 @@ pub struct FartConfig {
     #[serde(default = "one")]
     pub sfx_count: usize,
     pub colors: FartColors,
+
+    pub long_fart_farticles_per_second: f32,
+    pub long_fart_farticle_speed: f32,
+    pub farticle_w: f32,
+    pub farticle_size: f32,
+    pub farticle_count: usize,
+    pub farticle_additional_vel: f32,
+    #[serde(default = "create_true")]
+    pub farticle_random_rotation: bool,
+}
+
+fn create_true() -> bool {
+    true
 }
 
 fn one() -> usize {

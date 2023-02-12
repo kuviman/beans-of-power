@@ -4,5 +4,11 @@
             "#057F2177"
         ]
     },
-    "sfx_count": 3
+    "sfx_count": 3,
+    "long_fart_farticles_per_second": 30.0,
+    "long_fart_farticle_speed": 3.5,
+    "farticle_size": 0.2,
+    "farticle_count": 10,
+    "farticle_w": 10.0,
+    "farticle_additional_vel": 1.0
 }

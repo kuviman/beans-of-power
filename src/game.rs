@@ -30,7 +30,7 @@ pub struct Game {
     pub real_time: f32,
     pub noise: noise::OpenSimplex,
     pub opt: Opt,
-    pub farticles: Vec<Farticle>,
+    pub farticles: HashMap<String, Vec<Farticle>>,
     pub volume: f32,
     pub client_id: Id,
     pub connection: Option<Connection>,

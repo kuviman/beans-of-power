@@ -1,3 +1,5 @@
+use std::f32::consts::FRAC_1_SQRT_2;
+
 use super::*;
 
 impl Game {
@@ -77,10 +79,8 @@ impl Game {
                 let mut new_fart_type = None;
                 for object in self.level.gameplay_objects() {
                     if (guy.ball.pos - object.pos).len() < 1.5 {
-                        match object.type_name.as_str() {
-                            "unicorn" => new_fart_type = Some("rainbow".to_owned()),
-                            "hot-pepper" => new_fart_type = Some("fire".to_owned()),
-                            _ => {}
+                        if let Some(fart_type) = object.fart_type() {
+                            new_fart_type = Some(fart_type.to_owned());
                         }
                     }
                 }
@@ -142,20 +142,25 @@ impl Game {
                     );
                     effect.play();
 
+                    let fart_type = "normal"; // TODO: not normal LUL
+                    let fart_assets = &self.assets.farts[fart_type];
+                    let farticles = self.farticles.entry(fart_type.to_owned()).or_default();
                     for _ in 0..self.config.cannon.particle_count {
-                        self.farticles.push(Farticle {
+                        farticles.push(Farticle {
                             size: self.config.cannon.particle_size,
                             pos: guy.ball.pos,
                             vel: dir * self.config.cannon.particle_speed
                                 + vec2(
-                                    thread_rng()
-                                        .gen_range(0.0..=self.config.farticle_additional_vel),
+                                    thread_rng().gen_range(
+                                        0.0..=fart_assets.config.farticle_additional_vel,
+                                    ),
                                     0.0,
                                 )
                                 .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI)),
                             rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
-                            w: thread_rng()
-                                .gen_range(-self.config.farticle_w..=self.config.farticle_w),
+                            w: thread_rng().gen_range(
+                                -fart_assets.config.farticle_w..=fart_assets.config.farticle_w,
+                            ),
                             colors: self.config.cannon.particle_colors.clone(),
                             t: 1.0,
                         });
@@ -301,22 +306,34 @@ impl Game {
                 guy.animation.next_farticle_time -= delta_time;
                 while guy.animation.next_farticle_time < 0.0 {
                     guy.animation.next_farticle_time +=
-                        1.0 / self.config.long_fart_farticles_per_second;
-                    self.farticles.push(Farticle {
-                        size: 1.0,
-                        pos: butt,
-                        vel: guy.ball.vel
-                            + vec2(
-                                thread_rng().gen_range(0.0..=self.config.farticle_additional_vel),
-                                0.0,
-                            )
-                            .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI))
-                            + vec2(0.0, -self.config.long_fart_farticle_speed).rotate(guy.ball.rot),
-                        rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
-                        w: thread_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
-                        colors: fart_assets.config.colors.get(),
-                        t: 1.0,
-                    });
+                        1.0 / fart_assets.config.long_fart_farticles_per_second;
+                    self.farticles
+                        .entry(fart_type.to_owned())
+                        .or_default()
+                        .push(Farticle {
+                            size: 1.0,
+                            pos: butt,
+                            vel: guy.ball.vel
+                                + vec2(
+                                    thread_rng().gen_range(
+                                        0.0..=fart_assets.config.farticle_additional_vel,
+                                    ),
+                                    0.0,
+                                )
+                                .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI))
+                                + vec2(0.0, -fart_assets.config.long_fart_farticle_speed)
+                                    .rotate(guy.ball.rot),
+                            rot: if fart_assets.config.farticle_random_rotation {
+                                thread_rng().gen_range(0.0..2.0 * f32::PI)
+                            } else {
+                                0.0
+                            },
+                            w: thread_rng().gen_range(
+                                -fart_assets.config.farticle_w..=fart_assets.config.farticle_w,
+                            ),
+                            colors: fart_assets.config.colors.get(),
+                            t: 1.0,
+                        });
                 }
                 guy.ball.vel += vec2(0.0, self.config.fart_continued_force * delta_time)
                     .rotate(guy.ball.rot)
@@ -344,18 +361,26 @@ impl Game {
                         sfx.sfx.stop();
                     }
                 }
-                for _ in 0..self.config.farticle_count {
-                    self.farticles.push(Farticle {
+                let farticles = self.farticles.entry(fart_type.to_owned()).or_default();
+                for _ in 0..fart_assets.config.farticle_count {
+                    farticles.push(Farticle {
                         size: 1.0,
                         pos: butt,
                         vel: guy.ball.vel
                             + vec2(
-                                thread_rng().gen_range(0.0..=self.config.farticle_additional_vel),
+                                thread_rng()
+                                    .gen_range(0.0..=fart_assets.config.farticle_additional_vel),
                                 0.0,
                             )
                             .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI)),
-                        rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
-                        w: thread_rng().gen_range(-self.config.farticle_w..=self.config.farticle_w),
+                        rot: if fart_assets.config.farticle_random_rotation {
+                            thread_rng().gen_range(0.0..2.0 * f32::PI)
+                        } else {
+                            0.0
+                        },
+                        w: thread_rng().gen_range(
+                            -fart_assets.config.farticle_w..=fart_assets.config.farticle_w,
+                        ),
                         colors: fart_assets.config.colors.get(),
                         t: 1.0,
                     });
@@ -424,8 +449,11 @@ impl Game {
                                     .clamp(0.0, 1.0) as f64,
                             );
                             effect.play();
+                            let fart_type = "bubble";
+                            let fart_assets = &self.assets.farts[fart_type];
+                            let farticles = self.farticles.entry(fart_type.to_owned()).or_default();
                             for _ in 0..30 {
-                                self.farticles.push(Farticle {
+                                farticles.push(Farticle {
                                     size: 0.6,
                                     pos: guy.ball.pos
                                         + v
@@ -444,9 +472,10 @@ impl Game {
                                     },
                                     rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
                                     w: thread_rng().gen_range(
-                                        -self.config.farticle_w..=self.config.farticle_w,
+                                        -fart_assets.config.farticle_w
+                                            ..=fart_assets.config.farticle_w,
                                     ),
-                                    colors: self.assets.farts["bubble"].config.colors.get(),
+                                    colors: fart_assets.config.colors.get(),
                                     t: 0.5,
                                 });
                             }
@@ -531,16 +560,20 @@ impl Game {
                         * self.config.max_snow_layer;
                     let snow_falloff = snow_falloff.min(guy.snow_layer);
                     guy.snow_layer -= snow_falloff;
+                    let fart_type = "normal"; // TODO: not normal?
+                    let fart_assets = &self.assets.farts[fart_type];
+                    let farticles = self.farticles.entry(fart_type.to_owned()).or_default();
                     for _ in 0..(100.0 * snow_falloff / self.config.max_snow_layer) as i32 {
-                        self.farticles.push(Farticle {
+                        farticles.push(Farticle {
                             size: 0.6,
                             pos: guy.ball.pos
                                 + vec2(guy.radius(), 0.0)
                                     .rotate(thread_rng().gen_range(0.0..2.0 * f32::PI)),
                             vel: thread_rng().gen_circle(before.vel, 1.0),
                             rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
-                            w: thread_rng()
-                                .gen_range(-self.config.farticle_w..=self.config.farticle_w),
+                            w: thread_rng().gen_range(
+                                -fart_assets.config.farticle_w..=fart_assets.config.farticle_w,
+                            ),
                             colors: self.config.snow_particle_colors.clone(),
                             t: 0.5,
                         });
