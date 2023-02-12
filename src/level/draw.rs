@@ -238,16 +238,6 @@ impl Game {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         self.draw_tiles(framebuffer, level, layer_index, true);
-        self.geng.draw_2d(
-            framebuffer,
-            &self.camera,
-            &draw_2d::TexturedQuad::unit(&self.assets.closed_outhouse).translate(level.spawn_point),
-        );
-        self.geng.draw_2d(
-            framebuffer,
-            &self.camera,
-            &draw_2d::TexturedQuad::unit(&self.assets.golden_toilet).translate(level.finish_point),
-        );
         {
             for obj in &level.layers[layer_index].objects {
                 self.geng.draw_2d(

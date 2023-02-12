@@ -239,6 +239,18 @@ impl geng::State for Game {
         for (index, layer) in self.level.layers.iter().enumerate() {
             self.draw_layer_back(&self.level, index, framebuffer);
             if layer.name == "main" {
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit(&self.assets.closed_outhouse)
+                        .translate(self.level.spawn_point),
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &self.camera,
+                    &draw_2d::TexturedQuad::unit(&self.assets.golden_toilet)
+                        .translate(self.level.finish_point),
+                );
                 self.draw_guys(framebuffer);
                 self.draw_farticles(framebuffer);
             }
