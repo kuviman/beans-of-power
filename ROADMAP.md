@@ -82,3 +82,9 @@ hot pepper
 tournament
 trailer
 references
+
+MILK - NO
+BIRD - IDK
+Butterflies
+Musical notes
+Astronauts/aliens
