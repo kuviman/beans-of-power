@@ -104,5 +104,12 @@
         "front": false,
         "back": true,
         "sound": true
+    },
+    "dark_brick": {
+        "bounciness": 0.3,
+        "friction": 0.7,
+        "front": false,
+        "back": true,
+        "sound": true
     }
 }

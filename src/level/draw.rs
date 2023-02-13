@@ -203,6 +203,10 @@ impl Game {
 
     pub fn draw_cannons(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
         for cannon in &level.cannons {
+            let mut scale = vec2(1.0, 1.0);
+            if cannon.rot > f32::PI / 2.0 || cannon.rot < -f32::PI / 2.0 {
+                scale.x = -scale.x;
+            }
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
@@ -213,7 +217,9 @@ impl Game {
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::TexturedQuad::unit(&self.assets.cannon.base).translate(cannon.pos),
+                &draw_2d::TexturedQuad::unit(&self.assets.cannon.base)
+                    .scale(scale)
+                    .translate(cannon.pos),
             );
         }
     }
