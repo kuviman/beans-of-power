@@ -91,19 +91,18 @@ fn main() {
         })
         .then(|connection| {
             future::OptionFuture::from(connection.map(|connection| async {
+                let connection = connection.unwrap();
                 let (message, mut connection) = connection.into_future().await;
-                let id = match message {
-                    Some(ServerMessage::ClientId(id)) => id,
+                let id = match message.unwrap().unwrap() {
+                    ServerMessage::ClientId(id) => id,
                     _ => unreachable!(),
                 };
                 connection.send(ClientMessage::Ping);
                 (id, connection)
             }))
         });
-        let state = geng::LoadingScreen::new(
-            &geng,
-            geng::EmptyLoadingScreen,
-            future::join(
+        geng.clone().run_loading(async move {
+            let ((assets, level), connection_info) = future::join(
                 future::join(
                     <Assets as geng::LoadAsset>::load(&geng, &run_dir().join("assets")),
                     <String as geng::LoadAsset>::load(
@@ -112,19 +111,14 @@ fn main() {
                     ),
                 ),
                 connection,
-            ),
-            {
-                let geng = geng.clone();
-                move |((assets, level), connection_info)| {
-                    let mut assets = assets.expect("Failed to load assets");
-                    let level = Level::new(serde_json::from_str(&level.unwrap()).unwrap());
-                    assets.process();
-                    let assets = Rc::new(assets);
-                    Game::new(&geng, &assets, level, opt, connection_info)
-                }
-            },
-        );
-        geng::run(&geng, state);
+            )
+            .await;
+            let mut assets = assets.expect("Failed to load assets");
+            let level = Level::new(serde_json::from_str(&level.unwrap()).unwrap());
+            assets.process();
+            let assets = Rc::new(assets);
+            Game::new(&geng, &assets, level, opt, connection_info)
+        });
 
         #[cfg(not(target_arch = "wasm32"))]
         if let Some((server_handle, server_thread)) = server {

@@ -615,7 +615,7 @@ impl Game {
 
     pub fn handle_connection(&mut self) {
         let messages: Vec<ServerMessage> = match &mut self.connection {
-            Some(con) => con.new_messages().collect(),
+            Some(con) => con.new_messages().collect::<anyhow::Result<_>>().unwrap(),
             None => return,
         };
         for message in messages {
