@@ -1,5 +1,3 @@
-use std::f32::consts::FRAC_1_SQRT_2;
-
 use super::*;
 
 impl Game {
@@ -55,6 +53,7 @@ impl Game {
             let delta_time = {
                 let mut delta_time = delta_time;
                 'tile_loop: for tile in self.level.gameplay_tiles() {
+                    // TODO partial penetration
                     for i in 0..3 {
                         let p1 = tile.vertices[i];
                         let p2 = tile.vertices[(i + 1) % 3];
@@ -195,14 +194,18 @@ impl Game {
 
             let mut in_water = false;
             let butt = guy.ball.pos + vec2(0.0, -guy.ball.radius * 0.9).rotate(guy.ball.rot);
-            'tile_loop: for tile in self.level.gameplay_tiles() {
-                for i in 0..3 {
-                    let p1 = tile.vertices[i];
-                    let p2 = tile.vertices[(i + 1) % 3];
-                    if vec2::skew(p2 - p1, guy.ball.pos - p1) < 0.0 {
-                        continue 'tile_loop;
-                    }
+            for tile in self.level.gameplay_tiles() {
+                if !Aabb2::points_bounding_box(tile.vertices)
+                    .extend_uniform(self.config.guy_radius)
+                    .contains(guy.ball.pos)
+                {
+                    continue;
                 }
+                let percentage = circle_triangle_intersect_percentage(
+                    guy.ball.pos,
+                    self.config.guy_radius,
+                    tile.vertices,
+                );
                 let relative_vel = guy.ball.vel - tile.flow;
                 let flow_direction = tile.flow.normalize_or_zero();
                 let relative_vel_along_flow = vec2::dot(flow_direction, relative_vel);
@@ -212,8 +215,10 @@ impl Game {
                 let friction_force = -relative_vel * params.friction;
                 guy.ball.vel += (force_along_flow + params.additional_force + friction_force)
                     * delta_time
-                    / guy.mass(&self.config);
-                guy.ball.w -= guy.ball.w * params.friction * delta_time / guy.mass(&self.config);
+                    / guy.mass(&self.config)
+                    * percentage;
+                guy.ball.w -=
+                    guy.ball.w * params.friction * delta_time / guy.mass(&self.config) * percentage;
                 // TODO inertia?
             }
             'tile_loop: for tile in self.level.gameplay_tiles() {
