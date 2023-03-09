@@ -578,7 +578,8 @@ impl Game {
                         / (self.config.snow_falloff_impulse_max
                             - self.config.snow_falloff_impulse_min))
                         .clamp(0.0, 1.0)
-                        * self.config.max_snow_layer;
+                        * self.config.max_snow_layer
+                        * collision.assets.params.snow_falloff;
                     let snow_falloff = snow_falloff.min(guy.snow_layer);
                     guy.snow_layer -= snow_falloff;
                     let fart_type = "normal"; // TODO: not normal?

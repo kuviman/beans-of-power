@@ -51,6 +51,12 @@ pub struct SurfaceParams {
     #[serde(default)]
     pub max_stick_force: f32,
     pub fallthrough_speed: Option<f32>,
+    #[serde(default = "default_snow_falloff")]
+    pub snow_falloff: f32,
+}
+
+fn default_snow_falloff() -> f32 {
+    1.0
 }
 
 pub struct SurfaceAssets {

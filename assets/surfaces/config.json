@@ -30,7 +30,8 @@
         "speed_friction": 100.0,
         "front": true,
         "back": false,
-        "sound": false
+        "sound": false,
+        "snow_falloff": 0.0
     },
     "stone": {
         "bounciness": 0.3,
