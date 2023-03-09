@@ -1,7 +1,7 @@
 use super::*;
 
 impl Level {
-    pub fn progress_at(&self, pos: vec2<f32>) -> f32 {
+    pub fn progress_at(&self, pos: vec2<f32>) -> Option<f32> {
         let mut total_len = 0.0;
         for path in &self.expected_path {
             for window in path.windows(2) {
@@ -10,8 +10,8 @@ impl Level {
                 total_len += (b - a).len();
             }
         }
-        let mut progress = 0.0;
-        let mut closest_point_distance = 1e9;
+        let mut progress = None;
+        let mut closest_point_distance = self.max_progress_distance;
         let mut prefix_len = 0.0;
 
         for path in &self.expected_path {
@@ -27,7 +27,7 @@ impl Level {
                 .vector_from(pos);
                 if v.len() < closest_point_distance {
                     closest_point_distance = v.len();
-                    progress = (prefix_len + (pos + v - a).len()) / total_len;
+                    progress = Some((prefix_len + (pos + v - a).len()) / total_len);
                 }
                 prefix_len += (b - a).len();
             }

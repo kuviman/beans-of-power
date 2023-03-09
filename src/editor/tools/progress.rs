@@ -60,17 +60,16 @@ impl EditorTool for ProgressTool {
             );
         }
         for path in &level.expected_path {
-            for seg in path.windows(2) {
-                self.geng.draw_2d(
-                    framebuffer,
-                    camera,
-                    &draw_2d::Segment::new(
-                        Segment(seg[0], seg[1]),
-                        0.1,
-                        Rgba::new(0.0, 0.0, 0.0, 0.25),
-                    ),
-                );
-            }
+            self.geng.draw_2d(
+                framebuffer,
+                camera,
+                &draw_2d::Chain::new(
+                    CardinalSpline::new(path.clone(), 0.5).chain(5),
+                    level.max_progress_distance * 2.0,
+                    Rgba::new(0.0, 0.0, 0.0, 0.25),
+                    5,
+                ),
+            );
         }
         if let Some((i, j)) = self.find_hovered_point(cursor, level) {
             let point = level.expected_path[i][j];
@@ -83,21 +82,23 @@ impl EditorTool for ProgressTool {
                 ),
             );
         }
-        self.geng.draw_2d(
-            framebuffer,
-            &geng::Camera2d {
-                center: vec2::ZERO,
-                rotation: 0.0,
-                fov: 15.0,
-            },
-            &draw_2d::Text::unit(
-                &**self.geng.default_font(),
-                format!("{}%", (level.progress_at(cursor.world_pos) * 100.0) as i32),
-                Rgba::BLACK,
-            )
-            .scale_uniform(0.2)
-            .translate(vec2(0.0, -6.0)),
-        )
+        if let Some(progress) = level.progress_at(cursor.world_pos) {
+            self.geng.draw_2d(
+                framebuffer,
+                &geng::Camera2d {
+                    center: vec2::ZERO,
+                    rotation: 0.0,
+                    fov: 15.0,
+                },
+                &draw_2d::Text::unit(
+                    &**self.geng.default_font(),
+                    format!("{}%", (progress * 100.0) as i32),
+                    Rgba::BLACK,
+                )
+                .scale_uniform(0.2)
+                .translate(vec2(0.0, -6.0)),
+            );
+        }
     }
     fn handle_event(
         &mut self,

@@ -39,6 +39,7 @@ pub struct LevelInfo {
     pub layers: Vec<LevelLayer>,
     pub cannons: Vec<Cannon>,
     pub portals: Vec<Portal>,
+    pub max_progress_distance: f32,
 }
 
 impl Default for LevelInfo {
@@ -58,6 +59,7 @@ impl Default for LevelInfo {
             }],
             cannons: vec![],
             portals: vec![],
+            max_progress_distance: 10.0,
         }
     }
 }

@@ -156,7 +156,10 @@ impl Game {
                     Rgba::BLACK,
                 );
             }
-            let progress = self.level.progress_at(guy.ball.pos);
+            let progress = self
+                .level
+                .progress_at(guy.ball.pos)
+                .unwrap_or(guy.progress.current);
             guy.progress.current = progress;
             self.best_progress = self.best_progress.max(progress);
             guy.progress.best = self.best_progress;
