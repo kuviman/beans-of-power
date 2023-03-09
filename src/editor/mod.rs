@@ -56,17 +56,7 @@ impl EditorState {
     }
 
     pub fn save_level(&self, level: &mut Level) {
-        if level.save() {
-            #[cfg(not(target_arch = "wasm32"))]
-            serde_json::to_writer_pretty(
-                std::io::BufWriter::new(
-                    std::fs::File::create(run_dir().join("assets").join("level.json")).unwrap(),
-                ),
-                level.info(),
-            )
-            .unwrap();
-            info!("LVL SAVED");
-        }
+        level.save();
     }
 }
 

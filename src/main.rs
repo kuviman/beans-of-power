@@ -39,6 +39,8 @@ pub struct Opt {
     pub server: Option<String>,
     #[clap(long)]
     pub connect: Option<String>,
+    #[clap(long, default_value = "level.json")]
+    pub level: std::path::PathBuf,
     #[clap(flatten)]
     pub geng: geng::CliArgs,
 }
@@ -105,16 +107,12 @@ fn main() {
             let ((assets, level), connection_info) = future::join(
                 future::join(
                     <Assets as geng::LoadAsset>::load(&geng, &run_dir().join("assets")),
-                    <String as geng::LoadAsset>::load(
-                        &geng,
-                        &run_dir().join("assets").join("level.json"),
-                    ),
+                    Level::load(run_dir().join("assets").join(&opt.level), opt.editor),
                 ),
                 connection,
             )
             .await;
             let mut assets = assets.expect("Failed to load assets");
-            let level = Level::new(serde_json::from_str(&level.unwrap()).unwrap());
             assets.process();
             let assets = Rc::new(assets);
             Game::new(&geng, &assets, level, opt, connection_info)

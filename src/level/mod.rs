@@ -41,18 +41,28 @@ pub struct LevelInfo {
     pub portals: Vec<Portal>,
 }
 
-impl LevelInfo {
-    pub fn empty() -> Self {
+impl Default for LevelInfo {
+    fn default() -> Self {
         Self {
             spawn_point: vec2::ZERO,
             finish_point: vec2::ZERO,
             expected_path: vec![],
-            layers: vec![],
+            layers: vec![LevelLayer {
+                name: "main".to_owned(),
+                gameplay: true,
+                surfaces: vec![],
+                tiles: vec![],
+                objects: vec![],
+                parallax: default_parallax(),
+                reveal_radius: 0.0,
+            }],
             cannons: vec![],
             portals: vec![],
         }
     }
+}
 
+impl LevelInfo {
     pub fn gameplay_surfaces(&self) -> impl Iterator<Item = &Surface> {
         self.layers
             .iter()
@@ -89,6 +99,7 @@ impl LevelInfo {
 
 #[derive(Deref)]
 pub struct Level {
+    path: std::path::PathBuf,
     #[deref]
     info: LevelInfo,
     mesh: RefCell<Option<draw::LevelMesh>>,
@@ -96,11 +107,26 @@ pub struct Level {
 }
 
 impl Level {
-    pub fn new(info: LevelInfo) -> Self {
+    pub async fn load(path: impl AsRef<std::path::Path>, create_if_not_exist: bool) -> Self {
+        let path = path.as_ref();
+        let mut saved = true;
+        let info: LevelInfo = match file::load_json(path).await {
+            Ok(info) => info,
+            Err(e) => {
+                if !path.exists() && create_if_not_exist {
+                    let info: LevelInfo = default();
+                    saved = false;
+                    info
+                } else {
+                    panic!("{e}");
+                }
+            }
+        };
         Self {
+            path: path.to_owned(),
             info,
             mesh: RefCell::new(None),
-            saved: true,
+            saved,
         }
     }
     pub fn info(&self) -> &LevelInfo {
@@ -111,8 +137,13 @@ impl Level {
         self.saved = false;
         &mut self.info
     }
-    /// true if need to save now, next call will return false
-    pub fn save(&mut self) -> bool {
-        !mem::replace(&mut self.saved, true)
+    pub fn save(&mut self) {
+        if !mem::replace(&mut self.saved, true) {
+            serde_json::to_writer_pretty(
+                std::io::BufWriter::new(std::fs::File::create(&self.path).unwrap()),
+                self.info(),
+            )
+            .unwrap();
+        }
     }
 }
