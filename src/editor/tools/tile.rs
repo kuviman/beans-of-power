@@ -19,6 +19,7 @@ pub struct TileTool {
     assets: Rc<Assets>,
     points: Vec<vec2<f32>>,
     wind_drag: Option<(usize, vec2<f32>)>,
+    saved_flow: vec2<f32>,
     config: TileToolConfig,
 }
 
@@ -51,6 +52,7 @@ impl EditorTool for TileTool {
             assets: assets.clone(),
             wind_drag: None,
             points: vec![],
+            saved_flow: vec2::ZERO,
             config,
         }
     }
@@ -70,6 +72,17 @@ impl EditorTool for TileTool {
                     camera,
                     &draw_2d::Polygon::new(tile.vertices.into(), Rgba::new(0.0, 0.0, 1.0, 0.5)),
                 );
+                if self.wind_drag.is_none() {
+                    self.geng.draw_2d(
+                        framebuffer,
+                        camera,
+                        &draw_2d::Segment::new(
+                            Segment(cursor.world_pos, cursor.world_pos + tile.flow),
+                            0.2,
+                            Rgba::new(1.0, 0.0, 0.0, 0.5),
+                        ),
+                    );
+                }
             }
         } else {
             for &p in &self.points {
@@ -189,7 +202,16 @@ impl EditorTool for TileTool {
             }
 
             geng::Event::KeyDown { key: geng::Key::W } => {
-                if self.wind_drag.is_none() {
+                if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
+                    if let Some(tile) = self.find_hovered_tile(cursor, level, selected_layer) {
+                        let tile = &level.layers[selected_layer].tiles[tile];
+                        self.saved_flow = tile.flow;
+                    }
+                } else if self.geng.window().is_key_pressed(geng::Key::LShift) {
+                    if let Some(tile) = self.find_hovered_tile(cursor, level, selected_layer) {
+                        level.modify().layers[selected_layer].tiles[tile].flow = self.saved_flow;
+                    }
+                } else if self.wind_drag.is_none() {
                     self.wind_drag = self
                         .find_hovered_tile(cursor, level, selected_layer)
                         .map(|index| (index, cursor.world_pos));
@@ -197,8 +219,8 @@ impl EditorTool for TileTool {
             }
             geng::Event::KeyUp { key: geng::Key::W } => {
                 if let Some((index, start)) = self.wind_drag.take() {
-                    level.modify().layers[selected_layer].tiles[index].flow =
-                        cursor.world_pos - start;
+                    self.saved_flow = cursor.world_pos - start;
+                    level.modify().layers[selected_layer].tiles[index].flow = self.saved_flow;
                 }
             }
             _ => {}

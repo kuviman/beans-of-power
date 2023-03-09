@@ -445,7 +445,6 @@ impl Game {
 
             let mut collision_to_resolve = None;
             let mut was_colliding_water = was_colliding_water;
-            info!("===");
             for surface in self.level.gameplay_surfaces() {
                 let from_surface = -surface.vector_from(guy.ball.pos);
                 let penetration = guy.radius() - from_surface.len();
