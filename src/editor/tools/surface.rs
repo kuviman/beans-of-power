@@ -19,6 +19,7 @@ pub struct SurfaceTool {
     assets: Rc<Assets>,
     start_drag: Option<vec2<f32>>,
     wind_drag: Option<(usize, vec2<f32>)>,
+    saved_flow: f32,
     config: SurfaceToolConfig,
 }
 impl SurfaceTool {
@@ -48,6 +49,7 @@ impl EditorTool for SurfaceTool {
             assets: assets.clone(),
             start_drag: None,
             wind_drag: None,
+            saved_flow: 0.0,
             config,
         }
     }
@@ -77,6 +79,21 @@ impl EditorTool for SurfaceTool {
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );
+            if self.wind_drag.is_none() {
+                self.geng.draw_2d(
+                    framebuffer,
+                    camera,
+                    &draw_2d::Segment::new(
+                        Segment(
+                            cursor.world_pos,
+                            cursor.world_pos
+                                + (surface.p2 - surface.p1).normalize_or_zero() * surface.flow,
+                        ),
+                        0.2,
+                        Rgba::new(1.0, 0.0, 0.0, 0.5),
+                    ),
+                );
+            }
         }
         if let Some((_, start)) = self.wind_drag {
             self.geng.draw_2d(
@@ -132,7 +149,19 @@ impl EditorTool for SurfaceTool {
             }
 
             geng::Event::KeyDown { key: geng::Key::W } => {
-                if self.wind_drag.is_none() {
+                if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
+                    if let Some(surface) = self.find_hovered_surface(cursor, level, selected_layer)
+                    {
+                        let surface = &level.layers[selected_layer].surfaces[surface];
+                        self.saved_flow = surface.flow;
+                    }
+                } else if self.geng.window().is_key_pressed(geng::Key::LShift) {
+                    if let Some(surface) = self.find_hovered_surface(cursor, level, selected_layer)
+                    {
+                        level.modify().layers[selected_layer].surfaces[surface].flow =
+                            self.saved_flow;
+                    }
+                } else if self.wind_drag.is_none() {
                     self.wind_drag = self
                         .find_hovered_surface(cursor, level, selected_layer)
                         .map(|index| (index, cursor.world_pos));
@@ -142,10 +171,11 @@ impl EditorTool for SurfaceTool {
                 if let Some((index, start)) = self.wind_drag.take() {
                     let level = level.modify();
                     let surface = &mut level.layers[selected_layer].surfaces[index];
-                    surface.flow = vec2::dot(
+                    self.saved_flow = vec2::dot(
                         cursor.world_pos - start,
                         (surface.p2 - surface.p1).normalize_or_zero(),
                     );
+                    surface.flow = self.saved_flow;
                 }
             }
             _ => {}
