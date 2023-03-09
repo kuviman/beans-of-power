@@ -35,7 +35,7 @@ fn default_parallax() -> vec2<f32> {
 pub struct LevelInfo {
     pub spawn_point: vec2<f32>,
     pub finish_point: vec2<f32>,
-    pub expected_path: Vec<vec2<f32>>,
+    pub expected_path: Vec<Vec<vec2<f32>>>,
     pub layers: Vec<LevelLayer>,
     pub cannons: Vec<Cannon>,
     pub portals: Vec<Portal>,
