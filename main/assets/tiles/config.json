@@ -1,0 +1,43 @@
+{
+    "dirt": {},
+    "stone": {},
+    "darkstone": {
+        "background": true
+    },
+    "snow": {},
+    "ice": {},
+    "wind": {
+        "friction_along_flow": 1.0
+    },
+    "water": {
+        "friction": 1.0,
+        "additional_force": [
+            0.0,
+            10.0
+        ],
+        "texture_movement_frequency": 0.1,
+        "texture_movement_amplitude": 0.5
+    },
+    "cloud": {
+        "friction": 3.0,
+        "additional_force": [
+            0.0,
+            6.0
+        ],
+        "texture_movement_frequency": 0.1,
+        "texture_movement_amplitude": 0.5
+    },
+    "slowtime": {
+        "time_scale": 0.5,
+        "texture_movement_frequency": 0.1,
+        "texture_movement_amplitude": 1.0
+    },
+    "light_brick": {
+        "background": true
+    },
+    "brick": {},
+    "dark_brick": {},
+    "roof": {
+        "background": true
+    }
+}
