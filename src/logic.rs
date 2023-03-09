@@ -364,7 +364,6 @@ impl Game {
                     sfx.set_volume(0.0);
                     sfx.set_speed(sfx_speed);
                     sfx.play();
-                    info!("Started the long fart");
                     if let Some(mut sfx) = self.long_fart_sfx.insert(
                         guy.id,
                         LongFartSfx {
