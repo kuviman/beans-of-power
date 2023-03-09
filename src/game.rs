@@ -39,8 +39,7 @@ pub struct Game {
     pub ui_controller: ui::Controller,
     pub buttons: Vec<ui::Button<UiMessage>>,
     pub show_customizer: bool,
-    pub old_music: geng::SoundEffect,
-    pub new_music: geng::SoundEffect,
+    pub music: geng::SoundEffect,
     pub show_names: bool,
     pub show_leaderboard: bool,
     pub follow: Option<Id>,
@@ -113,12 +112,7 @@ impl Game {
                 ),
             ],
             show_customizer: !opt.editor,
-            old_music: {
-                let mut effect = assets.sfx.old_music.play();
-                effect.set_volume(0.0);
-                effect
-            },
-            new_music: {
+            music: {
                 let mut effect = assets.sfx.new_music.play();
                 effect.set_volume(0.0);
                 effect
@@ -290,14 +284,9 @@ impl geng::State for Game {
         }
         self.volume = self.volume.clamp(0.0, 1.0);
         if self.mute_music {
-            self.new_music.set_volume(0.0);
-            self.old_music.set_volume(0.0);
-        } else if true {
-            self.new_music.set_volume(self.volume as f64);
-            self.old_music.set_volume(0.0);
+            self.music.set_volume(0.0);
         } else {
-            self.old_music.set_volume(self.volume as f64);
-            self.new_music.set_volume(0.0);
+            self.music.set_volume(self.volume as f64);
         }
         self.emotes.retain(|&(t, ..)| t >= self.real_time - 1.0);
         let delta_time = delta_time as f32;
