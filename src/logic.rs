@@ -445,15 +445,16 @@ impl Game {
 
             let mut collision_to_resolve = None;
             let mut was_colliding_water = was_colliding_water;
+            info!("===");
             for surface in self.level.gameplay_surfaces() {
-                let v = surface.vector_from(guy.ball.pos);
-                let penetration = guy.radius() - v.len();
-                if penetration > EPS {
+                let from_surface = -surface.vector_from(guy.ball.pos);
+                let penetration = guy.radius() - from_surface.len();
+                if penetration > 0.0 {
                     let assets = &self.assets.surfaces[&surface.type_name];
 
                     if surface.type_name == "water" && !was_colliding_water {
                         was_colliding_water = true;
-                        if vec2::dot(v, guy.ball.vel).abs() > 0.5 {
+                        if vec2::dot(from_surface, guy.ball.vel).abs() > 0.5 {
                             let mut effect = self.assets.sfx.water_splash.effect();
                             effect.set_volume(
                                 (self.volume
@@ -471,8 +472,7 @@ impl Game {
                             for _ in 0..30 {
                                 farticles.push(Farticle {
                                     size: 0.6,
-                                    pos: guy.ball.pos
-                                        + v
+                                    pos: guy.ball.pos - from_surface
                                         + vec2(
                                             thread_rng().gen_range(-guy.radius()..=guy.radius()),
                                             0.0,
@@ -501,7 +501,7 @@ impl Game {
                     if assets.params.non_collidable {
                         continue;
                     }
-                    let normal = -v.normalize_or_zero();
+                    let normal = from_surface.normalize_or_zero();
                     let normal_vel = vec2::dot(normal, guy.ball.vel);
                     if normal_vel < -EPS
                         && normal_vel > -assets.params.fallthrough_speed.unwrap_or(1e9)
@@ -517,11 +517,16 @@ impl Game {
                         collision_to_resolve = std::cmp::max_by_key(
                             collision_to_resolve,
                             Some(collision),
-                            |collision| {
-                                r32(match collision {
-                                    Some(collision) => collision.penetration,
-                                    None => -1.0,
-                                })
+                            |collision| match collision {
+                                Some(collision) => (
+                                    r32(collision.penetration),
+                                    r32(vec2::skew(
+                                        (collision.surface.p2 - collision.surface.p1)
+                                            .normalize_or_zero(),
+                                        collision.normal,
+                                    )),
+                                ),
+                                None => (r32(-1.0), r32(0.0)),
                             },
                         );
                     }
