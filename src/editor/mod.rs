@@ -134,8 +134,8 @@ impl Game {
             editor.selected_layer,
         );
 
-        match event {
-            geng::Event::KeyDown { key } => match key {
+        if let geng::Event::KeyDown { key } = event {
+            match key {
                 geng::Key::Tab => {
                     editor.selected_tool_index =
                         (editor.selected_tool_index + 1) % editor.available_tools.len();
@@ -162,9 +162,14 @@ impl Game {
                 geng::Key::S if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
                     editor.save_level(&mut self.level);
                 }
+                geng::Key::Z if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
+                    self.level.undo();
+                }
+                geng::Key::Y if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
+                    self.level.redo();
+                }
                 _ => {}
-            },
-            _ => {}
+            }
         }
     }
     pub fn editor_ui<'a>(

@@ -14,7 +14,7 @@ pub use portal::*;
 pub use surface::*;
 pub use tile::*;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct LevelLayer {
     pub name: String,
     pub gameplay: bool,
@@ -31,7 +31,7 @@ fn default_parallax() -> vec2<f32> {
     vec2(1.0, 1.0)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct LevelInfo {
     pub spawn_point: vec2<f32>,
     pub finish_point: vec2<f32>,
@@ -103,6 +103,8 @@ pub struct Level {
     #[deref]
     info: LevelInfo,
     mesh: RefCell<Option<draw::LevelMesh>>,
+    history: Vec<LevelInfo>,
+    history_index: usize,
     saved: bool,
 }
 
@@ -126,6 +128,8 @@ impl Level {
             path: path.to_owned(),
             info,
             mesh: RefCell::new(None),
+            history: vec![],
+            history_index: 0,
             saved,
         }
     }
@@ -135,7 +139,30 @@ impl Level {
     pub fn modify(&mut self) -> &mut LevelInfo {
         *self.mesh.get_mut() = None;
         self.saved = false;
+        self.history.truncate(self.history_index);
+        self.history.push(self.info.clone());
+        self.history_index += 1;
         &mut self.info
+    }
+    pub fn undo(&mut self) {
+        if self.history_index > 0 {
+            *self.mesh.get_mut() = None;
+            self.saved = false;
+            if self.history_index >= self.history.len() {
+                assert!(self.history_index == self.history.len());
+                self.history.push(self.info.clone());
+            }
+            self.history_index -= 1;
+            self.info = self.history[self.history_index].clone();
+        }
+    }
+    pub fn redo(&mut self) {
+        if self.history_index + 1 < self.history.len() {
+            *self.mesh.get_mut() = None;
+            self.saved = false;
+            self.history_index += 1;
+            self.info = self.history[self.history_index].clone();
+        }
     }
     pub fn save(&mut self) {
         if !mem::replace(&mut self.saved, true) {

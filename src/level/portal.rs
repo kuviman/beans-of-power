@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Portal {
     pub pos: vec2<f32>,
     pub dest: Option<usize>,
