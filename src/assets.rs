@@ -61,6 +61,7 @@ pub struct PortalConfig {
 #[asset(json)]
 pub struct Config {
     pub volume: f32,
+    pub sfx_time_scale_power: f64,
     pub snap_distance: f32,
     pub guy_radius: f32,
     pub growl_time: f32,

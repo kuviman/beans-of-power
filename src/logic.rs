@@ -50,24 +50,30 @@ impl Game {
             false
         };
         for guy in &mut self.guys {
-            let delta_time = {
-                let mut delta_time = delta_time;
-                'tile_loop: for tile in self.level.gameplay_tiles() {
-                    // TODO partial penetration
-                    for i in 0..3 {
-                        let p1 = tile.vertices[i];
-                        let p2 = tile.vertices[(i + 1) % 3];
-                        if vec2::skew(p2 - p1, guy.ball.pos - p1) < 0.0 {
-                            continue 'tile_loop;
-                        }
-                    }
-                    let params = &self.assets.tiles[&tile.type_name].params;
-                    if let Some(time_scale) = params.time_scale {
-                        delta_time *= time_scale;
-                    }
+            let mut time_scale = 1.0;
+            for tile in self.level.gameplay_tiles() {
+                if !Aabb2::points_bounding_box(tile.vertices)
+                    .extend_uniform(self.config.guy_radius)
+                    .contains(guy.ball.pos)
+                {
+                    continue;
                 }
-                delta_time
-            };
+                let params = &self.assets.tiles[&tile.type_name].params;
+                if let Some(this_time_scale) = params.time_scale {
+                    let percentage = circle_triangle_intersect_percentage(
+                        guy.ball.pos,
+                        self.config.guy_radius,
+                        tile.vertices,
+                    );
+                    time_scale *= this_time_scale.powf(percentage);
+                }
+            }
+            let delta_time = delta_time * time_scale;
+
+            let sfx_speed = (time_scale as f64).powf(self.config.sfx_time_scale_power);
+            if self.my_guy == Some(guy.id) {
+                self.music.set_speed(sfx_speed);
+            }
 
             let prev_state = guy.ball.clone();
             let was_colliding_water = is_colliding(guy, "water");
@@ -139,6 +145,7 @@ impl Game {
                             * (1.0 - (guy.ball.pos - self.camera.center).len() / self.camera.fov))
                             .clamp(0.0, 1.0) as f64,
                     );
+                    effect.set_speed(sfx_speed);
                     effect.play();
 
                     let fart_type = "normal"; // TODO: not normal LUL
@@ -289,6 +296,7 @@ impl Game {
                     // TODO: this is copypasta
                     let mut sfx = fart_assets.long_sfx.effect();
                     sfx.set_volume(volume);
+                    sfx.set_speed(sfx_speed);
                     sfx.play();
                     if let Some(mut sfx) = self.long_fart_sfx.insert(
                         guy.id,
@@ -302,6 +310,7 @@ impl Game {
                     }
                 } else {
                     sfx.sfx.set_volume(volume);
+                    sfx.sfx.set_speed(sfx_speed);
                 }
             } else {
                 warn!("No sfx for long fart?");
@@ -353,6 +362,7 @@ impl Game {
                 {
                     let mut sfx = fart_assets.long_sfx.effect();
                     sfx.set_volume(0.0);
+                    sfx.set_speed(sfx_speed);
                     sfx.play();
                     info!("Started the long fart");
                     if let Some(mut sfx) = self.long_fart_sfx.insert(
@@ -398,6 +408,7 @@ impl Game {
                         * (1.0 - (guy.ball.pos - self.camera.center).len() / self.camera.fov))
                         .clamp(0.0, 1.0) as f64,
                 );
+                effect.set_speed(sfx_speed);
                 effect.play();
             } else if !could_fart
                 && guy.fart_state.fart_pressure >= self.config.fart_pressure_released
@@ -453,6 +464,7 @@ impl Game {
                                             / self.camera.fov))
                                     .clamp(0.0, 1.0) as f64,
                             );
+                            effect.set_speed(sfx_speed);
                             effect.play();
                             let fart_type = "bubble";
                             let fart_assets = &self.assets.farts[fart_type];
@@ -597,6 +609,7 @@ impl Game {
                                     - (guy.ball.pos - self.camera.center).len() / self.camera.fov))
                                 .clamp(0.0, 1.0) as f64,
                         );
+                        effect.set_speed(sfx_speed);
                         effect.play();
                     }
                 }
