@@ -39,6 +39,20 @@ impl SurfaceTool {
             .min_by_key(|(_index, surface)| r32(surface.vector_from(cursor.world_pos).len()))
             .map(|(index, _surface)| index)
     }
+    fn drag(&self, cursor: &Cursor) -> Option<Segment<f32>> {
+        let p1 = self.start_drag?;
+        let mut p2 = cursor.snapped_world_pos;
+        if (p2 - p1).len() < self.config.snap_distance {
+            return None;
+        }
+        if self.geng.window().is_key_pressed(geng::Key::LShift) {
+            let arg = (p2 - p1).arg();
+            let round_step = 15.0 * f32::PI / 180.0;
+            let arg = (arg / round_step).round() * round_step;
+            p2 = p1 + vec2((p2 - p1).len(), 0.0).rotate(arg);
+        }
+        Some(Segment(p1, p2))
+    }
 }
 
 impl EditorTool for SurfaceTool {
@@ -61,8 +75,7 @@ impl EditorTool for SurfaceTool {
         camera: &geng::Camera2d,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        if let Some(p1) = self.start_drag {
-            let p2 = cursor.snapped_world_pos;
+        if let Some(Segment(p1, p2)) = self.drag(cursor) {
             self.geng.draw_2d(
                 framebuffer,
                 camera,
@@ -125,18 +138,17 @@ impl EditorTool for SurfaceTool {
                 button: geng::MouseButton::Left,
                 ..
             } => {
-                let p2 = cursor.snapped_world_pos;
-                if let Some(p1) = self.start_drag.take() {
-                    if (p1 - p2).len() > self.config.snap_distance {
-                        level.modify().layers[selected_layer]
-                            .surfaces
-                            .push(Surface {
-                                p1,
-                                p2,
-                                flow: 0.0,
-                                type_name: self.config.selected_type.clone(),
-                            });
-                    }
+                let segment = self.drag(cursor);
+                self.start_drag = None;
+                if let Some(Segment(p1, p2)) = segment {
+                    level.modify().layers[selected_layer]
+                        .surfaces
+                        .push(Surface {
+                            p1,
+                            p2,
+                            flow: 0.0,
+                            type_name: self.config.selected_type.clone(),
+                        });
                 }
             }
             geng::Event::MouseDown {
