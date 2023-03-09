@@ -47,6 +47,12 @@ jobs:
           ITCH_GAME: getting-farted-on
           ITCH_USER: kuviman
           PACKAGE: web
+      - name: Deploy GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: web
+          destination_dir: main
       - name: Copy server files
         uses: appleboy/scp-action@master
         with:
