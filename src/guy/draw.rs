@@ -96,8 +96,8 @@ impl Game {
                         framebuffer,
                         &self.camera,
                         &draw_2d::TexturedQuad::unit_colored(
-                            &self.assets.guy.hair,
-                            guy.customization.colors.hair,
+                            &self.assets.guy.skin,
+                            guy.customization.colors.skin,
                         )
                         .scale_uniform(guy.ball.radius)
                         .transform(mat3::rotate(guy.ball.rot))
@@ -107,8 +107,8 @@ impl Game {
                         framebuffer,
                         &self.camera,
                         &draw_2d::TexturedQuad::unit_colored(
-                            &self.assets.guy.skin,
-                            guy.customization.colors.skin,
+                            &self.assets.guy.hair,
+                            guy.customization.colors.hair,
                         )
                         .scale_uniform(guy.ball.radius)
                         .transform(mat3::rotate(guy.ball.rot))
