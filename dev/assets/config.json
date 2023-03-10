@@ -1,5 +1,6 @@
 {
     "volume": 0.5,
+    "sfx_time_scale_power": 0.4,
     "snap_distance": 0.2,
     "guy_radius": 0.3,
     "angular_acceleration": 10.0,
