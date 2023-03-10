@@ -153,7 +153,17 @@ impl Game {
                     &self.camera,
                     &draw_2d::TexturedQuad::unit_colored(
                         closed_eyes,
-                        guy.customization.colors.skin,
+                        if self
+                            .assets
+                            .guy
+                            .custom
+                            .get(&guy.customization.name)
+                            .is_some()
+                        {
+                            Rgba::WHITE
+                        } else {
+                            guy.customization.colors.skin
+                        },
                     )
                     .translate(vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * fart_progress)
                     .scale_uniform(guy.ball.radius * (0.8 + 0.6 * fart_progress))
