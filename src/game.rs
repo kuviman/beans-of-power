@@ -70,12 +70,12 @@ impl Game {
             best_time: None,
             emotes: vec![],
             geng: geng.clone(),
-            config: assets.config.clone(),
+            config: assets.get().config.clone(),
             assets: assets.clone(),
             camera: geng::Camera2d {
                 center: level.spawn_point,
                 rotation: 0.0,
-                fov: assets.config.camera_fov,
+                fov: assets.get().config.camera_fov,
             },
             framebuffer_size: vec2(1.0, 1.0),
             editor: if opt.editor {
@@ -91,7 +91,7 @@ impl Game {
             prev_mouse_pos: vec2::ZERO,
             opt: opt.clone(),
             farticles: default(),
-            volume: assets.config.volume,
+            volume: assets.get().config.volume,
             client_id,
             connection,
             simulation_time: 0.0,
@@ -113,7 +113,7 @@ impl Game {
             ],
             show_customizer: !opt.editor,
             music: {
-                let mut effect = assets.sfx.new_music.play();
+                let mut effect = assets.get().sfx.new_music.play();
                 effect.set_volume(0.0);
                 effect
             },
@@ -146,7 +146,7 @@ impl Game {
             };
             let guy = self.guys.get_mut(&id).unwrap();
             if guy.progress.finished {
-                self.assets.font.draw(
+                self.assets.get().font.draw(
                     framebuffer,
                     &camera,
                     &"GG",
@@ -180,7 +180,7 @@ impl Game {
                 time_text += &format!("{} minutes ", minutes);
             }
             time_text += &format!("{} seconds", seconds);
-            self.assets.font.draw(
+            self.assets.get().font.draw(
                 framebuffer,
                 &camera,
                 &time_text,
@@ -189,7 +189,7 @@ impl Game {
                 0.5,
                 Rgba::BLACK,
             );
-            self.assets.font.draw(
+            self.assets.get().font.draw(
                 framebuffer,
                 &camera,
                 &"progress",
@@ -237,13 +237,13 @@ impl geng::State for Game {
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit(&self.assets.closed_outhouse)
+                    &draw_2d::TexturedQuad::unit(&self.assets.get().closed_outhouse)
                         .translate(self.level.spawn_point),
                 );
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit(&self.assets.golden_toilet)
+                    &draw_2d::TexturedQuad::unit(&self.assets.get().golden_toilet)
                         .translate(self.level.finish_point),
                 );
                 self.draw_guys(framebuffer);
@@ -422,7 +422,7 @@ impl geng::State for Game {
                 }
             }
             geng::Event::KeyDown { key: geng::Key::I } => {
-                self.camera.fov = self.assets.config.camera_fov;
+                self.camera.fov = self.assets.get().config.camera_fov;
             }
             _ => {}
         }

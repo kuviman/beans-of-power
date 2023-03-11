@@ -120,6 +120,7 @@ impl Game {
         texture_shift: f32,
         texture_move_direction: f32,
     ) {
+        let assets = self.assets.get();
         let camera = geng::Camera2d {
             center: self.camera.center * level.layers[layer_index].parallax,
             ..self.camera
@@ -127,16 +128,18 @@ impl Game {
         let mesh = self.get_mesh(level);
 
         for (type_name, data) in &mesh.layers[layer_index].surfaces {
-            let assets = &self.assets.surfaces[type_name];
-            let texture = match texture(assets) {
+            let surface_assets = &assets.surfaces[type_name];
+            let texture = match texture(surface_assets) {
                 Some(texture) => texture,
                 None => continue,
             };
             let texture_shift = texture_shift
-                + assets.params.texture_speed * self.simulation_time * texture_move_direction;
+                + surface_assets.params.texture_speed
+                    * self.simulation_time
+                    * texture_move_direction;
             ugli::draw(
                 framebuffer,
-                &self.assets.shaders.surface,
+                &assets.shaders.surface,
                 ugli::DrawMode::Triangles,
                 data,
                 (
@@ -144,8 +147,8 @@ impl Game {
                         u_texture: &**texture,
                         u_height: texture.size().y as f32 / texture.size().x as f32,
                         u_simulation_time: self.simulation_time,
-                        u_flex_frequency: assets.params.flex_frequency,
-                        u_flex_amplitude: assets.params.flex_amplitude,
+                        u_flex_frequency: surface_assets.params.flex_frequency,
+                        u_flex_amplitude: surface_assets.params.flex_amplitude,
                         u_texture_shift: texture_shift,
                     },
                     geng::camera2d_uniforms(&camera, self.framebuffer_size),
@@ -165,6 +168,7 @@ impl Game {
         layer_index: usize,
         background: bool,
     ) {
+        let assets = self.assets.get();
         let camera = geng::Camera2d {
             center: self.camera.center * level.layers[layer_index].parallax,
             ..self.camera
@@ -172,23 +176,23 @@ impl Game {
         let mesh = self.get_mesh(level);
 
         for (type_name, data) in &mesh.layers[layer_index].tiles {
-            let assets = &self.assets.tiles[type_name];
-            if assets.params.background != background {
+            let tile_assets = &assets.tiles[type_name];
+            if tile_assets.params.background != background {
                 continue;
             }
             ugli::draw(
                 framebuffer,
-                &self.assets.shaders.tile,
+                &assets.shaders.tile,
                 ugli::DrawMode::Triangles,
                 data,
                 (
                     ugli::uniforms! {
-                        u_texture: &*assets.texture,
+                        u_texture: &*tile_assets.texture,
                         u_simulation_time: self.simulation_time,
                         u_texture_shift: vec2(
-                            self.noise(assets.params.texture_movement_frequency),
-                            self.noise(assets.params.texture_movement_frequency),
-                        ) * assets.params.texture_movement_amplitude,
+                            self.noise(tile_assets.params.texture_movement_frequency),
+                            self.noise(tile_assets.params.texture_movement_frequency),
+                        ) * tile_assets.params.texture_movement_amplitude,
                         u_reveal_radius: level.layers[layer_index].reveal_radius,
                     },
                     geng::camera2d_uniforms(&camera, self.framebuffer_size),
@@ -202,6 +206,7 @@ impl Game {
     }
 
     pub fn draw_cannons(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
+        let assets = self.assets.get();
         for cannon in &level.cannons {
             let mut scale = vec2(1.0, 1.0);
             if cannon.rot > f32::PI / 2.0 || cannon.rot < -f32::PI / 2.0 {
@@ -210,14 +215,14 @@ impl Game {
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::TexturedQuad::unit(&self.assets.cannon.body)
+                &draw_2d::TexturedQuad::unit(&assets.cannon.body)
                     .rotate(cannon.rot)
                     .translate(cannon.pos),
             );
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::TexturedQuad::unit(&self.assets.cannon.base)
+                &draw_2d::TexturedQuad::unit(&assets.cannon.base)
                     .scale(scale)
                     .translate(cannon.pos),
             );
@@ -225,11 +230,12 @@ impl Game {
     }
 
     pub fn draw_portals(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
+        let assets = self.assets.get();
         for portal in &level.portals {
             self.geng.draw_2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::TexturedQuad::unit_colored(&self.assets.portal, portal.color)
+                &draw_2d::TexturedQuad::unit_colored(&assets.portal, portal.color)
                     .scale_uniform(self.config.portal.size)
                     .rotate(self.real_time)
                     .translate(portal.pos),
@@ -243,13 +249,14 @@ impl Game {
         layer_index: usize,
         framebuffer: &mut ugli::Framebuffer,
     ) {
+        let assets = self.assets.get();
         self.draw_tiles(framebuffer, level, layer_index, true);
         {
             for obj in &level.layers[layer_index].objects {
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit(&self.assets.objects[&obj.type_name])
+                    &draw_2d::TexturedQuad::unit(&assets.objects[&obj.type_name])
                         .transform(mat3::rotate(if obj.fart_type().is_some() {
                             self.real_time
                         } else {

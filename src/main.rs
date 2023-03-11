@@ -116,8 +116,7 @@ fn main() {
                 connection,
             )
             .await;
-            let mut assets = assets.expect("Failed to load assets");
-            assets.process();
+            let assets = assets.expect("Failed to load assets");
             let assets = Rc::new(assets);
             Game::new(&geng, &assets, level, opt, connection_info)
         });

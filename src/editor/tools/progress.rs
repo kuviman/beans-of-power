@@ -7,7 +7,7 @@ pub struct ProgressToolConfig {
 impl EditorToolConfig for ProgressToolConfig {
     fn default(assets: &Assets) -> Self {
         Self {
-            snap_distance: assets.config.snap_distance,
+            snap_distance: assets.get().config.snap_distance,
         }
     }
 }
@@ -49,7 +49,7 @@ impl EditorTool for ProgressTool {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         for (i, &p) in level.expected_path.iter().flatten().enumerate() {
-            self.assets.font.draw(
+            self.assets.get().font.draw(
                 framebuffer,
                 camera,
                 &(i + 1).to_string(),

@@ -7,7 +7,7 @@ pub struct CannonToolConfig {
 impl EditorToolConfig for CannonToolConfig {
     fn default(assets: &Assets) -> Self {
         Self {
-            snap_distance: assets.config.snap_distance,
+            snap_distance: assets.get().config.snap_distance,
         }
     }
 }

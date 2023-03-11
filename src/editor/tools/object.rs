@@ -8,8 +8,8 @@ pub struct ObjectToolConfig {
 impl EditorToolConfig for ObjectToolConfig {
     fn default(assets: &Assets) -> Self {
         Self {
-            snap_distance: assets.config.snap_distance,
-            selected_type: assets.objects.keys().min().unwrap().clone(),
+            snap_distance: assets.get().config.snap_distance,
+            selected_type: assets.get().objects.keys().min().unwrap().clone(),
         }
     }
 }
@@ -99,7 +99,8 @@ impl EditorTool for ObjectTool {
     fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a> {
         use geng::ui::*;
 
-        let mut options: Vec<&String> = self.assets.objects.keys().collect();
+        let assets = self.assets.get();
+        let mut options: Vec<&String> = assets.objects.keys().collect();
         options.sort();
         let options = column(
             options

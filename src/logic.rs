@@ -39,6 +39,7 @@ impl Game {
     }
 
     pub fn update_guys(&mut self, delta_time: f32) {
+        let assets = self.assets.get();
         let is_colliding = |guy: &Guy, surface_type: &str| -> bool {
             for surface in self.level.gameplay_surfaces() {
                 let v = surface.vector_from(guy.ball.pos);
@@ -58,7 +59,7 @@ impl Game {
                 {
                     continue;
                 }
-                let params = &self.assets.tiles[&tile.type_name].params;
+                let params = &assets.tiles[&tile.type_name].params;
                 if let Some(this_time_scale) = params.time_scale {
                     let percentage = circle_triangle_intersect_percentage(
                         guy.ball.pos,
@@ -138,7 +139,7 @@ impl Game {
                     guy.ball.vel = dir * self.config.cannon.strength;
                     guy.ball.w = 0.0;
 
-                    let mut effect = self.assets.cannon.shot.effect();
+                    let mut effect = assets.cannon.shot.effect();
                     effect.set_volume(
                         (self.volume
                             * 0.6
@@ -149,7 +150,7 @@ impl Game {
                     effect.play();
 
                     let fart_type = "normal"; // TODO: not normal LUL
-                    let fart_assets = &self.assets.farts[fart_type];
+                    let fart_assets = &assets.farts[fart_type];
                     let farticles = self.farticles.entry(fart_type.to_owned()).or_default();
                     for _ in 0..self.config.cannon.particle_count {
                         farticles.push(Farticle {
@@ -216,7 +217,7 @@ impl Game {
                 let relative_vel = guy.ball.vel - tile.flow;
                 let flow_direction = tile.flow.normalize_or_zero();
                 let relative_vel_along_flow = vec2::dot(flow_direction, relative_vel);
-                let params = &self.assets.tiles[&tile.type_name].params;
+                let params = &assets.tiles[&tile.type_name].params;
                 let force_along_flow =
                     -flow_direction * relative_vel_along_flow * params.friction_along_flow;
                 let friction_force = -relative_vel * params.friction;
@@ -246,7 +247,7 @@ impl Game {
             } else {
                 guy.fart_type.as_str()
             };
-            let fart_assets = &self.assets.farts[fart_type];
+            let fart_assets = &assets.farts[fart_type];
 
             let could_fart = guy.fart_state.fart_pressure >= self.config.fart_pressure_released;
             if self.config.fart_continued_force == 0.0 {
@@ -414,7 +415,7 @@ impl Game {
             {
                 // Growling stomach recharge
                 if Some(guy.id) == self.my_guy {
-                    let mut effect = self.assets.sfx.fart_recharge.effect();
+                    let mut effect = assets.sfx.fart_recharge.effect();
                     effect.set_volume(self.volume as f64 * 0.5);
                     effect.play();
                 }
@@ -449,12 +450,12 @@ impl Game {
                 let from_surface = -surface.vector_from(guy.ball.pos);
                 let penetration = guy.radius() - from_surface.len();
                 if penetration > 0.0 {
-                    let assets = &self.assets.surfaces[&surface.type_name];
+                    let surface_assets = &assets.surfaces[&surface.type_name];
 
                     if surface.type_name == "water" && !was_colliding_water {
                         was_colliding_water = true;
                         if vec2::dot(from_surface, guy.ball.vel).abs() > 0.5 {
-                            let mut effect = self.assets.sfx.water_splash.effect();
+                            let mut effect = assets.sfx.water_splash.effect();
                             effect.set_volume(
                                 (self.volume
                                     * 0.6
@@ -466,7 +467,7 @@ impl Game {
                             effect.set_speed(sfx_speed);
                             effect.play();
                             let fart_type = "bubble";
-                            let fart_assets = &self.assets.farts[fart_type];
+                            let fart_assets = &assets.farts[fart_type];
                             let farticles = self.farticles.entry(fart_type.to_owned()).or_default();
                             for _ in 0..30 {
                                 farticles.push(Farticle {
@@ -497,13 +498,13 @@ impl Game {
                         }
                     }
 
-                    if assets.params.non_collidable {
+                    if surface_assets.params.non_collidable {
                         continue;
                     }
                     let normal = from_surface.normalize_or_zero();
                     let normal_vel = vec2::dot(normal, guy.ball.vel);
                     if normal_vel < -EPS
-                        && normal_vel > -assets.params.fallthrough_speed.unwrap_or(1e9)
+                        && normal_vel > -surface_assets.params.fallthrough_speed.unwrap_or(1e9)
                         && vec2::skew(surface.p2 - surface.p1, normal) > 0.0
                         && penetration < self.config.max_penetration
                     {
@@ -511,7 +512,7 @@ impl Game {
                             penetration,
                             surface,
                             normal,
-                            assets,
+                            assets: surface_assets,
                         };
                         collision_to_resolve = std::cmp::max_by_key(
                             collision_to_resolve,
@@ -582,7 +583,7 @@ impl Game {
                     let snow_falloff = snow_falloff.min(guy.snow_layer);
                     guy.snow_layer -= snow_falloff;
                     let fart_type = "normal"; // TODO: not normal?
-                    let fart_assets = &self.assets.farts[fart_type];
+                    let fart_assets = &assets.farts[fart_type];
                     let farticles = self.farticles.entry(fart_type.to_owned()).or_default();
                     for _ in 0..(100.0 * snow_falloff / self.config.max_snow_layer) as i32 {
                         farticles.push(Farticle {

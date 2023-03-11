@@ -65,7 +65,7 @@ impl Controller {
             {
                 position.y -= button.size * 0.2;
             }
-            self.assets.font.draw(
+            self.assets.get().font.draw(
                 framebuffer,
                 &self.camera,
                 &button.text,
