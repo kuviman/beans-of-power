@@ -44,6 +44,7 @@ pub struct Game {
     pub show_leaderboard: bool,
     pub follow: Option<Id>,
     pub long_fart_sfx: HashMap<Id, LongFartSfx>,
+    pub next_golden_glint: f32,
 }
 
 impl Drop for Game {
@@ -121,6 +122,7 @@ impl Game {
             show_leaderboard: true,
             follow: None,
             long_fart_sfx: HashMap::new(),
+            next_golden_glint: 0.0,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -325,6 +327,25 @@ impl geng::State for Game {
             let guy = self.guys.get_mut(&id).unwrap();
             guy.customization.name = self.customization.name.clone();
             guy.customization.colors = self.customization.colors.clone();
+        }
+
+        self.next_golden_glint -= delta_time;
+        if self.next_golden_glint < 0.0 {
+            let fart_type = "glint".to_owned();
+            let assets = self.assets.get();
+            let fart_assets = &assets.farts[&fart_type];
+            self.next_golden_glint = 1.0 / fart_assets.config.farticle_count as f32;
+            self.farticles.entry(fart_type).or_default().push(Farticle {
+                size: fart_assets.config.farticle_size,
+                pos: thread_rng().gen_circle(self.level.finish_point, 1.0),
+                vel: thread_rng()
+                    .gen_circle(vec2::ZERO, fart_assets.config.farticle_additional_vel),
+                rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
+                w: thread_rng()
+                    .gen_range(-fart_assets.config.farticle_w..=fart_assets.config.farticle_w),
+                colors: fart_assets.config.colors.get(),
+                t: 1.0,
+            });
         }
     }
 

@@ -159,8 +159,14 @@ pub struct FartConfig {
     pub farticle_size: f32,
     pub farticle_count: usize,
     pub farticle_additional_vel: f32,
+    #[serde(default = "one_f32")]
+    pub farticle_lifetime: f32,
     #[serde(default = "create_true")]
     pub farticle_random_rotation: bool,
+}
+
+fn one_f32() -> f32 {
+    1.0
 }
 
 fn create_true() -> bool {

@@ -16,7 +16,7 @@ impl Game {
         for (type_name, farticles) in &mut self.farticles {
             let fart_assets = &assets.farts[type_name];
             for farticle in &mut *farticles {
-                farticle.t -= delta_time;
+                farticle.t -= delta_time / fart_assets.config.farticle_lifetime;
                 farticle.pos += farticle.vel * delta_time;
                 farticle.rot += farticle.w * delta_time;
 
