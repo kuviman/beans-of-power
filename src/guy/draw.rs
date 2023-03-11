@@ -2,6 +2,7 @@ use super::*;
 
 impl Game {
     pub fn draw_guys(&self, framebuffer: &mut ugli::Framebuffer) {
+        let assets = self.assets.get();
         for guy in itertools::chain![
             self.guys.iter().filter(|guy| guy.id != self.client_id),
             self.guys.iter().filter(|guy| guy.id == self.client_id),
@@ -14,13 +15,7 @@ impl Game {
                 );
             }
 
-            if self
-                .assets
-                .guy
-                .custom
-                .get(&guy.customization.name)
-                .is_none()
-            {
+            if assets.guy.custom.get(&guy.customization.name).is_none() {
                 if let Some(growl_progress) = guy.animation.growl_progress {
                     let shift = vec2(self.noise(10.0), self.noise(10.0)) * 0.1;
                     let scale = 1.0 - (growl_progress * 2.0 - 1.0).sqr();
@@ -30,7 +25,7 @@ impl Game {
                         framebuffer,
                         &self.camera,
                         &draw_2d::TexturedQuad::unit_colored(
-                            &self.assets.guy.growl_bottom,
+                            &assets.guy.growl_bottom,
                             guy.customization.colors.bottom,
                         )
                         .translate(shift)
@@ -42,7 +37,7 @@ impl Game {
                         framebuffer,
                         &self.camera,
                         &draw_2d::TexturedQuad::unit_colored(
-                            &self.assets.guy.growl_top,
+                            &assets.guy.growl_top,
                             guy.customization.colors.top,
                         )
                         .translate(shift)
@@ -54,7 +49,7 @@ impl Game {
             }
 
             let (eyes, closed_eyes, cheeks, cheeks_color) =
-                if let Some(custom) = self.assets.guy.custom.get(&guy.customization.name) {
+                if let Some(custom) = assets.guy.custom.get(&guy.customization.name) {
                     self.geng.draw_2d(
                         framebuffer,
                         &self.camera,
@@ -74,7 +69,7 @@ impl Game {
                         framebuffer,
                         &self.camera,
                         &draw_2d::TexturedQuad::unit_colored(
-                            &self.assets.guy.clothes_bottom,
+                            &assets.guy.clothes_bottom,
                             guy.customization.colors.bottom,
                         )
                         .scale_uniform(guy.ball.radius)
@@ -85,7 +80,7 @@ impl Game {
                         framebuffer,
                         &self.camera,
                         &draw_2d::TexturedQuad::unit_colored(
-                            &self.assets.guy.clothes_top,
+                            &assets.guy.clothes_top,
                             guy.customization.colors.top,
                         )
                         .scale_uniform(guy.ball.radius)
@@ -96,7 +91,7 @@ impl Game {
                         framebuffer,
                         &self.camera,
                         &draw_2d::TexturedQuad::unit_colored(
-                            &self.assets.guy.skin,
+                            &assets.guy.skin,
                             guy.customization.colors.skin,
                         )
                         .scale_uniform(guy.ball.radius)
@@ -107,7 +102,7 @@ impl Game {
                         framebuffer,
                         &self.camera,
                         &draw_2d::TexturedQuad::unit_colored(
-                            &self.assets.guy.hair,
+                            &assets.guy.hair,
                             guy.customization.colors.hair,
                         )
                         .scale_uniform(guy.ball.radius)
@@ -115,9 +110,9 @@ impl Game {
                         .translate(guy.ball.pos),
                     );
                     (
-                        &self.assets.guy.eyes,
-                        &self.assets.guy.closed_eyes,
-                        &self.assets.guy.cheeks,
+                        &assets.guy.eyes,
+                        &assets.guy.closed_eyes,
+                        &assets.guy.cheeks,
                         guy.customization.colors.skin,
                     )
                 };
@@ -153,13 +148,7 @@ impl Game {
                     &self.camera,
                     &draw_2d::TexturedQuad::unit_colored(
                         closed_eyes,
-                        if self
-                            .assets
-                            .guy
-                            .custom
-                            .get(&guy.customization.name)
-                            .is_some()
-                        {
+                        if assets.guy.custom.get(&guy.customization.name).is_some() {
                             Rgba::WHITE
                         } else {
                             guy.customization.colors.skin
@@ -205,7 +194,7 @@ impl Game {
                 );
             }
             if Some(guy.id) == self.my_guy || self.show_names {
-                self.assets.font.draw(
+                assets.font.draw(
                     framebuffer,
                     &self.camera,
                     &guy.customization.name,
@@ -220,7 +209,7 @@ impl Game {
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit(&self.assets.bubble)
+                    &draw_2d::TexturedQuad::unit(&assets.bubble)
                         .scale_uniform(guy.ball.radius * self.config.bubble_scale)
                         .translate(guy.ball.pos),
                 );
@@ -233,7 +222,7 @@ impl Game {
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit(&self.assets.emotes[emote])
+                    &draw_2d::TexturedQuad::unit(&assets.emotes[emote])
                         .scale_uniform(0.1)
                         .translate(guy.ball.pos + vec2(0.0, guy.ball.radius * 2.0)),
                 );

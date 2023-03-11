@@ -7,7 +7,7 @@ pub struct PortalToolConfig {
 impl EditorToolConfig for PortalToolConfig {
     fn default(assets: &Assets) -> Self {
         Self {
-            snap_distance: assets.config.snap_distance,
+            snap_distance: assets.get().config.snap_distance,
         }
     }
 }

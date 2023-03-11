@@ -8,8 +8,8 @@ pub struct TileToolConfig {
 impl EditorToolConfig for TileToolConfig {
     fn default(assets: &Assets) -> Self {
         Self {
-            snap_distance: assets.config.snap_distance,
-            selected_type: assets.tiles.keys().min().unwrap().clone(),
+            snap_distance: assets.get().config.snap_distance,
+            selected_type: assets.get().tiles.keys().min().unwrap().clone(),
         }
     }
 }
@@ -192,7 +192,8 @@ impl EditorTool for TileTool {
                 }
             }
             geng::Event::KeyDown { key: geng::Key::X } => {
-                let mut options: Vec<&String> = self.assets.tiles.keys().collect();
+                let assets = self.assets.get();
+                let mut options: Vec<&String> = assets.tiles.keys().collect();
                 options.sort();
                 let idx = options
                     .iter()
@@ -232,7 +233,8 @@ impl EditorTool for TileTool {
     fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a> {
         use geng::ui::*;
 
-        let mut options: Vec<&String> = self.assets.tiles.keys().collect();
+        let assets = self.assets.get();
+        let mut options: Vec<&String> = assets.tiles.keys().collect();
         options.sort();
         let options = column(
             options

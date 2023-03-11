@@ -44,6 +44,7 @@ pub struct Game {
     pub show_leaderboard: bool,
     pub follow: Option<Id>,
     pub long_fart_sfx: HashMap<Id, LongFartSfx>,
+    pub next_golden_glint: f32,
 }
 
 impl Drop for Game {
@@ -70,12 +71,12 @@ impl Game {
             best_time: None,
             emotes: vec![],
             geng: geng.clone(),
-            config: assets.config.clone(),
+            config: assets.get().config.clone(),
             assets: assets.clone(),
             camera: geng::Camera2d {
                 center: level.spawn_point,
                 rotation: 0.0,
-                fov: assets.config.camera_fov,
+                fov: assets.get().config.camera_fov,
             },
             framebuffer_size: vec2(1.0, 1.0),
             editor: if opt.editor {
@@ -91,7 +92,7 @@ impl Game {
             prev_mouse_pos: vec2::ZERO,
             opt: opt.clone(),
             farticles: default(),
-            volume: assets.config.volume,
+            volume: assets.get().config.volume,
             client_id,
             connection,
             simulation_time: 0.0,
@@ -113,7 +114,7 @@ impl Game {
             ],
             show_customizer: !opt.editor,
             music: {
-                let mut effect = assets.sfx.new_music.play();
+                let mut effect = assets.get().sfx.new_music.play();
                 effect.set_volume(0.0);
                 effect
             },
@@ -121,6 +122,7 @@ impl Game {
             show_leaderboard: true,
             follow: None,
             long_fart_sfx: HashMap::new(),
+            next_golden_glint: 0.0,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -145,15 +147,20 @@ impl Game {
                 fov: 10.0,
             };
             let guy = self.guys.get_mut(&id).unwrap();
+            let text_color = if guy.progress.finished {
+                Rgba::WHITE
+            } else {
+                Rgba::BLACK
+            };
             if guy.progress.finished {
-                self.assets.font.draw(
+                self.assets.get().font.draw(
                     framebuffer,
                     &camera,
                     &"GG",
                     vec2(0.0, 3.0),
                     geng::TextAlign::CENTER,
                     1.5,
-                    Rgba::BLACK,
+                    text_color,
                 );
             }
             let progress = self
@@ -180,48 +187,51 @@ impl Game {
                 time_text += &format!("{} minutes ", minutes);
             }
             time_text += &format!("{} seconds", seconds);
-            self.assets.font.draw(
+            self.assets.get().font.draw(
                 framebuffer,
                 &camera,
                 &time_text,
                 vec2(0.0, -3.3),
                 geng::TextAlign::CENTER,
                 0.5,
-                Rgba::BLACK,
+                text_color,
             );
-            self.assets.font.draw(
-                framebuffer,
-                &camera,
-                &"progress",
-                vec2(0.0, -4.0),
-                geng::TextAlign::CENTER,
-                0.5,
-                Rgba::BLACK,
-            );
-            self.geng.draw_2d(
-                framebuffer,
-                &camera,
-                &draw_2d::Quad::new(
-                    Aabb2::point(vec2(0.0, -4.5)).extend_symmetric(vec2(3.0, 0.1)),
-                    Rgba::BLACK,
-                ),
-            );
-            self.geng.draw_2d(
-                framebuffer,
-                &camera,
-                &draw_2d::Quad::new(
-                    Aabb2::point(vec2(-3.0 + 6.0 * self.best_progress, -4.5)).extend_uniform(0.3),
-                    Rgba::new(0.0, 0.0, 0.0, 0.5),
-                ),
-            );
-            self.geng.draw_2d(
-                framebuffer,
-                &camera,
-                &draw_2d::Quad::new(
-                    Aabb2::point(vec2(-3.0 + 6.0 * progress, -4.5)).extend_uniform(0.3),
-                    Rgba::BLACK,
-                ),
-            );
+            if !guy.progress.finished {
+                self.assets.get().font.draw(
+                    framebuffer,
+                    &camera,
+                    &"progress",
+                    vec2(0.0, -4.0),
+                    geng::TextAlign::CENTER,
+                    0.5,
+                    text_color,
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &camera,
+                    &draw_2d::Quad::new(
+                        Aabb2::point(vec2(0.0, -4.5)).extend_symmetric(vec2(3.0, 0.1)),
+                        text_color,
+                    ),
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &camera,
+                    &draw_2d::Quad::new(
+                        Aabb2::point(vec2(-3.0 + 6.0 * self.best_progress, -4.5))
+                            .extend_uniform(0.3),
+                        Rgba::new(0.0, 0.0, 0.0, 0.5),
+                    ),
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &camera,
+                    &draw_2d::Quad::new(
+                        Aabb2::point(vec2(-3.0 + 6.0 * progress, -4.5)).extend_uniform(0.3),
+                        text_color,
+                    ),
+                );
+            }
         }
     }
 }
@@ -229,27 +239,45 @@ impl Game {
 impl geng::State for Game {
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size().map(|x| x as f32);
-        ugli::clear(framebuffer, Some(self.config.background_color), None, None);
+        let finished = self
+            .my_guy
+            .and_then(|id| self.guys.get(&id))
+            .map(|guy| guy.progress.finished)
+            .unwrap_or(false);
+        ugli::clear(
+            framebuffer,
+            Some(if finished {
+                Rgba::BLACK
+            } else {
+                self.config.background_color
+            }),
+            None,
+            None,
+        );
 
         for (index, layer) in self.level.layers.iter().enumerate() {
-            self.draw_layer_back(&self.level, index, framebuffer);
+            if !finished {
+                self.draw_layer_back(&self.level, index, framebuffer);
+            }
             if layer.name == "main" {
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit(&self.assets.closed_outhouse)
+                    &draw_2d::TexturedQuad::unit(&self.assets.get().closed_outhouse)
                         .translate(self.level.spawn_point),
                 );
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit(&self.assets.golden_toilet)
+                    &draw_2d::TexturedQuad::unit(&self.assets.get().golden_toilet)
                         .translate(self.level.finish_point),
                 );
                 self.draw_guys(framebuffer);
                 self.draw_farticles(framebuffer);
             }
-            self.draw_layer_front(&self.level, index, framebuffer);
+            if !finished {
+                self.draw_layer_front(&self.level, index, framebuffer);
+            }
         }
         self.draw_level_editor(framebuffer);
         self.draw_customizer(framebuffer);
@@ -325,6 +353,25 @@ impl geng::State for Game {
             let guy = self.guys.get_mut(&id).unwrap();
             guy.customization.name = self.customization.name.clone();
             guy.customization.colors = self.customization.colors.clone();
+        }
+
+        self.next_golden_glint -= delta_time;
+        if self.next_golden_glint < 0.0 {
+            let fart_type = "glint".to_owned();
+            let assets = self.assets.get();
+            let fart_assets = &assets.farts[&fart_type];
+            self.next_golden_glint = 1.0 / fart_assets.config.farticle_count as f32;
+            self.farticles.entry(fart_type).or_default().push(Farticle {
+                size: fart_assets.config.farticle_size,
+                pos: thread_rng().gen_circle(self.level.finish_point, 1.0),
+                vel: thread_rng()
+                    .gen_circle(vec2::ZERO, fart_assets.config.farticle_additional_vel),
+                rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
+                w: thread_rng()
+                    .gen_range(-fart_assets.config.farticle_w..=fart_assets.config.farticle_w),
+                colors: fart_assets.config.colors.get(),
+                t: 1.0,
+            });
         }
     }
 
@@ -422,7 +469,7 @@ impl geng::State for Game {
                 }
             }
             geng::Event::KeyDown { key: geng::Key::I } => {
-                self.camera.fov = self.assets.config.camera_fov;
+                self.camera.fov = self.assets.get().config.camera_fov;
             }
             _ => {}
         }

@@ -19,7 +19,7 @@ impl Game {
         self.ui_controller
             .draw(framebuffer, &camera, self.buttons.clone());
         if self.customization.name.is_empty() {
-            self.assets.font.draw(
+            self.assets.get().font.draw(
                 framebuffer,
                 &camera,
                 "type your name",
@@ -28,7 +28,7 @@ impl Game {
                 1.0,
                 Rgba::new(0.5, 0.5, 1.0, 0.5),
             );
-            self.assets.font.draw(
+            self.assets.get().font.draw(
                 framebuffer,
                 &camera,
                 "yes just type it",
@@ -38,7 +38,7 @@ impl Game {
                 Rgba::new(0.5, 0.5, 1.0, 0.5),
             );
         } else {
-            self.assets.font.draw(
+            self.assets.get().font.draw(
                 framebuffer,
                 &camera,
                 &self.customization.name,

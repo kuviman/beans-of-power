@@ -1,7 +1,9 @@
 use super::*;
 
+pub type Assets = Hot<AssetsInner>;
+
 #[derive(geng::Assets)]
-pub struct Assets {
+pub struct AssetsInner {
     pub config: Rc<Config>,
     pub sfx: SfxAssets,
     #[asset(load_with = "load_fart_assets(&geng, &base_path.join(\"farts\"))")]
@@ -99,10 +101,14 @@ pub struct Config {
 pub struct SfxAssets {
     pub fart_recharge: geng::Sound,
     pub water_splash: geng::Sound,
-    #[asset(path = "music.mp3")]
+    #[asset(path = "music.mp3", postprocess = "make_looped")]
     pub old_music: geng::Sound,
-    #[asset(path = "KuviFart.wav")]
+    #[asset(path = "KuviFart.wav", postprocess = "make_looped")]
     pub new_music: geng::Sound,
+}
+
+fn make_looped(sound: &mut geng::Sound) {
+    sound.looped = true;
 }
 
 fn load_font(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<geng::Font> {
@@ -120,13 +126,6 @@ fn load_font(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<geng::Fon
         )
     }
     .boxed_local()
-}
-
-impl Assets {
-    pub fn process(&mut self) {
-        self.sfx.old_music.looped = true;
-        self.sfx.new_music.looped = true;
-    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -160,8 +159,14 @@ pub struct FartConfig {
     pub farticle_size: f32,
     pub farticle_count: usize,
     pub farticle_additional_vel: f32,
+    #[serde(default = "one_f32")]
+    pub farticle_lifetime: f32,
     #[serde(default = "create_true")]
     pub farticle_random_rotation: bool,
+}
+
+fn one_f32() -> f32 {
+    1.0
 }
 
 fn create_true() -> bool {
