@@ -41,6 +41,8 @@ pub struct Opt {
     pub connect: Option<String>,
     #[clap(long, default_value = "level.json")]
     pub level: std::path::PathBuf,
+    #[clap(long)]
+    pub assets: Option<std::path::PathBuf>,
     #[clap(flatten)]
     pub geng: geng::CliArgs,
 }
@@ -48,6 +50,8 @@ pub struct Opt {
 fn main() {
     geng::setup_panic_handler();
     let mut opt: Opt = program_args::parse();
+
+    let assets_dir = opt.assets.clone().unwrap_or(run_dir().join("assets"));
 
     if opt.connect.is_none() && opt.server.is_none() {
         if cfg!(target_arch = "wasm32") {
@@ -106,8 +110,8 @@ fn main() {
         geng.clone().run_loading(async move {
             let ((assets, level), connection_info) = future::join(
                 future::join(
-                    <Assets as geng::LoadAsset>::load(&geng, &run_dir().join("assets")),
-                    Level::load(run_dir().join("assets").join(&opt.level), opt.editor),
+                    <Assets as geng::LoadAsset>::load(&geng, &assets_dir),
+                    Level::load(assets_dir.join(&opt.level), opt.editor),
                 ),
                 connection,
             )
