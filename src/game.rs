@@ -147,6 +147,11 @@ impl Game {
                 fov: 10.0,
             };
             let guy = self.guys.get_mut(&id).unwrap();
+            let text_color = if guy.progress.finished {
+                Rgba::WHITE
+            } else {
+                Rgba::BLACK
+            };
             if guy.progress.finished {
                 self.assets.get().font.draw(
                     framebuffer,
@@ -155,7 +160,7 @@ impl Game {
                     vec2(0.0, 3.0),
                     geng::TextAlign::CENTER,
                     1.5,
-                    Rgba::BLACK,
+                    text_color,
                 );
             }
             let progress = self
@@ -189,41 +194,44 @@ impl Game {
                 vec2(0.0, -3.3),
                 geng::TextAlign::CENTER,
                 0.5,
-                Rgba::BLACK,
+                text_color,
             );
-            self.assets.get().font.draw(
-                framebuffer,
-                &camera,
-                &"progress",
-                vec2(0.0, -4.0),
-                geng::TextAlign::CENTER,
-                0.5,
-                Rgba::BLACK,
-            );
-            self.geng.draw_2d(
-                framebuffer,
-                &camera,
-                &draw_2d::Quad::new(
-                    Aabb2::point(vec2(0.0, -4.5)).extend_symmetric(vec2(3.0, 0.1)),
-                    Rgba::BLACK,
-                ),
-            );
-            self.geng.draw_2d(
-                framebuffer,
-                &camera,
-                &draw_2d::Quad::new(
-                    Aabb2::point(vec2(-3.0 + 6.0 * self.best_progress, -4.5)).extend_uniform(0.3),
-                    Rgba::new(0.0, 0.0, 0.0, 0.5),
-                ),
-            );
-            self.geng.draw_2d(
-                framebuffer,
-                &camera,
-                &draw_2d::Quad::new(
-                    Aabb2::point(vec2(-3.0 + 6.0 * progress, -4.5)).extend_uniform(0.3),
-                    Rgba::BLACK,
-                ),
-            );
+            if !guy.progress.finished {
+                self.assets.get().font.draw(
+                    framebuffer,
+                    &camera,
+                    &"progress",
+                    vec2(0.0, -4.0),
+                    geng::TextAlign::CENTER,
+                    0.5,
+                    text_color,
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &camera,
+                    &draw_2d::Quad::new(
+                        Aabb2::point(vec2(0.0, -4.5)).extend_symmetric(vec2(3.0, 0.1)),
+                        text_color,
+                    ),
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &camera,
+                    &draw_2d::Quad::new(
+                        Aabb2::point(vec2(-3.0 + 6.0 * self.best_progress, -4.5))
+                            .extend_uniform(0.3),
+                        Rgba::new(0.0, 0.0, 0.0, 0.5),
+                    ),
+                );
+                self.geng.draw_2d(
+                    framebuffer,
+                    &camera,
+                    &draw_2d::Quad::new(
+                        Aabb2::point(vec2(-3.0 + 6.0 * progress, -4.5)).extend_uniform(0.3),
+                        text_color,
+                    ),
+                );
+            }
         }
     }
 }
@@ -231,10 +239,26 @@ impl Game {
 impl geng::State for Game {
     fn draw(&mut self, framebuffer: &mut ugli::Framebuffer) {
         self.framebuffer_size = framebuffer.size().map(|x| x as f32);
-        ugli::clear(framebuffer, Some(self.config.background_color), None, None);
+        let finished = self
+            .my_guy
+            .and_then(|id| self.guys.get(&id))
+            .map(|guy| guy.progress.finished)
+            .unwrap_or(false);
+        ugli::clear(
+            framebuffer,
+            Some(if finished {
+                Rgba::BLACK
+            } else {
+                self.config.background_color
+            }),
+            None,
+            None,
+        );
 
         for (index, layer) in self.level.layers.iter().enumerate() {
-            self.draw_layer_back(&self.level, index, framebuffer);
+            if !finished {
+                self.draw_layer_back(&self.level, index, framebuffer);
+            }
             if layer.name == "main" {
                 self.geng.draw_2d(
                     framebuffer,
@@ -251,7 +275,9 @@ impl geng::State for Game {
                 self.draw_guys(framebuffer);
                 self.draw_farticles(framebuffer);
             }
-            self.draw_layer_front(&self.level, index, framebuffer);
+            if !finished {
+                self.draw_layer_front(&self.level, index, framebuffer);
+            }
         }
         self.draw_level_editor(framebuffer);
         self.draw_customizer(framebuffer);
