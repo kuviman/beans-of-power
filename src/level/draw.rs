@@ -24,7 +24,29 @@ pub struct LevelMesh {
 }
 
 impl LevelMesh {
-    pub fn new(geng: &Geng, level: &Level) -> Self {
+    pub fn new(geng: &Geng, assets: &Assets, level: &Level) -> Self {
+        let assets = assets.get();
+        let surface_texture_radius = |surface: &Surface| -> f32 {
+            let surface_assets = &assets.surfaces[&surface.type_name];
+            let texture = surface_assets
+                .front_texture
+                .as_ref()
+                .or(surface_assets.back_texture.as_ref())
+                .unwrap();
+            let texture_height = texture.size().y as f32 / texture.size().x as f32;
+            texture_height / 2.0
+        };
+        let arc_len = |a: &Surface, b: &Surface| -> f32 {
+            // assert_eq!(a.type_name, b.type_name);
+            let n1 = a.normal();
+            let n2 = b.normal();
+            let mut angle = -f32::atan2(vec2::skew(n1, n2), vec2::dot(n1, n2));
+            if angle < 0.0 {
+                angle += 2.0 * f32::PI;
+            }
+            let r = surface_texture_radius(a);
+            angle * r
+        };
         Self {
             layers: level
                 .layers
@@ -50,41 +72,162 @@ impl LevelMesh {
                     },
                     surfaces: {
                         let mut vertex_data: HashMap<String, Vec<SurfaceVertex>> = HashMap::new();
-                        for surface in &layer.surfaces {
+
+                        type Key = usize;
+                        let mut vertex_ts: HashMap<Key, f32> = default();
+                        let mut queue = std::collections::VecDeque::<Key>::new();
+                        for key in 0..layer.surfaces.len() {
+                            if vertex_ts.contains_key(&key) {
+                                continue;
+                            }
+                            vertex_ts.insert(key, 0.0);
+                            queue.push_back(key);
+                            while let Some(key) = queue.pop_front() {
+                                let surface = &layer.surfaces[key];
+                                let start_t = *vertex_ts.get(&key).unwrap();
+                                let end_t = start_t + (surface.p2 - surface.p1).len();
+                                for (i, other) in layer.surfaces.iter().enumerate() {
+                                    if other.type_name != surface.type_name {
+                                        continue;
+                                    }
+                                    let mut push = |key: Key, t: f32| {
+                                        vertex_ts.entry(key).or_insert_with(|| {
+                                            queue.push_back(key);
+                                            t
+                                        });
+                                    };
+                                    for (t, p) in [(start_t, surface.p1), (end_t, surface.p2)] {
+                                        if p == other.p1 {
+                                            push(i, t + arc_len(surface, other));
+                                        }
+                                        if p == other.p2 {
+                                            push(
+                                                i,
+                                                t - (other.p2 - other.p1).len()
+                                                    - arc_len(other, surface),
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        for (i, surface) in layer.surfaces.iter().enumerate() {
+                            let normal = (surface.p2 - surface.p1).normalize().rotate_90();
+                            let start_t = *vertex_ts.get(&i).unwrap();
+                            let len = (surface.p2 - surface.p1).len();
+                            let end_t = start_t + len;
+
+                            // Rect
                             vertex_data
                                 .entry(surface.type_name.clone())
                                 .or_default()
                                 .extend({
-                                    let normal = (surface.p2 - surface.p1).normalize().rotate_90();
-                                    let len = (surface.p2 - surface.p1).len();
                                     let vs = [
                                         SurfaceVertex {
                                             a_pos: surface.p1,
                                             a_normal: normal,
                                             a_flow: surface.flow,
-                                            a_vt: vec2(0.0, 0.0),
+                                            a_vt: vec2(start_t, 0.0),
                                         },
                                         SurfaceVertex {
                                             a_pos: surface.p2,
                                             a_normal: normal,
                                             a_flow: surface.flow,
-                                            a_vt: vec2(len, 0.0),
+                                            a_vt: vec2(end_t, 0.0),
                                         },
                                         SurfaceVertex {
                                             a_pos: surface.p2,
                                             a_normal: normal,
                                             a_flow: surface.flow,
-                                            a_vt: vec2(len, 1.0),
+                                            a_vt: vec2(end_t, 1.0),
                                         },
                                         SurfaceVertex {
                                             a_pos: surface.p1,
                                             a_normal: normal,
                                             a_flow: surface.flow,
-                                            a_vt: vec2(0.0, 1.0),
+                                            a_vt: vec2(start_t, 1.0),
                                         },
                                     ];
                                     [vs[0], vs[1], vs[2], vs[0], vs[2], vs[3]]
                                 });
+
+                            let next = layer.surfaces.iter().find(|other| {
+                                other.p1 == surface.p2 && other.type_name == surface.type_name
+                            });
+
+                            // Corner to the next segment
+                            if let Some(next) = next {
+                                const R: usize = 100;
+                                let n1 = normal;
+                                let n2 = (next.p2 - next.p1).rotate_90().normalize_or_zero();
+                                let mut vs = Vec::new();
+                                struct Point {
+                                    pos: vec2<f32>,
+                                    normal: vec2<f32>,
+                                }
+                                for j in 0..=R {
+                                    fn lerp(a: vec2<f32>, b: vec2<f32>, t: f32) -> vec2<f32> {
+                                        a * (1.0 - t) + b * t
+                                    }
+                                    fn slerp(a: vec2<f32>, b: vec2<f32>, t: f32) -> vec2<f32> {
+                                        lerp(a, b, t).normalize()
+                                    }
+                                    vs.push(Point {
+                                        pos: surface.p2,
+                                        normal: slerp(n1, n2, j as f32 / R as f32),
+                                    });
+                                }
+                                let (start_t, end_t) = {
+                                    let start_t = end_t;
+                                    (start_t, start_t + arc_len(surface, next))
+                                };
+                                for (i, seg) in vs.windows(2).enumerate() {
+                                    let p1 = &seg[0];
+                                    let p2 = &seg[1];
+                                    let (start_t, end_t) = {
+                                        (
+                                            start_t
+                                                + (end_t - start_t) * i as f32 / vs.len() as f32,
+                                            start_t
+                                                + (end_t - start_t) * (i + 1) as f32
+                                                    / vs.len() as f32,
+                                        )
+                                    };
+                                    let vs = [
+                                        SurfaceVertex {
+                                            a_pos: p1.pos,
+                                            a_normal: p1.normal,
+                                            a_flow: surface.flow,
+                                            a_vt: vec2(start_t, 0.0),
+                                        },
+                                        SurfaceVertex {
+                                            a_pos: p2.pos,
+                                            a_normal: p2.normal,
+                                            a_flow: surface.flow,
+                                            a_vt: vec2(end_t, 0.0),
+                                        },
+                                        SurfaceVertex {
+                                            a_pos: p2.pos,
+                                            a_normal: p2.normal,
+                                            a_flow: surface.flow,
+                                            a_vt: vec2(end_t, 1.0),
+                                        },
+                                        SurfaceVertex {
+                                            a_pos: p1.pos,
+                                            a_normal: p1.normal,
+                                            a_flow: surface.flow,
+                                            a_vt: vec2(start_t, 1.0),
+                                        },
+                                    ];
+                                    vertex_data
+                                        .entry(surface.type_name.clone())
+                                        .or_default()
+                                        .extend([vs[0], vs[1], vs[2], vs[0], vs[2], vs[3]]);
+                                }
+                            } else {
+                                warn!("Not connected????");
+                            }
                         }
                         vertex_data
                             .into_iter()
@@ -104,7 +247,7 @@ impl Game {
         {
             let mut mesh = level.mesh.borrow_mut();
             if mesh.is_none() {
-                *mesh = Some(LevelMesh::new(&self.geng, level));
+                *mesh = Some(LevelMesh::new(&self.geng, &self.assets, level));
                 debug!("Creating level mesh");
             };
         }

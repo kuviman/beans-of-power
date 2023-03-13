@@ -10,6 +10,9 @@ pub struct Surface {
 }
 
 impl Surface {
+    pub fn normal(&self) -> vec2<f32> {
+        (self.p2 - self.p1).rotate_90().normalize_or_zero()
+    }
     pub fn vector_from(&self, point: vec2<f32>) -> vec2<f32> {
         if vec2::dot(point - self.p1, self.p2 - self.p1) < 0.0 {
             return self.p1 - point;
