@@ -40,6 +40,7 @@ float cnoise(vec2 P){
 // ^ Copypasted from https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
 
 varying vec2 v_vt;
+varying vec2 v_world_pos;
 
 #ifdef VERTEX_SHADER
 attribute vec2 a_pos;
@@ -55,7 +56,8 @@ void main() {
     v_vt = a_vt + vec2(u_texture_shift - a_flow * u_simulation_time, 0.0);
     vec2 tangent = vec2(-a_normal.y, a_normal.x);
     // vec2 wind_shift = tangent * sin(u_simulation_time * 3.0) * a_vt.y * 0.02;
-    vec3 pos = u_projection_matrix * u_view_matrix * vec3(a_pos + a_normal * a_vt.y * u_height, 1.0);
+    vec3 pos = u_projection_matrix * u_view_matrix * vec3(a_pos, 1.0);
+    v_world_pos = pos.xy;
     gl_Position = vec4(pos.xy, 0.0, pos.z);
 }
 #endif
@@ -66,6 +68,6 @@ uniform float u_simulation_time;
 uniform float u_flex_amplitude;
 uniform float u_flex_frequency;
 void main() {
-    gl_FragColor = texture2D(u_texture, v_vt + v_vt.y * vec2(cnoise(vec2(v_vt.x, u_simulation_time * u_flex_frequency)) * u_flex_amplitude, 0.0));
+    gl_FragColor = texture2D(u_texture, v_vt + v_vt.y * vec2(cnoise(v_world_pos + vec2(0.0, u_simulation_time * u_flex_frequency)) * u_flex_amplitude, 0.0));
 }
 #endif
