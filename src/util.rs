@@ -105,3 +105,13 @@ pub fn circle_triangle_intersect_area(center: vec2<f32>, radius: f32, tri: [vec2
     }
     sum
 }
+
+pub fn ray_hit_time(
+    ray_start: vec2<f32>,
+    ray_vel: vec2<f32>,
+    line_p: vec2<f32>,
+    line_normal: vec2<f32>,
+) -> f32 {
+    // dot(ray_start + ray_vel * t - line_p, line_normal) = 0
+    vec2::dot(line_p - ray_start, line_normal) / vec2::dot(ray_vel, line_normal)
+}
