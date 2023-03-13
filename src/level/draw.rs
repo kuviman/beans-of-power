@@ -80,7 +80,9 @@ impl LevelMesh {
                             }
                             vertex_ts.insert(key, 0.0);
                             queue.push_back(key);
+                            let mut this_pass = Vec::new();
                             while let Some(key) = queue.pop_front() {
+                                this_pass.push(key);
                                 let surface = &layer.surfaces[key];
                                 let start_t = *vertex_ts.get(&key).unwrap();
                                 let end_t = start_t + (surface.p2 - surface.p1).len();
@@ -108,187 +110,218 @@ impl LevelMesh {
                                     }
                                 }
                             }
-                        }
 
-                        for (i, surface) in layer.surfaces.iter().enumerate() {
-                            let normal = (surface.p2 - surface.p1).normalize().rotate_90();
-                            let start_t = *vertex_ts.get(&i).unwrap();
-                            let len = (surface.p2 - surface.p1).len();
-                            let end_t = start_t + len;
+                            let mut this_pass_vertex_data =
+                                HashMap::<String, Vec<SurfaceVertex>>::new();
 
-                            let prev = layer.surfaces.iter().find(|other| {
-                                other.p2 == surface.p1 && other.type_name == surface.type_name
-                            });
-                            let next = layer.surfaces.iter().find(|other| {
-                                other.p1 == surface.p2 && other.type_name == surface.type_name
-                            });
+                            for i in this_pass {
+                                let surface = &layer.surfaces[i];
+                                let normal = (surface.p2 - surface.p1).normalize().rotate_90();
+                                let mult = 1.0; //vertex_ts_multiplier.get(&i).copied().unwrap_or(1.0);
+                                let start_t = *vertex_ts.get(&i).unwrap();
+                                let len = (surface.p2 - surface.p1).len();
+                                let end_t = start_t + len;
 
-                            // Rect
-                            vertex_data
-                                .entry(surface.type_name.clone())
-                                .or_default()
-                                .extend({
-                                    let dir = surface.p2 - surface.p1;
-                                    let start_ratio = prev
-                                        .map_or(0.0, |prev| {
-                                            ray_hit_time(
-                                                surface.p1
-                                                    + surface.normal()
-                                                        * surface_texture_height(surface),
-                                                dir,
-                                                prev.p1
-                                                    + prev.normal() * surface_texture_height(prev),
-                                                prev.normal(),
-                                            )
-                                        })
-                                        .max(0.0);
-                                    let end_ratio = next
-                                        .map_or(1.0, |next| {
-                                            ray_hit_time(
-                                                surface.p1
-                                                    + surface.normal()
-                                                        * surface_texture_height(surface),
-                                                dir,
-                                                next.p1
-                                                    + next.normal() * surface_texture_height(next),
-                                                next.normal(),
-                                            )
-                                        })
-                                        .min(1.0);
-                                    let p1 = surface.p1 + dir * start_ratio;
-                                    let p2 = surface.p1 + dir * end_ratio;
-                                    let vs = [
-                                        SurfaceVertex {
-                                            a_pos: p1,
-                                            a_normal: normal,
-                                            a_flow: surface.flow,
-                                            a_vt: vec2(start_t, 0.0),
-                                        },
-                                        SurfaceVertex {
-                                            a_pos: p2,
-                                            a_normal: normal,
-                                            a_flow: surface.flow,
-                                            a_vt: vec2(end_t, 0.0),
-                                        },
-                                        SurfaceVertex {
-                                            a_pos: p2 + surface_texture_height(surface) * normal,
-                                            a_normal: normal,
-                                            a_flow: surface.flow,
-                                            a_vt: vec2(end_t, 1.0),
-                                        },
-                                        SurfaceVertex {
-                                            a_pos: p1 + surface_texture_height(surface) * normal,
-                                            a_normal: normal,
-                                            a_flow: surface.flow,
-                                            a_vt: vec2(start_t, 1.0),
-                                        },
-                                    ];
-                                    [vs[0], vs[1], vs[2], vs[0], vs[2], vs[3]]
+                                let prev = layer.surfaces.iter().find(|other| {
+                                    other.p2 == surface.p1 && other.type_name == surface.type_name
+                                });
+                                let next = layer.surfaces.iter().find(|other| {
+                                    other.p1 == surface.p2 && other.type_name == surface.type_name
                                 });
 
-                            // Corner to the next segment
-                            if let Some(next) = next {
-                                const R: usize = 100;
-                                fn lerp(a: vec2<f32>, b: vec2<f32>, t: f32) -> vec2<f32> {
-                                    a * (1.0 - t) + b * t
-                                }
-                                fn slerp(a: vec2<f32>, b: vec2<f32>, t: f32) -> vec2<f32> {
-                                    lerp(a, b, t).normalize()
-                                }
-                                let n1 = normal;
-                                let n2 = (next.p2 - next.p1).rotate_90().normalize_or_zero();
-                                struct Point {
-                                    pos: vec2<f32>,
-                                    normal: vec2<f32>,
-                                    height: f32,
-                                }
-                                let mut vs = Vec::<Point>::new();
-                                if vec2::skew(surface.normal(), next.normal()) > EPS {
-                                    let ray_start = surface.p1
-                                        + surface.normal() * surface_texture_height(surface);
-                                    let ray_dir = surface.p2 - surface.p1;
-                                    let t = ray_hit_time(
-                                        ray_start,
-                                        ray_dir,
-                                        next.p1 + next.normal() * surface_texture_height(next),
-                                        next.normal(),
-                                    );
-                                    let mid = ray_start + ray_dir * t;
-                                    let p1 =
-                                        mid - surface.normal() * surface_texture_height(surface);
-                                    let p2 = mid - next.normal() * surface_texture_height(next);
-                                    for (p1, p2) in [(p1, surface.p2), (surface.p2, p2)] {
-                                        for j in 0..=R {
-                                            let pos = lerp(p1, p2, j as f32 / R as f32);
-                                            if vs.last().map(|p| p.pos) == Some(pos) {
-                                                // LUL
-                                                continue;
+                                // Rect
+                                this_pass_vertex_data
+                                    .entry(surface.type_name.clone())
+                                    .or_default()
+                                    .extend({
+                                        let dir = surface.p2 - surface.p1;
+                                        let start_ratio = prev
+                                            .map_or(0.0, |prev| {
+                                                ray_hit_time(
+                                                    surface.p1
+                                                        + surface.normal()
+                                                            * surface_texture_height(surface),
+                                                    dir,
+                                                    prev.p1
+                                                        + prev.normal()
+                                                            * surface_texture_height(prev),
+                                                    prev.normal(),
+                                                )
+                                            })
+                                            .max(0.0);
+                                        let end_ratio = next
+                                            .map_or(1.0, |next| {
+                                                ray_hit_time(
+                                                    surface.p1
+                                                        + surface.normal()
+                                                            * surface_texture_height(surface),
+                                                    dir,
+                                                    next.p1
+                                                        + next.normal()
+                                                            * surface_texture_height(next),
+                                                    next.normal(),
+                                                )
+                                            })
+                                            .min(1.0);
+                                        let p1 = surface.p1 + dir * start_ratio;
+                                        let p2 = surface.p1 + dir * end_ratio;
+                                        let vs = [
+                                            SurfaceVertex {
+                                                a_pos: p1,
+                                                a_normal: normal,
+                                                a_flow: surface.flow,
+                                                a_vt: vec2(mult * start_t, 0.0),
+                                            },
+                                            SurfaceVertex {
+                                                a_pos: p2,
+                                                a_normal: normal,
+                                                a_flow: surface.flow,
+                                                a_vt: vec2(mult * end_t, 0.0),
+                                            },
+                                            SurfaceVertex {
+                                                a_pos: p2
+                                                    + surface_texture_height(surface) * normal,
+                                                a_normal: normal,
+                                                a_flow: surface.flow,
+                                                a_vt: vec2(mult * end_t, 1.0),
+                                            },
+                                            SurfaceVertex {
+                                                a_pos: p1
+                                                    + surface_texture_height(surface) * normal,
+                                                a_normal: normal,
+                                                a_flow: surface.flow,
+                                                a_vt: vec2(mult * start_t, 1.0),
+                                            },
+                                        ];
+                                        [vs[0], vs[1], vs[2], vs[0], vs[2], vs[3]]
+                                    });
+
+                                // Corner to the next segment
+                                if let Some(next) = next {
+                                    const R: usize = 100;
+                                    fn lerp(a: vec2<f32>, b: vec2<f32>, t: f32) -> vec2<f32> {
+                                        a * (1.0 - t) + b * t
+                                    }
+                                    fn slerp(a: vec2<f32>, b: vec2<f32>, t: f32) -> vec2<f32> {
+                                        lerp(a, b, t).normalize()
+                                    }
+                                    let n1 = normal;
+                                    let n2 = (next.p2 - next.p1).rotate_90().normalize_or_zero();
+                                    struct Point {
+                                        pos: vec2<f32>,
+                                        normal: vec2<f32>,
+                                        height: f32,
+                                    }
+                                    let mut vs = Vec::<Point>::new();
+                                    if vec2::skew(surface.normal(), next.normal()) > EPS {
+                                        let ray_start = surface.p1
+                                            + surface.normal() * surface_texture_height(surface);
+                                        let ray_dir = surface.p2 - surface.p1;
+                                        let t = ray_hit_time(
+                                            ray_start,
+                                            ray_dir,
+                                            next.p1 + next.normal() * surface_texture_height(next),
+                                            next.normal(),
+                                        );
+                                        let mid = ray_start + ray_dir * t;
+                                        let p1 = mid
+                                            - surface.normal() * surface_texture_height(surface);
+                                        let p2 = mid - next.normal() * surface_texture_height(next);
+                                        for (p1, p2) in [(p1, surface.p2), (surface.p2, p2)] {
+                                            for j in 0..=R {
+                                                let pos = lerp(p1, p2, j as f32 / R as f32);
+                                                if vs.last().map(|p| p.pos) == Some(pos) {
+                                                    // LUL
+                                                    continue;
+                                                }
+                                                vs.push(Point {
+                                                    pos,
+                                                    normal: (mid - pos).normalize(),
+                                                    height: (mid - pos).len(),
+                                                });
                                             }
+                                        }
+                                    } else {
+                                        for j in 0..=R {
                                             vs.push(Point {
-                                                pos,
-                                                normal: (mid - pos).normalize(),
-                                                height: (mid - pos).len(),
+                                                pos: surface.p2,
+                                                normal: slerp(n1, n2, j as f32 / R as f32),
+                                                height: surface_texture_height(surface),
                                             });
                                         }
                                     }
-                                } else {
-                                    for j in 0..=R {
-                                        vs.push(Point {
-                                            pos: surface.p2,
-                                            normal: slerp(n1, n2, j as f32 / R as f32),
-                                            height: surface_texture_height(surface),
-                                        });
-                                    }
-                                }
-                                let (start_t, end_t) = {
-                                    let start_t = end_t;
-                                    (start_t, start_t + arc_len(surface, next))
-                                };
-                                for (i, seg) in vs.windows(2).enumerate() {
-                                    let p1 = &seg[0];
-                                    let p2 = &seg[1];
                                     let (start_t, end_t) = {
-                                        (
-                                            start_t
-                                                + (end_t - start_t) * i as f32 / vs.len() as f32,
-                                            start_t
-                                                + (end_t - start_t) * (i + 1) as f32
-                                                    / vs.len() as f32,
-                                        )
+                                        let start_t = end_t;
+                                        (start_t, start_t + arc_len(surface, next))
                                     };
-                                    let vs = [
-                                        SurfaceVertex {
-                                            a_pos: p1.pos,
-                                            a_normal: p1.normal,
-                                            a_flow: surface.flow,
-                                            a_vt: vec2(start_t, 0.0),
-                                        },
-                                        SurfaceVertex {
-                                            a_pos: p2.pos,
-                                            a_normal: p2.normal,
-                                            a_flow: surface.flow,
-                                            a_vt: vec2(end_t, 0.0),
-                                        },
-                                        SurfaceVertex {
-                                            a_pos: p2.pos + p2.height * p2.normal,
-                                            a_normal: p2.normal,
-                                            a_flow: surface.flow,
-                                            a_vt: vec2(end_t, 1.0),
-                                        },
-                                        SurfaceVertex {
-                                            a_pos: p1.pos + p1.height * p1.normal,
-                                            a_normal: p1.normal,
-                                            a_flow: surface.flow,
-                                            a_vt: vec2(start_t, 1.0),
-                                        },
-                                    ];
-                                    vertex_data
-                                        .entry(surface.type_name.clone())
-                                        .or_default()
-                                        .extend([vs[0], vs[1], vs[2], vs[0], vs[2], vs[3]]);
+                                    for (i, seg) in vs.windows(2).enumerate() {
+                                        let p1 = &seg[0];
+                                        let p2 = &seg[1];
+                                        let (start_t, end_t) = {
+                                            (
+                                                start_t
+                                                    + (end_t - start_t) * i as f32
+                                                        / vs.len() as f32,
+                                                start_t
+                                                    + (end_t - start_t) * (i + 1) as f32
+                                                        / vs.len() as f32,
+                                            )
+                                        };
+                                        let vs = [
+                                            SurfaceVertex {
+                                                a_pos: p1.pos,
+                                                a_normal: p1.normal,
+                                                a_flow: surface.flow,
+                                                a_vt: vec2(mult * start_t, 0.0),
+                                            },
+                                            SurfaceVertex {
+                                                a_pos: p2.pos,
+                                                a_normal: p2.normal,
+                                                a_flow: surface.flow,
+                                                a_vt: vec2(mult * end_t, 0.0),
+                                            },
+                                            SurfaceVertex {
+                                                a_pos: p2.pos + p2.height * p2.normal,
+                                                a_normal: p2.normal,
+                                                a_flow: surface.flow,
+                                                a_vt: vec2(mult * end_t, 1.0),
+                                            },
+                                            SurfaceVertex {
+                                                a_pos: p1.pos + p1.height * p1.normal,
+                                                a_normal: p1.normal,
+                                                a_flow: surface.flow,
+                                                a_vt: vec2(mult * start_t, 1.0),
+                                            },
+                                        ];
+                                        this_pass_vertex_data
+                                            .entry(surface.type_name.clone())
+                                            .or_default()
+                                            .extend([vs[0], vs[1], vs[2], vs[0], vs[2], vs[3]]);
+                                    }
+                                } else {
+                                    warn!("Not connected????");
                                 }
-                            } else {
-                                warn!("Not connected????");
+                            }
+
+                            let max = this_pass_vertex_data
+                                .values()
+                                .flatten()
+                                .map(|v| r32(v.a_vt.x))
+                                .max()
+                                .unwrap();
+                            let min = this_pass_vertex_data
+                                .values()
+                                .flatten()
+                                .map(|v| r32(v.a_vt.x))
+                                .min()
+                                .unwrap();
+                            let total_len = (max - min).raw();
+                            let rounded_len = total_len.round().max(1.0);
+                            for (name, mut data) in this_pass_vertex_data {
+                                for v in &mut data {
+                                    v.a_vt.x *= rounded_len / total_len;
+                                }
+                                vertex_data.entry(name).or_default().extend(data);
                             }
                         }
                         vertex_data
