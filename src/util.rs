@@ -25,7 +25,7 @@ impl geng::LoadAsset for Texture {
         let texture = <ugli::Texture as geng::LoadAsset>::load(geng, path);
         async move {
             let mut texture = texture.await?;
-            texture.set_filter(ugli::Filter::Nearest);
+            // texture.set_filter(ugli::Filter::Nearest);
             Ok(Texture(texture))
         }
         .boxed_local()

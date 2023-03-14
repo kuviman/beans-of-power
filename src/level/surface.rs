@@ -90,7 +90,9 @@ pub fn load_surface_assets(
                     async move {
                         let mut texture =
                             <Texture as geng::LoadAsset>::load(&geng, &path.join(file)).await?;
-                        texture.0.set_wrap_mode(ugli::WrapMode::Repeat);
+                        texture
+                            .0
+                            .set_wrap_mode_separate(ugli::WrapMode::Repeat, ugli::WrapMode::Clamp);
                         Ok::<_, anyhow::Error>(texture)
                     }
                 };
