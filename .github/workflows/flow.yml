@@ -40,6 +40,7 @@ jobs:
         uses: shalzz/zola-deploy-action@v0.17.1
         env:
           BUILD_DIR: website
+          BUILD_THEMES: false
           BUILD_ONLY: true
       - name: Deploy Website
         uses: JamesIves/github-pages-deploy-action@v4
