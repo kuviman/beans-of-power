@@ -34,6 +34,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: Build website
         uses: shalzz/zola-deploy-action@v0.17.1
         env:
