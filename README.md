@@ -1,6 +1,6 @@
 # Getting Farted On
 
-![farts](images/farts.gif)
+![farts](website/content/farts.gif)
 
 ## Play
 

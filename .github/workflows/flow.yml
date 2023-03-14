@@ -27,6 +27,25 @@ jobs:
           name: linux
           path: target/geng
 
+  deploy-website:
+    name: Deploy Website
+    if: github.ref == 'refs/heads/main' && github.repository_owner == 'kuviman'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build website
+        uses: shalzz/zola-deploy-action@v0.17.1
+        env:
+          BUILD_DIR: website
+          BUILD_ONLY: true
+      - name: Deploy Website
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: website/public
+          clean-exclude: |
+            play
+
   deploy:
     name: Deploy
     if: github.ref == 'refs/heads/main' && github.repository_owner == 'kuviman'
@@ -52,7 +71,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: web
-          destination_dir: main
+          destination_dir: play/main
       - name: Copy server files
         uses: appleboy/scp-action@master
         with:
