@@ -2,10 +2,16 @@ use super::*;
 
 pub use resvg::usvg::{Node, Tree};
 
-pub async fn load(path: impl AsRef<std::path::Path>) -> anyhow::Result<Tree> {
-    let svg_data: Vec<u8> = file::load_bytes(path).await?;
-    let tree = resvg::usvg::Tree::from_data(&svg_data, &resvg::usvg::Options::default())?;
-    Ok(tree)
+pub struct Document {
+    pub raw_xml: String,
+    pub tree: Tree,
+}
+
+pub async fn load(path: impl AsRef<std::path::Path>) -> anyhow::Result<Document> {
+    let raw_xml = file::load_string(path).await?;
+    let xml = roxmltree::Document::parse(&raw_xml)?;
+    let tree = resvg::usvg::Tree::from_xmltree(&xml, &resvg::usvg::Options::default())?;
+    Ok(Document { raw_xml, tree })
 }
 
 pub fn render(geng: &Geng, tree: &Tree, node: Option<&Node>) -> ugli::Texture {

@@ -189,17 +189,75 @@ fn load_custom_guy_assets(
     .boxed_local()
 }
 
+pub struct GuyRenderLayer {
+    texture: ugli::Texture,
+    color: String,
+}
+
+pub struct GuyRenderAssets {
+    open_eyes: Vec<GuyRenderLayer>,
+    closed_eyes: Vec<GuyRenderLayer>,
+    cheeks: Vec<GuyRenderLayer>,
+    body: Vec<GuyRenderLayer>,
+    growl: Vec<GuyRenderLayer>,
+}
+
+impl geng::LoadAsset for GuyRenderAssets {
+    fn load(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<Self> {
+        let geng = geng.clone();
+        let path = path.to_owned();
+        async move {
+            let raw_xml = file::load_string(path).await?;
+            let raw_xml = raw_xml.replace("display:none", "");
+            let xml = roxmltree::Document::parse(&raw_xml)?;
+            let svg = resvg::usvg::Tree::from_xmltree(&xml, &resvg::usvg::Options::default())?;
+            let xml_nodes: HashMap<&str, roxmltree::Node> = xml
+                .descendants()
+                .filter_map(|node| node.attribute("id").map(|id| (id, node)))
+                .collect();
+            let inkscape = xml
+                .descendants()
+                .flat_map(|node| node.namespaces())
+                .find(|namespace| namespace.name() == Some("inkscape"))
+                .expect("No inkscape")
+                .uri();
+            let make_layers = |id: &str| -> Vec<GuyRenderLayer> {
+                let mut layers = Vec::new();
+                for svg_node in svg
+                    .node_by_id(id)
+                    .unwrap_or_else(|| panic!("{id} not found"))
+                    .descendants()
+                {
+                    let _svg_node = svg_node.borrow();
+                    let id = _svg_node.id();
+                    if !id.is_empty() {
+                        let xml_node = xml_nodes.get(id).unwrap();
+                        if let Some(color) = xml_node.attribute("color") {
+                            let texture = svg::render(&geng, &svg, Some(&svg_node));
+                            layers.push(GuyRenderLayer {
+                                texture,
+                                color: color.to_owned(),
+                            });
+                        }
+                    }
+                }
+                layers
+            };
+            Ok(Self {
+                open_eyes: make_layers("open-eyes"),
+                closed_eyes: make_layers("closed-eyes"),
+                cheeks: make_layers("cheeks"),
+                body: make_layers("body"),
+                growl: make_layers("growl"),
+            })
+        }
+        .boxed_local()
+    }
+
+    const DEFAULT_EXT: Option<&'static str> = Some("svg");
+}
+
 #[derive(geng::Assets)]
 pub struct GuyAssets {
-    pub cheeks: Texture,
-    pub eyes: Texture,
-    pub closed_eyes: Texture,
-    pub skin: Texture,
-    pub growl_top: Texture,
-    pub growl_bottom: Texture,
-    pub clothes_top: Texture,
-    pub clothes_bottom: Texture,
-    pub hair: Texture,
-    #[asset(load_with = "load_custom_guy_assets(&geng, &base_path.join(\"custom\"))")]
-    pub custom: HashMap<String, CustomGuyAssets>,
+    pub guy: GuyRenderAssets,
 }

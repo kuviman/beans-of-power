@@ -99,10 +99,10 @@ pub fn load_surface_assets(
                     }
                 };
                 let (front_texture, back_texture) = if params.svg {
-                    let tree = svg::load(path.join(format!("{name}.svg"))).await?;
+                    let svg = svg::load(path.join(format!("{name}.svg"))).await?;
                     let node_texture = |id: &str| -> Option<Texture> {
-                        tree.node_by_id(id).map(|node| {
-                            let mut texture = svg::render(&geng, &tree, Some(&node));
+                        svg.tree.node_by_id(id).map(|node| {
+                            let mut texture = svg::render(&geng, &svg.tree, Some(&node));
                             texture.set_wrap_mode_separate(
                                 ugli::WrapMode::Repeat,
                                 ugli::WrapMode::Clamp,

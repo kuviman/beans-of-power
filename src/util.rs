@@ -26,15 +26,15 @@ impl geng::LoadAsset for Texture {
             let geng = geng.clone();
             let path = path.to_owned();
             async move {
-                let tree = svg::load(path).await?;
-                Ok(Texture(svg::render(&geng, &tree, None)))
+                let svg = svg::load(path).await?;
+                Ok(Texture(svg::render(&geng, &svg.tree, None)))
             }
             .boxed_local()
         } else {
             let texture = <ugli::Texture as geng::LoadAsset>::load(geng, path);
             async move {
                 let mut texture = texture.await?;
-                // texture.set_filter(ugli::Filter::Nearest);
+                texture.set_filter(ugli::Filter::Nearest);
                 Ok(Texture(texture))
             }
             .boxed_local()
