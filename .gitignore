@@ -1,2 +1,5 @@
 /target
 /Cargo.lock
+
+# I like having this as git worktree
+/gh-pages/
