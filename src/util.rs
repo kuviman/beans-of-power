@@ -22,13 +22,23 @@ impl std::borrow::Borrow<ugli::Texture> for &'_ Texture {
 
 impl geng::LoadAsset for Texture {
     fn load(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<Self> {
-        let texture = <ugli::Texture as geng::LoadAsset>::load(geng, path);
-        async move {
-            let mut texture = texture.await?;
-            // texture.set_filter(ugli::Filter::Nearest);
-            Ok(Texture(texture))
+        if path.extension() == Some("svg".as_ref()) {
+            let geng = geng.clone();
+            let path = path.to_owned();
+            async move {
+                let tree = svg::load(path).await?;
+                Ok(Texture(svg::render(&geng, &tree, None)))
+            }
+            .boxed_local()
+        } else {
+            let texture = <ugli::Texture as geng::LoadAsset>::load(geng, path);
+            async move {
+                let mut texture = texture.await?;
+                // texture.set_filter(ugli::Filter::Nearest);
+                Ok(Texture(texture))
+            }
+            .boxed_local()
         }
-        .boxed_local()
     }
 
     const DEFAULT_EXT: Option<&'static str> = Some("png");

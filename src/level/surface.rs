@@ -56,6 +56,8 @@ pub struct SurfaceParams {
     pub fallthrough_speed: Option<f32>,
     #[serde(default = "default_snow_falloff")]
     pub snow_falloff: f32,
+    #[serde(default)]
+    pub svg: bool,
 }
 
 fn default_snow_falloff() -> f32 {
@@ -96,15 +98,32 @@ pub fn load_surface_assets(
                         Ok::<_, anyhow::Error>(texture)
                     }
                 };
-                let back_texture = if params.back {
-                    Some(load(format!("{}_back.png", name)).await?)
+                let (front_texture, back_texture) = if params.svg {
+                    let tree = svg::load(path.join(format!("{name}.svg"))).await?;
+                    let node_texture = |id: &str| -> Option<Texture> {
+                        tree.node_by_id(id).map(|node| {
+                            let mut texture = svg::render(&geng, &tree, Some(&node));
+                            texture.set_wrap_mode_separate(
+                                ugli::WrapMode::Repeat,
+                                ugli::WrapMode::Clamp,
+                            );
+                            Texture(texture)
+                        })
+                    };
+                    (node_texture("front"), node_texture("back"))
                 } else {
-                    None
-                };
-                let front_texture = if params.front {
-                    Some(load(format!("{}_front.png", name)).await?)
-                } else {
-                    None
+                    (
+                        if params.front {
+                            Some(load(format!("{name}_front.png")).await?)
+                        } else {
+                            None
+                        },
+                        if params.back {
+                            Some(load(format!("{name}_back.png")).await?)
+                        } else {
+                            None
+                        },
+                    )
                 };
                 let sound = if params.sound {
                     Some(geng::LoadAsset::load(&geng, &path.join(format!("{}.wav", name))).await?)

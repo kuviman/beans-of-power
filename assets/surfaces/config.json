@@ -1,5 +1,6 @@
 {
     "grass": {
+        "svg": true,
         "bounciness": 0.1,
         "friction": 1.0,
         "front": true,

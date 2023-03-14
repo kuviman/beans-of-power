@@ -16,6 +16,7 @@ mod level;
 mod logic;
 mod net;
 mod remote;
+mod svg;
 mod util;
 
 pub use assets::*;

@@ -17,7 +17,9 @@ pub struct AssetsInner {
     pub objects: HashMap<String, Texture>,
     #[asset(load_with = "load_font(&geng, &base_path.join(\"Ludum-Dairy-0.2.0.ttf\"))")]
     pub font: geng::Font,
+    #[asset(ext = "svg")]
     pub closed_outhouse: Texture,
+    #[asset(ext = "svg")]
     pub golden_toilet: Texture,
     #[asset(
         range = "[\"poggers\", \"fuuuu\", \"kekw\", \"eesBoom\"].into_iter()",
