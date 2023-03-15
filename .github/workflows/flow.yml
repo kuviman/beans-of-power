@@ -7,10 +7,18 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    container: kuviman/geng
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+      - run: rustup target add wasm32-unknown-unknown
+      - run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - name: Install cargo-geng
+        run: cargo install cargo-geng --version ^0.13
       - run: cargo geng build --release --target wasm32-unknown-unknown --index-file game.html
       - name: Upload artifacts (web)
         uses: actions/upload-artifact@v2
