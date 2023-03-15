@@ -4,8 +4,16 @@
 ![img](farts.gif)
 _MMO foddian farting simulator_
 
-[**Play on itch.io**](https://kuviman.itch.io/getting-farted-on)
+# Play the game
+
+[**Latest build on itch.io**](https://kuviman.itch.io/getting-farted-on) or
+
+- [LudumDare 51 version](./play/jam/game.html)
+
+## Links
+
+- [Source code](https://github.com/kuviman/getting-farted-on)
 
 ## Posts
 
-- [The Story of Getting Farted On](./original-story)
+- [Ludum Dare 51 postmortem](./original-story)
