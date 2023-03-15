@@ -129,8 +129,9 @@ checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
 name = "batbox"
-version = "0.12.0"
-source = "git+https://github.com/kuviman/geng#0dc69ae416521cf422b8ea93c90e223e3b577e03"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9af4a94889f7a0e77c56575c996032af71e18a06db23b7bdb54bb818a1a1e5f"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -167,8 +168,9 @@ dependencies = [
 
 [[package]]
 name = "batbox-derive"
-version = "0.11.0"
-source = "git+https://github.com/kuviman/geng#0dc69ae416521cf422b8ea93c90e223e3b577e03"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d55daffe4dc10b3b914a01b6c985e1951ca0432a2574fa83783867a62bab0423"
 dependencies = [
  "darling 0.14.1",
  "proc-macro2",
@@ -179,7 +181,8 @@ dependencies = [
 [[package]]
 name = "batbox-macros"
 version = "0.11.0"
-source = "git+https://github.com/kuviman/geng#0dc69ae416521cf422b8ea93c90e223e3b577e03"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a40e0d8f4d298452be94c5c38c3117d624e9b627d7ae4eedcfa2de7e0af6079d"
 
 [[package]]
 name = "bincode"
@@ -1152,8 +1155,9 @@ dependencies = [
 
 [[package]]
 name = "geng"
-version = "0.12.0"
-source = "git+https://github.com/kuviman/geng#0dc69ae416521cf422b8ea93c90e223e3b577e03"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e61f8bcb8644abe5d5368689e3c3f518ef097460ade958ae5fbecdd7c99edcc8"
 dependencies = [
  "batbox",
  "flate2",
@@ -1175,8 +1179,9 @@ dependencies = [
 
 [[package]]
 name = "geng-derive"
-version = "0.12.0"
-source = "git+https://github.com/kuviman/geng#0dc69ae416521cf422b8ea93c90e223e3b577e03"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b79acf37dadbc3f2225d42e46e3061d7b97e6cd7183c452eab155ed4aa72970"
 dependencies = [
  "batbox",
  "darling 0.14.1",
@@ -1188,7 +1193,8 @@ dependencies = [
 [[package]]
 name = "geng-ui-macros"
 version = "0.11.0"
-source = "git+https://github.com/kuviman/geng#0dc69ae416521cf422b8ea93c90e223e3b577e03"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60ba818d7890b59671a6da4528048003541017036d0cdca512122863b83a65ef"
 
 [[package]]
 name = "getrandom"
@@ -1840,7 +1846,7 @@ checksum = "451422b7e4718271c8b5b3aadf5adedba43dc76312454b387e98fae0fc951aa0"
 dependencies = [
  "bitflags",
  "jni-sys",
- "ndk-sys 0.4.0",
+ "ndk-sys 0.4.1+23.1.7779620",
  "num_enum",
  "raw-window-handle 0.5.0",
  "thiserror",
@@ -1878,7 +1884,7 @@ dependencies = [
  "ndk 0.7.0",
  "ndk-context",
  "ndk-macro",
- "ndk-sys 0.4.0",
+ "ndk-sys 0.4.1+23.1.7779620",
  "once_cell",
  "parking_lot 0.12.1",
 ]
@@ -1907,9 +1913,9 @@ dependencies = [
 
 [[package]]
 name = "ndk-sys"
-version = "0.4.0"
+version = "0.4.1+23.1.7779620"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21d83ec9c63ec5bf950200a8e508bdad6659972187b625469f58ef8c08e29046"
+checksum = "3cf2aae958bd232cac5069850591667ad422d263686d75b52a065f9badeee5a3"
 dependencies = [
  "jni-sys",
 ]
@@ -2940,8 +2946,9 @@ checksum = "dcf81ac59edc17cc8697ff311e8f5ef2d99fcbd9817b34cec66f90b6c3dfd987"
 
 [[package]]
 name = "ugli"
-version = "0.12.0"
-source = "git+https://github.com/kuviman/geng#0dc69ae416521cf422b8ea93c90e223e3b577e03"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "057e66482c01244078f7075146f846478a767fd0abe26b06b744edd3ef2d34cc"
 dependencies = [
  "batbox",
  "glutin",
@@ -2954,8 +2961,9 @@ dependencies = [
 
 [[package]]
 name = "ugli-derive"
-version = "0.11.0"
-source = "git+https://github.com/kuviman/geng#0dc69ae416521cf422b8ea93c90e223e3b577e03"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29c773d9464372362d526941c8292a478b06df92609b1579bea90918555ecc23"
 dependencies = [
  "darling 0.14.1",
  "proc-macro2",
@@ -2965,8 +2973,9 @@ dependencies = [
 
 [[package]]
 name = "ugli-raw"
-version = "0.12.0"
-source = "git+https://github.com/kuviman/geng#0dc69ae416521cf422b8ea93c90e223e3b577e03"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f375acfd9675418455b10647e23a56e1bb403a28a97bb7240dd64c5289d272d"
 dependencies = [
  "batbox",
  "gl",
