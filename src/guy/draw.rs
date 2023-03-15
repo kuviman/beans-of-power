@@ -26,39 +26,26 @@ impl Game {
                 );
             }
 
-            let mut draw = |layers: &[GuyRenderLayer], scale: f32, shake: vec2<f32>, alpha: f32| {
-                for layer in layers {
-                    let transform = guy_transform
-                        * mat3::translate(layer.origin)
-                        * mat3::scale_uniform(scale * layer.scale + 1.0 - layer.scale)
-                        * mat3::translate(-layer.origin)
-                        * mat3::translate(shake * layer.shake);
-                    let mut color = match layer.color.as_str() {
-                        "eyes" => eyes_color,
-                        "clothes-top" => guy.customization.colors.top,
-                        "clothes-bottom" => guy.customization.colors.bottom,
-                        "skin" => guy.customization.colors.skin,
-                        "hair" => guy.customization.colors.hair,
-                        color => {
-                            panic!("What is {color}????")
-                        }
-                    };
-                    color.a *= alpha;
-                    self.geng.draw_2d(
-                        framebuffer,
-                        &self.camera,
-                        &draw_2d::TexturedQuad::unit_colored(&layer.texture, color)
-                            .transform(transform),
-                    );
-                }
-            };
+            struct Params {
+                scale: f32,
+                shake: vec2<f32>,
+                alpha: f32,
+            }
+            let mut mode_params: HashMap<GuyRenderLayerMode, Params> = default();
 
             if let Some(growl_progress) = guy.animation.growl_progress {
-                let shift = vec2(self.noise(10.0), self.noise(10.0)) * 0.1;
+                let shake = vec2(self.noise(10.0), self.noise(10.0)) * 0.1;
                 let scale = 1.0 - (growl_progress * 2.0 - 1.0).sqr();
                 let scale =
                     self.config.growl_min_scale * (1.0 - scale) + self.config.growl_scale * scale;
-                draw(&assets.guy.guy.growl, scale, shift, 1.0);
+                mode_params.insert(
+                    GuyRenderLayerMode::Growl,
+                    Params {
+                        scale,
+                        shake,
+                        alpha: 1.0,
+                    },
+                );
             }
             let fart_shake = vec2(self.noise(10.0), self.noise(10.0))
                 * 0.1
@@ -67,27 +54,75 @@ impl Game {
                 } else {
                     fart_progress
                 };
-            draw(&assets.guy.guy.body, 1.0, fart_shake, 1.0);
-
-            draw(
-                if guy.input.force_fart {
-                    &assets.guy.guy.closed_eyes
-                } else {
-                    &assets.guy.guy.open_eyes
+            mode_params.insert(
+                GuyRenderLayerMode::Body,
+                Params {
+                    scale: 1.0,
+                    shake: fart_shake,
+                    alpha: 1.0,
                 },
-                0.8 + 0.6 * fart_progress,
-                fart_shake,
-                1.0,
+            );
+            mode_params.insert(
+                if guy.input.force_fart {
+                    GuyRenderLayerMode::ForceFart
+                } else {
+                    GuyRenderLayerMode::Idle
+                },
+                Params {
+                    scale: 0.8 + 0.6 * fart_progress,
+                    shake: fart_shake,
+                    alpha: 1.0,
+                },
             );
             if guy.fart_state.fart_pressure >= self.config.fart_pressure_released {
                 let progress = (guy.fart_state.fart_pressure - self.config.fart_pressure_released)
                     / (self.config.max_fart_pressure - self.config.fart_pressure_released);
-                draw(
-                    &assets.guy.guy.cheeks,
-                    0.8 + 0.7 * progress,
-                    vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * progress,
-                    (0.5 + 1.0 * progress).min(1.0),
+                mode_params.insert(
+                    GuyRenderLayerMode::Cheeks,
+                    Params {
+                        scale: 0.8 + 0.7 * progress,
+                        shake: vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * progress,
+                        alpha: (0.5 + 1.0 * progress).min(1.0),
+                    },
                 );
+            }
+
+            for layer in &assets.guy.guy.layers {
+                if let Some(params) = mode_params.get(&layer.params.mode) {
+                    let transform = guy_transform
+                        * mat3::translate(layer.params.origin)
+                        * mat3::scale_uniform(
+                            params.scale * layer.params.scale + 1.0 - layer.params.scale,
+                        )
+                        * mat3::translate(-layer.params.origin)
+                        * mat3::translate(params.shake * layer.params.shake)
+                        * mat3::translate(vec2(
+                            layer.params.go_left * (-guy.input.roll_direction).min(0.0)
+                                + layer.params.go_right * (-guy.input.roll_direction).max(0.0),
+                            0.0,
+                        ));
+                    let mut color = if let Some(color) = &layer.params.color {
+                        match color.as_str() {
+                            "eyes" => eyes_color,
+                            "clothes-top" => guy.customization.colors.top,
+                            "clothes-bottom" => guy.customization.colors.bottom,
+                            "skin" => guy.customization.colors.skin,
+                            "hair" => guy.customization.colors.hair,
+                            _ => {
+                                panic!("What is {color}????")
+                            }
+                        }
+                    } else {
+                        Rgba::WHITE
+                    };
+                    color.a *= params.alpha;
+                    self.geng.draw_2d(
+                        framebuffer,
+                        &self.camera,
+                        &draw_2d::TexturedQuad::unit_colored(&layer.texture, color)
+                            .transform(transform),
+                    );
+                }
             }
 
             if self.opt.editor {

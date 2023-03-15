@@ -189,20 +189,48 @@ fn load_custom_guy_assets(
     .boxed_local()
 }
 
-pub struct GuyRenderLayer {
-    texture: ugli::Texture,
-    color: String,
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum GuyRenderLayerMode {
+    Body,
+    ForceFart,
+    Idle,
+    Growl,
+    Cheeks,
+}
+
+impl std::str::FromStr for GuyRenderLayerMode {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "body" => Self::Body,
+            "force-fart" => Self::ForceFart,
+            "idle" => Self::Idle,
+            "growl" => Self::Growl,
+            "cheeks" => Self::Cheeks,
+            _ => anyhow::bail!("{s:?} is unknown mode"),
+        })
+    }
+}
+
+#[derive(Clone)]
+pub struct GuyRenderLayerParams {
+    color: Option<String>,
     scale: f32,
     shake: f32,
     origin: vec2<f32>,
+    go_left: f32,
+    go_right: f32,
+    mode: GuyRenderLayerMode,
+}
+
+pub struct GuyRenderLayer {
+    texture: ugli::Texture,
+    params: GuyRenderLayerParams,
 }
 
 pub struct GuyRenderAssets {
-    open_eyes: Vec<GuyRenderLayer>,
-    closed_eyes: Vec<GuyRenderLayer>,
-    cheeks: Vec<GuyRenderLayer>,
-    body: Vec<GuyRenderLayer>,
-    growl: Vec<GuyRenderLayer>,
+    layers: Vec<GuyRenderLayer>,
 }
 
 impl geng::LoadAsset for GuyRenderAssets {
@@ -231,67 +259,94 @@ impl geng::LoadAsset for GuyRenderAssets {
                 svg.size.height() / svg.view_box.rect.height(),
             )
             .map(|x| x as f32);
-            let make_layers = |id: &str| -> Vec<GuyRenderLayer> {
-                let mut layers = Vec::new();
-                for svg_node in svg
-                    .node_by_id(id)
-                    .unwrap_or_else(|| panic!("{id} not found"))
-                    .descendants()
-                {
-                    let _svg_node = svg_node.borrow();
-                    let id = _svg_node.id();
-                    if !id.is_empty() {
-                        let xml_node = xml_nodes.get(id).unwrap();
+
+            let mut params_stack = vec![GuyRenderLayerParams {
+                color: None,
+                scale: 1.0,
+                shake: 1.0,
+                origin: vec2::ZERO,
+                go_left: 0.0,
+                go_right: 0.0,
+                mode: GuyRenderLayerMode::Body,
+            }];
+
+            let mut layers = Vec::new();
+            let mut t = 0;
+            let mut ts = vec![0];
+            for edge in svg.root.traverse() {
+                let svg_node = match &edge {
+                    rctree::NodeEdge::Start(node) => node,
+                    rctree::NodeEdge::End(node) => node,
+                };
+                let Some(xml_node) = xml_nodes.get(&*svg_node.id()) else { continue };
+                if !matches!(*svg_node.borrow(), resvg::usvg::NodeKind::Group(_)) {
+                    continue;
+                }
+                match edge {
+                    rctree::NodeEdge::Start(_) => {
+                        let mut params = params_stack.last().unwrap().clone();
                         if let Some(color) = xml_node.attribute("color") {
-                            let texture = svg::render(&geng, &svg, Some(&svg_node));
-                            info!("Doing {id}");
-                            let origin = {
-                                let inkscape_transform_center = vec2(
-                                    xml_node
-                                        .attribute((inkscape, "transform-center-x"))
-                                        .map_or(0.0, |v| v.parse().unwrap()),
-                                    xml_node
-                                        .attribute((inkscape, "transform-center-y"))
-                                        .map_or(0.0, |v| v.parse().unwrap()),
-                                );
-                                let inkscape_transform_center =
-                                    inkscape_transform_center.map(|x| x as f32) * svg_scale;
-                                if let Some(bbox) = svg_node.calculate_bbox() {
-                                    let bbox_center = vec2(
-                                        bbox.x() as f32 + bbox.width() as f32 / 2.0,
-                                        bbox.y() as f32 + bbox.height() as f32 / 2.0,
-                                    ) * svg_scale;
-                                    let bbox_center =
-                                        vec2(bbox_center.x, svg_size.y - bbox_center.y); // Because svg vs inkscape coordinate system
-                                    (bbox_center + inkscape_transform_center) / svg_size * 2.0
-                                        - vec2(1.0, 1.0)
-                                } else {
-                                    vec2::ZERO
-                                }
-                            };
+                            params.color = Some(color.to_owned());
+                        }
+                        params.origin = {
+                            let inkscape_transform_center = vec2(
+                                xml_node
+                                    .attribute((inkscape, "transform-center-x"))
+                                    .map_or(0.0, |v| v.parse().unwrap()),
+                                xml_node
+                                    .attribute((inkscape, "transform-center-y"))
+                                    .map_or(0.0, |v| v.parse().unwrap()),
+                            );
+                            let inkscape_transform_center =
+                                inkscape_transform_center.map(|x| x as f32) * svg_scale;
+                            if let Some(bbox) = svg_node.calculate_bbox() {
+                                let bbox_center = vec2(
+                                    bbox.x() as f32 + bbox.width() as f32 / 2.0,
+                                    bbox.y() as f32 + bbox.height() as f32 / 2.0,
+                                ) * svg_scale;
+                                let bbox_center = vec2(bbox_center.x, svg_size.y - bbox_center.y); // Because svg vs inkscape coordinate system
+                                (bbox_center + inkscape_transform_center) / svg_size * 2.0
+                                    - vec2(1.0, 1.0)
+                            } else {
+                                vec2::ZERO
+                            }
+                        };
+                        params.shake *= xml_node
+                            .attribute("shake")
+                            .map_or(1.0, |v| v.parse().expect("Failed to parse shake attr"));
+                        params.scale *= xml_node
+                            .attribute("scale")
+                            .map_or(1.0, |v| v.parse().expect("Failed to parse scale attr"));
+                        params.go_left += xml_node
+                            .attribute("go-left")
+                            .map_or(0.0, |v| v.parse().expect("Failed to parse go-left attr"));
+                        params.go_right += xml_node
+                            .attribute("go-right")
+                            .map_or(0.0, |v| v.parse().expect("Failed to parse go-right attr"));
+                        if let Some(mode) = xml_node.attribute("mode") {
+                            params.mode = mode.parse().expect("Failed to parse mode");
+                        }
+                        params_stack.push(params);
+                        t += 1;
+                        ts.push(t);
+                        info!("IN {t} {:?}", xml_node.attribute((inkscape, "label")));
+                    }
+                    rctree::NodeEdge::End(_) => {
+                        info!("OUT {t} {:?}", xml_node.attribute((inkscape, "label")));
+                        if ts.pop() == Some(t) {
+                            info!("DRAW {:?}", xml_node.attribute((inkscape, "label")));
+                            let texture = svg::render(&geng, &svg, Some(svg_node));
                             layers.push(GuyRenderLayer {
                                 texture,
-                                color: color.to_owned(),
-                                shake: xml_node.attribute("shake").map_or(1.0, |v| {
-                                    v.parse().expect("Failed to parse shake attr")
-                                }),
-                                scale: xml_node.attribute("scale").map_or(1.0, |v| {
-                                    v.parse().expect("Failed to parse scale attr")
-                                }),
-                                origin,
+                                params: params_stack.last().unwrap().clone(),
                             });
                         }
+                        params_stack.pop();
+                        t += 1;
                     }
                 }
-                layers
-            };
-            Ok(Self {
-                open_eyes: make_layers("open-eyes"),
-                closed_eyes: make_layers("closed-eyes"),
-                cheeks: make_layers("cheeks"),
-                body: make_layers("body"),
-                growl: make_layers("growl"),
-            })
+            }
+            Ok(Self { layers })
         }
         .boxed_local()
     }
