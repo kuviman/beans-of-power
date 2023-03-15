@@ -192,6 +192,9 @@ fn load_custom_guy_assets(
 pub struct GuyRenderLayer {
     texture: ugli::Texture,
     color: String,
+    scale: f32,
+    shake: f32,
+    origin: vec2<f32>,
 }
 
 pub struct GuyRenderAssets {
@@ -207,6 +210,7 @@ impl geng::LoadAsset for GuyRenderAssets {
         let geng = geng.clone();
         let path = path.to_owned();
         async move {
+            use resvg::usvg::NodeExt;
             let raw_xml = file::load_string(path).await?;
             let raw_xml = raw_xml.replace("display:none", "");
             let xml = roxmltree::Document::parse(&raw_xml)?;
@@ -221,6 +225,12 @@ impl geng::LoadAsset for GuyRenderAssets {
                 .find(|namespace| namespace.name() == Some("inkscape"))
                 .expect("No inkscape")
                 .uri();
+            let svg_size = vec2(svg.size.width(), svg.size.height()).map(|x| x as f32);
+            let svg_scale = vec2(
+                svg.size.width() / svg.view_box.rect.width(),
+                svg.size.height() / svg.view_box.rect.height(),
+            )
+            .map(|x| x as f32);
             let make_layers = |id: &str| -> Vec<GuyRenderLayer> {
                 let mut layers = Vec::new();
                 for svg_node in svg
@@ -234,9 +244,41 @@ impl geng::LoadAsset for GuyRenderAssets {
                         let xml_node = xml_nodes.get(id).unwrap();
                         if let Some(color) = xml_node.attribute("color") {
                             let texture = svg::render(&geng, &svg, Some(&svg_node));
+                            info!("Doing {id}");
+                            let origin = {
+                                let inkscape_transform_center = vec2(
+                                    xml_node
+                                        .attribute((inkscape, "transform-center-x"))
+                                        .map_or(0.0, |v| v.parse().unwrap()),
+                                    xml_node
+                                        .attribute((inkscape, "transform-center-y"))
+                                        .map_or(0.0, |v| v.parse().unwrap()),
+                                );
+                                let inkscape_transform_center =
+                                    inkscape_transform_center.map(|x| x as f32) * svg_scale;
+                                if let Some(bbox) = svg_node.calculate_bbox() {
+                                    let bbox_center = vec2(
+                                        bbox.x() as f32 + bbox.width() as f32 / 2.0,
+                                        bbox.y() as f32 + bbox.height() as f32 / 2.0,
+                                    ) * svg_scale;
+                                    let bbox_center =
+                                        vec2(bbox_center.x, svg_size.y - bbox_center.y); // Because svg vs inkscape coordinate system
+                                    (bbox_center + inkscape_transform_center) / svg_size * 2.0
+                                        - vec2(1.0, 1.0)
+                                } else {
+                                    vec2::ZERO
+                                }
+                            };
                             layers.push(GuyRenderLayer {
                                 texture,
                                 color: color.to_owned(),
+                                shake: xml_node.attribute("shake").map_or(1.0, |v| {
+                                    v.parse().expect("Failed to parse shake attr")
+                                }),
+                                scale: xml_node.attribute("scale").map_or(1.0, |v| {
+                                    v.parse().expect("Failed to parse scale attr")
+                                }),
+                                origin,
                             });
                         }
                     }
