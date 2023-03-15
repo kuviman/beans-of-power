@@ -19,6 +19,8 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Install cargo-geng
         run: cargo install cargo-geng --version ^0.13
+      - name: Install wasm-bindgen
+        run: cargo install wasm-bindgen-cli --version 0.2.83
       - run: cargo geng build --release --target wasm32-unknown-unknown --index-file game.html
       - name: Upload artifacts (web)
         uses: actions/upload-artifact@v2
