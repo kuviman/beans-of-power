@@ -58,32 +58,28 @@ impl Game {
             match msg {
                 UiMessage::Play => {
                     self.show_customizer = false;
+                    preferences::save("customization", &self.customization);
                 }
                 UiMessage::RandomizeSkin => {
                     self.customization.colors = GuyColors::random();
                 }
             }
         }
-        match event {
-            geng::Event::KeyDown { key } => {
-                let s = format!("{:?}", key);
-                let c = if s.len() == 1 {
-                    Some(s.as_str())
-                } else if let Some(num) = s.strip_prefix("Num") {
-                    Some(num)
-                } else {
-                    None
-                };
-                if let Some(c) = c {
-                    if self.customization.name.len() < 15 {
-                        self.customization.name.push_str(c);
-                    }
-                }
-                if *key == geng::Key::Backspace {
-                    self.customization.name.pop();
+        if let geng::Event::KeyDown { key } = event {
+            let s = format!("{key:?}");
+            let c = if s.len() == 1 {
+                Some(s.as_str())
+            } else {
+                s.strip_prefix("Num")
+            };
+            if let Some(c) = c {
+                if self.customization.name.len() < 15 {
+                    self.customization.name.push_str(c);
                 }
             }
-            _ => {}
+            if *key == geng::Key::Backspace {
+                self.customization.name.pop();
+            }
         }
     }
 }

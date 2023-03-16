@@ -98,7 +98,8 @@ impl Game {
             simulation_time: 0.0,
             remote_simulation_times: HashMap::new(),
             remote_updates: default(),
-            customization: CustomizationOptions::random(),
+            customization: preferences::load("customization")
+                .unwrap_or_else(CustomizationOptions::random),
             mute_music: false,
             best_progress: 0.0,
             ui_controller: ui::Controller::new(geng, assets),
