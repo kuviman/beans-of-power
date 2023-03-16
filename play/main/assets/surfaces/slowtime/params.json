@@ -1,0 +1,11 @@
+{
+    "non_collidable": true,
+    "bounciness": 0.1,
+    "friction": 1.0,
+    "front": true,
+    "back": true,
+    "sound": false,
+    "texture_speed": 0.2,
+    "flex_frequency": 2.0,
+    "flex_amplitude": 0.1
+}
