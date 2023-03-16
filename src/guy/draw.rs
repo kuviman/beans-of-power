@@ -97,8 +97,8 @@ impl Game {
                         * mat3::translate(-layer.params.origin)
                         * mat3::translate(params.shake * layer.params.shake)
                         * mat3::translate(vec2(
-                            layer.params.go_left * (-guy.input.roll_direction).min(0.0)
-                                + layer.params.go_right * (-guy.input.roll_direction).max(0.0),
+                            -layer.params.go_left * guy.input.roll_left
+                                + layer.params.go_right * guy.input.roll_right,
                             0.0,
                         ));
                     let mut color = if let Some(color) = &layer.params.color {

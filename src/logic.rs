@@ -10,21 +10,21 @@ impl Game {
             None => return,
         };
         let new_input = Input {
-            roll_direction: {
-                let mut direction = 0.0;
-                if CONTROLS_LEFT
-                    .iter()
-                    .any(|&key| self.geng.window().is_key_pressed(key))
-                {
-                    direction += 1.0;
-                }
-                if CONTROLS_RIGHT
-                    .iter()
-                    .any(|&key| self.geng.window().is_key_pressed(key))
-                {
-                    direction -= 1.0;
-                }
-                direction
+            roll_left: if CONTROLS_LEFT
+                .iter()
+                .any(|&key| self.geng.window().is_key_pressed(key))
+            {
+                1.0
+            } else {
+                0.0
+            },
+            roll_right: if CONTROLS_RIGHT
+                .iter()
+                .any(|&key| self.geng.window().is_key_pressed(key))
+            {
+                1.0
+            } else {
+                0.0
             },
             force_fart: CONTROLS_FORCE_FART
                 .iter()
@@ -187,7 +187,7 @@ impl Game {
                 continue;
             }
 
-            guy.ball.w += (guy.input.roll_direction.clamp(-1.0, 1.0)
+            guy.ball.w += (guy.input.roll_direction().clamp(-1.0, 1.0)
                 * self.config.angular_acceleration
                 / guy.mass(&self.config)
                 * delta_time)

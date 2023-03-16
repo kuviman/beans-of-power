@@ -4,8 +4,15 @@ mod draw;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 pub struct Input {
-    pub roll_direction: f32, // -1 to +1
+    pub roll_left: f32,
+    pub roll_right: f32,
     pub force_fart: bool,
+}
+
+impl Input {
+    pub fn roll_direction(&self) -> f32 {
+        self.roll_left - self.roll_right
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -165,30 +172,6 @@ pub struct CustomGuyAssets {
     pub cheeks: Texture,
 }
 
-fn load_custom_guy_assets(
-    geng: &Geng,
-    path: &std::path::Path,
-) -> geng::AssetFuture<HashMap<String, CustomGuyAssets>> {
-    let geng = geng.clone();
-    let path = path.to_owned();
-    async move {
-        let json = <String as geng::LoadAsset>::load(&geng, &path.join("_list.json")).await?;
-        let list: Vec<String> = serde_json::from_str(&json).unwrap();
-        future::join_all(list.into_iter().map(|name| {
-            let geng = geng.clone();
-            let path = path.clone();
-            async move {
-                let assets = geng::LoadAsset::load(&geng, &path.join(&name)).await?;
-                Ok((name.to_uppercase(), assets))
-            }
-        }))
-        .await
-        .into_iter()
-        .collect::<Result<_, anyhow::Error>>()
-    }
-    .boxed_local()
-}
-
 #[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum GuyRenderLayerMode {
     Body,
@@ -288,29 +271,32 @@ impl geng::LoadAsset for GuyRenderAssets {
                         if let Some(color) = xml_node.attribute("color") {
                             params.color = Some(color.to_owned());
                         }
-                        params.origin = {
-                            let inkscape_transform_center = vec2(
-                                xml_node
-                                    .attribute((inkscape, "transform-center-x"))
-                                    .map_or(0.0, |v| v.parse().unwrap()),
-                                xml_node
-                                    .attribute((inkscape, "transform-center-y"))
-                                    .map_or(0.0, |v| v.parse().unwrap()),
-                            );
-                            let inkscape_transform_center =
-                                inkscape_transform_center.map(|x| x as f32) * svg_scale;
-                            if let Some(bbox) = svg_node.calculate_bbox() {
-                                let bbox_center = vec2(
-                                    bbox.x() as f32 + bbox.width() as f32 / 2.0,
-                                    bbox.y() as f32 + bbox.height() as f32 / 2.0,
-                                ) * svg_scale;
-                                let bbox_center = vec2(bbox_center.x, svg_size.y - bbox_center.y); // Because svg vs inkscape coordinate system
-                                (bbox_center + inkscape_transform_center) / svg_size * 2.0
-                                    - vec2(1.0, 1.0)
-                            } else {
-                                vec2::ZERO
-                            }
-                        };
+                        if xml_node.attribute("update-origin") == Some("true") {
+                            params.origin = {
+                                let inkscape_transform_center = vec2(
+                                    xml_node
+                                        .attribute((inkscape, "transform-center-x"))
+                                        .map_or(0.0, |v| v.parse().unwrap()),
+                                    xml_node
+                                        .attribute((inkscape, "transform-center-y"))
+                                        .map_or(0.0, |v| v.parse().unwrap()),
+                                );
+                                let inkscape_transform_center =
+                                    inkscape_transform_center.map(|x| x as f32) * svg_scale;
+                                if let Some(bbox) = svg_node.calculate_bbox() {
+                                    let bbox_center = vec2(
+                                        bbox.x() as f32 + bbox.width() as f32 / 2.0,
+                                        bbox.y() as f32 + bbox.height() as f32 / 2.0,
+                                    ) * svg_scale;
+                                    let bbox_center =
+                                        vec2(bbox_center.x, svg_size.y - bbox_center.y); // Because svg vs inkscape coordinate system
+                                    (bbox_center + inkscape_transform_center) / svg_size * 2.0
+                                        - vec2(1.0, 1.0)
+                                } else {
+                                    vec2::ZERO
+                                }
+                            };
+                        }
                         params.shake *= xml_node
                             .attribute("shake")
                             .map_or(1.0, |v| v.parse().expect("Failed to parse shake attr"));
