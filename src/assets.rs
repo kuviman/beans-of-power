@@ -21,7 +21,7 @@ pub struct AssetsInner {
     pub closed_outhouse: Texture,
     #[asset(ext = "svg")]
     pub golden_toilet: Texture,
-    #[asset(list = "[\"poggers\", \"fuuuu\", \"kekw\", \"eesBoom\"].into_iter()")]
+    #[asset(listed_in = "_list.ron")]
     pub emotes: Vec<Texture>,
     pub shaders: Shaders,
     pub cannon: CannonAssets,
