@@ -67,7 +67,7 @@ fn main() {
         }
     }
 
-    logger::init().unwrap();
+    logger::init();
 
     if opt.server.is_some() && opt.connect.is_none() {
         #[cfg(not(target_arch = "wasm32"))]
