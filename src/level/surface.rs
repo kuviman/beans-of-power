@@ -28,7 +28,8 @@ impl Surface {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(geng::Assets, Deserialize, Debug)]
+#[asset(json)]
 pub struct SurfaceParams {
     #[serde(default)]
     pub non_collidable: bool,
@@ -64,87 +65,61 @@ fn default_snow_falloff() -> f32 {
     1.0
 }
 
+#[derive(geng::Assets)]
+#[asset(sequential)]
 pub struct SurfaceAssets {
-    pub name: String,
     pub params: SurfaceParams,
-    pub front_texture: Option<Texture>,
-    pub back_texture: Option<Texture>,
+    #[asset(load_with = "params.load_textures(&geng, &base_path)")]
+    pub textures: SurfaceTextures,
+    #[asset(if = "params.sound")]
     pub sound: Option<geng::Sound>,
 }
 
-pub fn load_surface_assets(
-    geng: &Geng,
-    path: &std::path::Path,
-) -> geng::AssetFuture<HashMap<String, SurfaceAssets>> {
-    let geng = geng.clone();
-    let path = path.to_owned();
-    async move {
-        let json = <String as geng::LoadAsset>::load(&geng, &path.join("config.json")).await?;
-        let config: std::collections::BTreeMap<String, SurfaceParams> =
-            serde_json::from_str(&json).unwrap();
-        future::join_all(config.into_iter().map(|(name, params)| {
-            let geng = geng.clone();
-            let path = path.clone();
-            async move {
-                let load = |file| {
-                    let geng = geng.clone();
-                    let path = path.clone();
-                    async move {
-                        let mut texture =
-                            <Texture as geng::LoadAsset>::load(&geng, &path.join(file)).await?;
-                        texture
-                            .0
-                            .set_wrap_mode_separate(ugli::WrapMode::Repeat, ugli::WrapMode::Clamp);
-                        Ok::<_, anyhow::Error>(texture)
-                    }
-                };
-                let (front_texture, back_texture) = if params.svg {
-                    let svg = svg::load(path.join(format!("{name}.svg"))).await?;
-                    let node_texture = |id: &str| -> Option<Texture> {
-                        svg.tree.node_by_id(id).map(|node| {
-                            let mut texture = svg::render(&geng, &svg.tree, Some(&node));
-                            texture.set_wrap_mode_separate(
-                                ugli::WrapMode::Repeat,
-                                ugli::WrapMode::Clamp,
-                            );
-                            Texture(texture)
-                        })
-                    };
-                    (node_texture("front"), node_texture("back"))
-                } else {
-                    (
-                        if params.front {
-                            Some(load(format!("{name}_front.png")).await?)
-                        } else {
-                            None
-                        },
-                        if params.back {
-                            Some(load(format!("{name}_back.png")).await?)
-                        } else {
-                            None
-                        },
-                    )
-                };
-                let sound = if params.sound {
-                    Some(geng::LoadAsset::load(&geng, &path.join(format!("{}.wav", name))).await?)
+pub struct SurfaceTextures {
+    pub front: Option<Texture>,
+    pub back: Option<Texture>,
+}
+
+impl SurfaceParams {
+    async fn load_textures(
+        &self,
+        geng: &Geng,
+        path: impl AsRef<std::path::Path>,
+    ) -> anyhow::Result<SurfaceTextures> {
+        let path = path.as_ref();
+        if self.svg {
+            let svg = svg::load(path.join("texture.svg")).await?;
+            let node_texture = |id: &str| -> Option<Texture> {
+                svg.tree.node_by_id(id).map(|node| {
+                    let mut texture = svg::render(&geng, &svg.tree, Some(&node));
+                    texture.set_wrap_mode_separate(ugli::WrapMode::Repeat, ugli::WrapMode::Clamp);
+                    Texture(texture)
+                })
+            };
+            Ok(SurfaceTextures {
+                front: node_texture("front"),
+                back: node_texture("back"),
+            })
+        } else {
+            let load = |path| async {
+                let mut texture: Texture = geng.load_asset(path).await?;
+                texture
+                    .0
+                    .set_wrap_mode_separate(ugli::WrapMode::Repeat, ugli::WrapMode::Clamp);
+                Ok::<_, anyhow::Error>(texture)
+            };
+            Ok(SurfaceTextures {
+                front: if self.front {
+                    Some(load(path.join("front.png")).await?)
                 } else {
                     None
-                };
-                Ok((
-                    name.clone(),
-                    SurfaceAssets {
-                        name,
-                        params,
-                        front_texture,
-                        back_texture,
-                        sound,
-                    },
-                ))
-            }
-        }))
-        .await
-        .into_iter()
-        .collect::<Result<_, anyhow::Error>>()
+                },
+                back: if self.back {
+                    Some(load(path.join("back.png")).await?)
+                } else {
+                    None
+                },
+            })
+        }
     }
-    .boxed_local()
 }

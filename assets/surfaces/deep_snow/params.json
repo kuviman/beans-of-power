@@ -1,0 +1,10 @@
+{
+    "bounciness": 0.0,
+    "friction": 0.0,
+    "rotation_friction": 50.0,
+    "speed_friction": 100.0,
+    "front": true,
+    "back": false,
+    "sound": false,
+    "snow_falloff": 0.0
+}

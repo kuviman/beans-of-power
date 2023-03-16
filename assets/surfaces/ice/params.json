@@ -1,0 +1,7 @@
+{
+    "bounciness": 0.2,
+    "friction": 0.0,
+    "front": false,
+    "back": true,
+    "sound": true
+}

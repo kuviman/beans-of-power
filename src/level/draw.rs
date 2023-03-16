@@ -29,9 +29,10 @@ impl LevelMesh {
         let surface_texture_height = |surface: &Surface| -> f32 {
             let surface_assets = &assets.surfaces[&surface.type_name];
             let texture = surface_assets
-                .front_texture
+                .textures
+                .front
                 .as_ref()
-                .or(surface_assets.back_texture.as_ref())
+                .or(surface_assets.textures.back.as_ref())
                 .unwrap();
             texture.size().y as f32 / texture.size().x as f32
         };
@@ -509,7 +510,7 @@ impl Game {
             level,
             layer_index,
             framebuffer,
-            |assets| assets.back_texture.as_ref(),
+            |assets| assets.textures.back.as_ref(),
             43756.0,
             1.0,
         );
@@ -527,7 +528,7 @@ impl Game {
             level,
             layer_index,
             framebuffer,
-            |assets| assets.front_texture.as_ref(),
+            |assets| assets.textures.front.as_ref(),
             -123.0,
             -1.0,
         );

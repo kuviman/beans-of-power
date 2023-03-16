@@ -9,7 +9,7 @@ impl EditorToolConfig for TileToolConfig {
     fn default(assets: &AssetsHandle) -> Self {
         Self {
             snap_distance: assets.get().config.snap_distance,
-            selected_type: assets.get().tiles.keys().min().unwrap().clone(),
+            selected_type: assets.get().tiles.keys().min().unwrap().to_owned(),
         }
     }
 }
@@ -193,13 +193,13 @@ impl EditorTool for TileTool {
             }
             geng::Event::KeyDown { key: geng::Key::X } => {
                 let assets = self.assets.get();
-                let mut options: Vec<&String> = assets.tiles.keys().collect();
+                let mut options: Vec<&str> = assets.tiles.keys().collect();
                 options.sort();
                 let idx = options
                     .iter()
                     .position(|&s| s == &self.config.selected_type)
                     .unwrap_or(0);
-                self.config.selected_type = options[(idx + 1) % options.len()].clone();
+                self.config.selected_type = options[(idx + 1) % options.len()].to_owned();
             }
 
             geng::Event::KeyDown { key: geng::Key::W } => {
@@ -234,7 +234,7 @@ impl EditorTool for TileTool {
         use geng::ui::*;
 
         let assets = self.assets.get();
-        let mut options: Vec<&String> = assets.tiles.keys().collect();
+        let mut options: Vec<&str> = assets.tiles.keys().collect();
         options.sort();
         let options = column(
             options
@@ -242,7 +242,7 @@ impl EditorTool for TileTool {
                 .map(|name| {
                     let button = Button::new(cx, name);
                     if button.was_clicked() {
-                        self.config.selected_type = name.clone();
+                        self.config.selected_type = name.to_owned();
                     }
                     let mut widget: Box<dyn Widget> =
                         Box::new(button.uniform_padding(8.0).align(vec2(0.0, 0.0)));

@@ -1,0 +1,9 @@
+{
+    "friction": 3.0,
+    "additional_force": [
+        0.0,
+        6.0
+    ],
+    "texture_movement_frequency": 0.1,
+    "texture_movement_amplitude": 0.5
+}

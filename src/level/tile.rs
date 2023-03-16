@@ -8,7 +8,8 @@ pub struct Tile {
     pub type_name: String,
 }
 
-#[derive(Deserialize)]
+#[derive(geng::Assets, Deserialize)]
+#[asset(json)]
 pub struct TileParams {
     #[serde(default)]
     pub background: bool,
@@ -25,43 +26,13 @@ pub struct TileParams {
     pub time_scale: Option<f32>,
 }
 
+#[derive(geng::Assets)]
 pub struct TileAssets {
-    pub name: String,
     pub params: TileParams,
+    #[asset(postprocess = "make_repeated")]
     pub texture: Texture,
 }
 
-pub fn load_tile_assets(
-    geng: &Geng,
-    path: &std::path::Path,
-) -> geng::AssetFuture<HashMap<String, TileAssets>> {
-    let geng = geng.clone();
-    let path = path.to_owned();
-    async move {
-        let json = <String as geng::LoadAsset>::load(&geng, &path.join("config.json")).await?;
-        let config: std::collections::BTreeMap<String, TileParams> =
-            serde_json::from_str(&json).unwrap();
-        future::join_all(config.into_iter().map(|(name, params)| {
-            let geng = geng.clone();
-            let path = path.clone();
-            async move {
-                let mut texture =
-                    <Texture as geng::LoadAsset>::load(&geng, &path.join(format!("{}.png", name)))
-                        .await?;
-                texture.0.set_wrap_mode(ugli::WrapMode::Repeat);
-                Ok((
-                    name.clone(),
-                    TileAssets {
-                        name,
-                        params,
-                        texture,
-                    },
-                ))
-            }
-        }))
-        .await
-        .into_iter()
-        .collect::<Result<_, anyhow::Error>>()
-    }
-    .boxed_local()
+fn make_repeated(texture: &mut Texture) {
+    texture.0.set_wrap_mode(ugli::WrapMode::Repeat);
 }

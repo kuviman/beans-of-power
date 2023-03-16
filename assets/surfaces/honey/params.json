@@ -1,0 +1,10 @@
+{
+    "bounciness": 0.0,
+    "friction": 0.0,
+    "speed_friction": 15.0,
+    "stick_strength": 10.0,
+    "max_stick_force": 15.0,
+    "front": true,
+    "back": false,
+    "sound": false
+}

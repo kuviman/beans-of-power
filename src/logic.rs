@@ -568,7 +568,7 @@ impl Game {
                 );
 
                 // Snow layer
-                if collision.assets.name == "snow" {
+                if collision.surface.type_name == "snow" {
                     guy.snow_layer += guy.ball.w.abs() * delta_time * 1e-2;
                 }
 

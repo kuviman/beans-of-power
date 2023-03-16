@@ -9,7 +9,7 @@ impl EditorToolConfig for ObjectToolConfig {
     fn default(assets: &AssetsHandle) -> Self {
         Self {
             snap_distance: assets.get().config.snap_distance,
-            selected_type: assets.get().objects.keys().min().unwrap().clone(),
+            selected_type: assets.get().objects.keys().min().unwrap().to_owned(),
         }
     }
 }
@@ -100,7 +100,7 @@ impl EditorTool for ObjectTool {
         use geng::ui::*;
 
         let assets = self.assets.get();
-        let mut options: Vec<&String> = assets.objects.keys().collect();
+        let mut options: Vec<&str> = assets.objects.keys().collect();
         options.sort();
         let options = column(
             options
@@ -108,7 +108,7 @@ impl EditorTool for ObjectTool {
                 .map(|name| {
                     let button = Button::new(cx, name);
                     if button.was_clicked() {
-                        self.config.selected_type = name.clone();
+                        self.config.selected_type = name.to_owned();
                     }
                     let mut widget: Box<dyn Widget> =
                         Box::new(button.uniform_padding(8.0).align(vec2(0.0, 0.0)));

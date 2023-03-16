@@ -1,0 +1,9 @@
+{
+    "non_collidable": true,
+    "bounciness": 1.0,
+    "friction": 0.5,
+    "front": true,
+    "back": true,
+    "sound": false,
+    "texture_speed": 0.2
+}
