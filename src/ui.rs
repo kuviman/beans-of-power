@@ -26,14 +26,14 @@ impl<T> Button<T> {
 
 pub struct Controller {
     geng: Geng,
-    assets: Rc<Assets>,
+    assets: AssetsHandle,
     mouse: vec2<f32>,
     camera: geng::Camera2d,
     framebuffer_size: vec2<f32>,
 }
 
 impl Controller {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(geng: &Geng, assets: &AssetsHandle) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),

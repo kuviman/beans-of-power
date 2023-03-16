@@ -21,7 +21,7 @@ pub struct EditorState {
 }
 
 impl EditorState {
-    pub fn new(geng: &Geng, assets: &Rc<Assets>) -> Self {
+    pub fn new(geng: &Geng, assets: &AssetsHandle) -> Self {
         let available_tools = vec![
             tool_constructor::<EditTool>(geng, assets),
             tool_constructor::<SurfaceTool>(geng, assets),

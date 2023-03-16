@@ -6,7 +6,7 @@ pub struct SurfaceToolConfig {
 }
 
 impl EditorToolConfig for SurfaceToolConfig {
-    fn default(assets: &Assets) -> Self {
+    fn default(assets: &AssetsHandle) -> Self {
         Self {
             snap_distance: assets.get().config.snap_distance,
             selected_type: assets.get().surfaces.keys().min().unwrap().clone(),
@@ -16,7 +16,7 @@ impl EditorToolConfig for SurfaceToolConfig {
 
 pub struct SurfaceTool {
     geng: Geng,
-    assets: Rc<Assets>,
+    assets: AssetsHandle,
     start_drag: Option<vec2<f32>>,
     wind_drag: Option<(usize, vec2<f32>)>,
     saved_flow: f32,
@@ -57,7 +57,7 @@ impl SurfaceTool {
 
 impl EditorTool for SurfaceTool {
     type Config = SurfaceToolConfig;
-    fn new(geng: &Geng, assets: &Rc<Assets>, config: SurfaceToolConfig) -> Self {
+    fn new(geng: &Geng, assets: &AssetsHandle, config: SurfaceToolConfig) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),

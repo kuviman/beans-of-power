@@ -1,9 +1,9 @@
 use super::*;
 
-pub type Assets = Hot<AssetsInner>;
+pub type AssetsHandle = Rc<Hot<Assets>>;
 
 #[derive(geng::Assets)]
-pub struct AssetsInner {
+pub struct Assets {
     pub config: Rc<Config>,
     pub sfx: SfxAssets,
     #[asset(load_with = "load_fart_assets(&geng, &base_path.join(\"farts\"))")]

@@ -5,7 +5,7 @@ pub struct PortalToolConfig {
 }
 
 impl EditorToolConfig for PortalToolConfig {
-    fn default(assets: &Assets) -> Self {
+    fn default(assets: &AssetsHandle) -> Self {
         Self {
             snap_distance: assets.get().config.snap_distance,
         }
@@ -14,7 +14,7 @@ impl EditorToolConfig for PortalToolConfig {
 
 pub struct PortalTool {
     geng: Geng,
-    assets: Rc<Assets>,
+    assets: AssetsHandle,
     start_drag: Option<usize>,
     config: PortalToolConfig,
 }
@@ -34,7 +34,7 @@ impl PortalTool {
 
 impl EditorTool for PortalTool {
     type Config = PortalToolConfig;
-    fn new(geng: &Geng, assets: &Rc<Assets>, config: PortalToolConfig) -> Self {
+    fn new(geng: &Geng, assets: &AssetsHandle, config: PortalToolConfig) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),

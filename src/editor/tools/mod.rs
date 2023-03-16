@@ -23,7 +23,7 @@ pub use tile::*;
 pub trait EditorTool: 'static {
     const NAME: &'static str;
     type Config: EditorToolConfig;
-    fn new(geng: &Geng, assets: &Rc<Assets>, config: Self::Config) -> Self;
+    fn new(geng: &Geng, assets: &AssetsHandle, config: Self::Config) -> Self;
     fn draw(
         &self,
         cursor: &Cursor,
@@ -43,7 +43,7 @@ pub trait EditorTool: 'static {
 }
 
 pub trait EditorToolConfig {
-    fn default(assets: &Assets) -> Self;
+    fn default(assets: &AssetsHandle) -> Self;
 }
 
 pub trait DynEditorTool {
@@ -97,11 +97,11 @@ pub trait ToolConstructor {
 
 pub fn tool_constructor<T: EditorTool>(
     geng: &Geng,
-    assets: &Rc<Assets>,
+    assets: &AssetsHandle,
 ) -> Box<dyn ToolConstructor> {
     struct Thing<T: EditorTool> {
         geng: Geng,
-        assets: Rc<Assets>,
+        assets: AssetsHandle,
         phantom_data: PhantomData<T>,
     }
     impl<T: EditorTool> ToolConstructor for Thing<T> {

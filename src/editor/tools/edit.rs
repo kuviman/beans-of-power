@@ -3,7 +3,7 @@ use super::*;
 pub struct EditToolConfig {}
 
 impl EditorToolConfig for EditToolConfig {
-    fn default(assets: &Assets) -> Self {
+    fn default(assets: &AssetsHandle) -> Self {
         Self {}
     }
 }
@@ -19,7 +19,7 @@ enum State {
 
 pub struct EditTool {
     geng: Geng,
-    assets: Rc<Assets>,
+    assets: AssetsHandle,
     config: EditToolConfig,
     // selected_surfaces: HashSet<usize>,
     // selected_tiles: HashSet<usize>,
@@ -87,7 +87,7 @@ impl EditTool {
 
 impl EditorTool for EditTool {
     type Config = EditToolConfig;
-    fn new(geng: &Geng, assets: &Rc<Assets>, config: EditToolConfig) -> Self {
+    fn new(geng: &Geng, assets: &AssetsHandle, config: EditToolConfig) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),

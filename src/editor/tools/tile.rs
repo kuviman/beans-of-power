@@ -6,7 +6,7 @@ pub struct TileToolConfig {
 }
 
 impl EditorToolConfig for TileToolConfig {
-    fn default(assets: &Assets) -> Self {
+    fn default(assets: &AssetsHandle) -> Self {
         Self {
             snap_distance: assets.get().config.snap_distance,
             selected_type: assets.get().tiles.keys().min().unwrap().clone(),
@@ -16,7 +16,7 @@ impl EditorToolConfig for TileToolConfig {
 
 pub struct TileTool {
     geng: Geng,
-    assets: Rc<Assets>,
+    assets: AssetsHandle,
     points: Vec<vec2<f32>>,
     wind_drag: Option<(usize, vec2<f32>)>,
     saved_flow: vec2<f32>,
@@ -46,7 +46,7 @@ impl TileTool {
 
 impl EditorTool for TileTool {
     type Config = TileToolConfig;
-    fn new(geng: &Geng, assets: &Rc<Assets>, config: Self::Config) -> Self {
+    fn new(geng: &Geng, assets: &AssetsHandle, config: Self::Config) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),

@@ -3,20 +3,20 @@ use super::*;
 pub struct EndpointToolConfig {}
 
 impl EditorToolConfig for EndpointToolConfig {
-    fn default(assets: &Assets) -> Self {
+    fn default(assets: &AssetsHandle) -> Self {
         Self {}
     }
 }
 
 pub struct EndpointTool {
     geng: Geng,
-    assets: Rc<Assets>,
+    assets: AssetsHandle,
     config: EndpointToolConfig,
 }
 
 impl EditorTool for EndpointTool {
     type Config = EndpointToolConfig;
-    fn new(geng: &Geng, assets: &Rc<Assets>, config: EndpointToolConfig) -> Self {
+    fn new(geng: &Geng, assets: &AssetsHandle, config: EndpointToolConfig) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),

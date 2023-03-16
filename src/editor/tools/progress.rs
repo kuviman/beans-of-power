@@ -5,7 +5,7 @@ pub struct ProgressToolConfig {
 }
 
 impl EditorToolConfig for ProgressToolConfig {
-    fn default(assets: &Assets) -> Self {
+    fn default(assets: &AssetsHandle) -> Self {
         Self {
             snap_distance: assets.get().config.snap_distance,
         }
@@ -14,7 +14,7 @@ impl EditorToolConfig for ProgressToolConfig {
 
 pub struct ProgressTool {
     geng: Geng,
-    assets: Rc<Assets>,
+    assets: AssetsHandle,
     config: ProgressToolConfig,
 }
 
@@ -33,7 +33,7 @@ impl ProgressTool {
 
 impl EditorTool for ProgressTool {
     type Config = ProgressToolConfig;
-    fn new(geng: &Geng, assets: &Rc<Assets>, config: ProgressToolConfig) -> Self {
+    fn new(geng: &Geng, assets: &AssetsHandle, config: ProgressToolConfig) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),

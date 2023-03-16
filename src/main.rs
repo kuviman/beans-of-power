@@ -111,7 +111,7 @@ fn main() {
         geng.clone().run_loading(async move {
             let ((assets, level), connection_info) = future::join(
                 future::join(
-                    <Assets as geng::LoadAsset>::load(&geng, &assets_dir),
+                    <AssetsHandle as geng::LoadAsset>::load(&geng, &assets_dir),
                     Level::load(assets_dir.join(&opt.level), opt.editor),
                 ),
                 connection,

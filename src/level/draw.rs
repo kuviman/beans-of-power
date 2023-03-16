@@ -24,7 +24,7 @@ pub struct LevelMesh {
 }
 
 impl LevelMesh {
-    pub fn new(geng: &Geng, assets: &Assets, level: &Level) -> Self {
+    pub fn new(geng: &Geng, assets: &AssetsHandle, level: &Level) -> Self {
         let assets = assets.get();
         let surface_texture_height = |surface: &Surface| -> f32 {
             let surface_assets = &assets.surfaces[&surface.type_name];

@@ -18,7 +18,7 @@ pub struct Game {
     pub prev_mouse_pos: vec2<f64>,
     pub geng: Geng,
     pub config: Rc<Config>,
-    pub assets: Rc<Assets>,
+    pub assets: AssetsHandle,
     pub camera: geng::Camera2d,
     pub level: Level,
     pub editor: Option<EditorState>,
@@ -58,7 +58,7 @@ impl Drop for Game {
 impl Game {
     pub fn new(
         geng: &Geng,
-        assets: &Rc<Assets>,
+        assets: &AssetsHandle,
         level: Level,
         opt: Opt,
         connection_info: Option<(Id, Connection)>,

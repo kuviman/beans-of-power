@@ -5,7 +5,7 @@ pub struct CannonToolConfig {
 }
 
 impl EditorToolConfig for CannonToolConfig {
-    fn default(assets: &Assets) -> Self {
+    fn default(assets: &AssetsHandle) -> Self {
         Self {
             snap_distance: assets.get().config.snap_distance,
         }
@@ -14,7 +14,7 @@ impl EditorToolConfig for CannonToolConfig {
 
 pub struct CannonTool {
     geng: Geng,
-    assets: Rc<Assets>,
+    assets: AssetsHandle,
     start_drag: Option<vec2<f32>>,
     config: CannonToolConfig,
 }
@@ -34,7 +34,7 @@ impl CannonTool {
 
 impl EditorTool for CannonTool {
     type Config = CannonToolConfig;
-    fn new(geng: &Geng, assets: &Rc<Assets>, config: CannonToolConfig) -> Self {
+    fn new(geng: &Geng, assets: &AssetsHandle, config: CannonToolConfig) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),

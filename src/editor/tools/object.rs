@@ -6,7 +6,7 @@ pub struct ObjectToolConfig {
 }
 
 impl EditorToolConfig for ObjectToolConfig {
-    fn default(assets: &Assets) -> Self {
+    fn default(assets: &AssetsHandle) -> Self {
         Self {
             snap_distance: assets.get().config.snap_distance,
             selected_type: assets.get().objects.keys().min().unwrap().clone(),
@@ -16,7 +16,7 @@ impl EditorToolConfig for ObjectToolConfig {
 
 pub struct ObjectTool {
     geng: Geng,
-    assets: Rc<Assets>,
+    assets: AssetsHandle,
     config: ObjectToolConfig,
 }
 impl ObjectTool {
@@ -40,7 +40,7 @@ impl ObjectTool {
 
 impl EditorTool for ObjectTool {
     type Config = ObjectToolConfig;
-    fn new(geng: &Geng, assets: &Rc<Assets>, config: ObjectToolConfig) -> Self {
+    fn new(geng: &Geng, assets: &AssetsHandle, config: ObjectToolConfig) -> Self {
         Self {
             geng: geng.clone(),
             assets: assets.clone(),
