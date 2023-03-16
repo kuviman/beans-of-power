@@ -315,12 +315,9 @@ impl geng::LoadAsset for GuyRenderAssets {
                         params_stack.push(params);
                         t += 1;
                         ts.push(t);
-                        info!("IN {t} {:?}", xml_node.attribute((inkscape, "label")));
                     }
                     rctree::NodeEdge::End(_) => {
-                        info!("OUT {t} {:?}", xml_node.attribute((inkscape, "label")));
                         if ts.pop() == Some(t) {
-                            info!("DRAW {:?}", xml_node.attribute((inkscape, "label")));
                             let texture = svg::render(&geng, &svg, Some(svg_node));
                             layers.push(GuyRenderLayer {
                                 texture,
@@ -342,5 +339,6 @@ impl geng::LoadAsset for GuyRenderAssets {
 
 #[derive(geng::Assets)]
 pub struct GuyAssets {
-    pub guy: GuyRenderAssets,
+    pub regular: GuyRenderAssets,
+    pub custom: Listed<GuyRenderAssets>,
 }

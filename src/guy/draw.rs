@@ -87,7 +87,12 @@ impl Game {
                 );
             }
 
-            for layer in &assets.guy.guy.layers {
+            let guy_assets = assets
+                .guy
+                .custom
+                .get(&guy.customization.name.to_lowercase())
+                .unwrap_or(&assets.guy.regular);
+            for layer in &guy_assets.layers {
                 if let Some(params) = mode_params.get(&layer.params.mode) {
                     let transform = guy_transform
                         * mat3::translate(layer.params.origin)
