@@ -127,7 +127,7 @@ impl Game {
             long_fart_sfx: HashMap::new(),
             next_golden_glint: 0.0,
             quicksave: None,
-            time_scale: 0.0,
+            time_scale: 1.0,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
