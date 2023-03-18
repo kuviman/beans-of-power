@@ -27,6 +27,8 @@ pub struct Assets {
     pub cannon: CannonAssets,
     pub portal: Texture,
     pub bubble: Texture,
+    #[asset(ext = "svg")]
+    pub arrow_key: Texture,
 }
 
 #[derive(geng::Assets)]

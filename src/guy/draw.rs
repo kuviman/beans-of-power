@@ -134,27 +134,51 @@ impl Game {
             }
 
             if self.opt.editor {
-                // Visualize fart pressure
-                self.geng.draw_2d(
-                    framebuffer,
-                    &self.camera,
-                    &draw_2d::Quad::new(
-                        Aabb2::point(guy.ball.pos + vec2(0.0, guy.ball.radius * 1.2))
-                            .extend_symmetric(vec2(0.5, 0.02)),
-                        Rgba::BLACK,
-                    ),
-                );
-                self.geng.draw_2d(
-                    framebuffer,
-                    &self.camera,
-                    &draw_2d::Quad::new(
-                        Aabb2::point(
-                            guy.ball.pos + vec2(-0.5 + fart_progress, guy.ball.radius * 1.2),
-                        )
-                        .extend_uniform(0.04),
-                        Rgba::BLACK,
-                    ),
-                );
+                if false {
+                    // Visualize fart pressure
+                    self.geng.draw_2d(
+                        framebuffer,
+                        &self.camera,
+                        &draw_2d::Quad::new(
+                            Aabb2::point(guy.ball.pos + vec2(0.0, guy.ball.radius * 1.2))
+                                .extend_symmetric(vec2(0.5, 0.02)),
+                            Rgba::BLACK,
+                        ),
+                    );
+                    self.geng.draw_2d(
+                        framebuffer,
+                        &self.camera,
+                        &draw_2d::Quad::new(
+                            Aabb2::point(
+                                guy.ball.pos + vec2(-0.5 + fart_progress, guy.ball.radius * 1.2),
+                            )
+                            .extend_uniform(0.04),
+                            Rgba::BLACK,
+                        ),
+                    );
+                }
+                if true {
+                    // Show keys pressed
+                    let guy_transform =
+                        mat3::translate(guy.ball.pos) * mat3::scale_uniform(guy.ball.radius);
+                    let mut draw_arrow = |rot: f32, alpha: f32| {
+                        self.geng.draw_2d(
+                            framebuffer,
+                            &self.camera,
+                            &draw_2d::TexturedQuad::unit_colored(
+                                &assets.arrow_key,
+                                Rgba::new(1.0, 1.0, 1.0, alpha),
+                            )
+                            .scale_uniform(0.5)
+                            .translate(vec2(2.0, 0.0))
+                            .rotate(rot)
+                            .transform(guy_transform),
+                        );
+                    };
+                    draw_arrow(0.0, guy.input.roll_right);
+                    draw_arrow(f32::PI, guy.input.roll_left);
+                    draw_arrow(f32::PI / 2.0, guy.input.force_fart as u8 as f32);
+                }
             }
 
             if Some(guy.id) == self.my_guy || self.show_names {
