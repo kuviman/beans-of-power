@@ -34,21 +34,18 @@ impl Game {
             let mut mode_params: HashMap<GuyRenderLayerMode, Params> = default();
 
             if let Some(growl_progress) = guy.animation.growl_progress {
-                let shake = vec2(self.noise(10.0), self.noise(10.0)) * 0.1;
-                let scale = 1.0 - (growl_progress * 2.0 - 1.0).sqr();
-                let scale =
-                    self.config.growl_min_scale * (1.0 - scale) + self.config.growl_scale * scale;
+                let shake = vec2(self.noise(10.0), self.noise(10.0));
+                let k = 1.0 - (growl_progress * 2.0 - 1.0).sqr();
                 mode_params.insert(
                     GuyRenderLayerMode::Growl,
                     Params {
-                        scale,
+                        scale: k,
                         shake,
-                        alpha: 1.0,
+                        alpha: k,
                     },
                 );
             }
             let fart_shake = vec2(self.noise(10.0), self.noise(10.0))
-                * 0.1
                 * if guy.input.force_fart {
                     1.0
                 } else {
@@ -57,7 +54,7 @@ impl Game {
             mode_params.insert(
                 GuyRenderLayerMode::Body,
                 Params {
-                    scale: 1.0,
+                    scale: fart_progress,
                     shake: fart_shake,
                     alpha: 1.0,
                 },
@@ -69,7 +66,7 @@ impl Game {
                     GuyRenderLayerMode::Idle
                 },
                 Params {
-                    scale: 0.8 + 0.6 * fart_progress,
+                    scale: fart_progress,
                     shake: fart_shake,
                     alpha: 1.0,
                 },
@@ -80,9 +77,9 @@ impl Game {
                 mode_params.insert(
                     GuyRenderLayerMode::Cheeks,
                     Params {
-                        scale: 0.8 + 0.7 * progress,
-                        shake: vec2(self.noise(10.0), self.noise(10.0)) * 0.1 * progress,
-                        alpha: (0.5 + 1.0 * progress).min(1.0),
+                        scale: progress,
+                        shake: vec2(self.noise(10.0), self.noise(10.0)) * progress,
+                        alpha: 1.0, // (0.5 + 1.0 * progress).min(1.0),
                     },
                 );
             }
@@ -97,7 +94,8 @@ impl Game {
                     let transform = guy_transform
                         * mat3::translate(layer.params.origin)
                         * mat3::scale_uniform(
-                            params.scale * layer.params.scale + 1.0 - layer.params.scale,
+                            (1.0 - params.scale) * layer.params.scale_from
+                                + params.scale * layer.params.scale_to,
                         )
                         * mat3::translate(-layer.params.origin)
                         * mat3::translate(params.shake * layer.params.shake)
@@ -121,6 +119,11 @@ impl Game {
                         Rgba::WHITE
                     };
                     color.a *= params.alpha;
+                    color.a *= if layer.params.fadein != 0.0 {
+                        (params.scale / layer.params.fadein).min(1.0)
+                    } else {
+                        1.0
+                    };
                     self.geng.draw_2d(
                         framebuffer,
                         &self.camera,

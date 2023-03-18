@@ -66,8 +66,6 @@ pub struct Config {
     pub snap_distance: f32,
     pub guy_radius: f32,
     pub growl_time: f32,
-    pub growl_min_scale: f32,
-    pub growl_scale: f32,
     pub angular_acceleration: f32,
     pub gravity: f32,
     pub max_angular_speed: f32, // TODO: maybe?

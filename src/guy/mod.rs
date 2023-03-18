@@ -199,11 +199,13 @@ impl std::str::FromStr for GuyRenderLayerMode {
 #[derive(Clone)]
 pub struct GuyRenderLayerParams {
     color: Option<String>,
-    scale: f32,
+    scale_from: f32,
+    scale_to: f32,
     shake: f32,
     origin: vec2<f32>,
     go_left: f32,
     go_right: f32,
+    fadein: f32,
     mode: GuyRenderLayerMode,
 }
 
@@ -245,8 +247,10 @@ impl geng::LoadAsset for GuyRenderAssets {
 
             let mut params_stack = vec![GuyRenderLayerParams {
                 color: None,
-                scale: 1.0,
-                shake: 1.0,
+                fadein: 0.0,
+                scale_from: 1.0,
+                scale_to: 1.0,
+                shake: 0.0,
                 origin: vec2::ZERO,
                 go_left: 0.0,
                 go_right: 0.0,
@@ -297,18 +301,27 @@ impl geng::LoadAsset for GuyRenderAssets {
                                 }
                             };
                         }
-                        params.shake *= xml_node
-                            .attribute("shake")
-                            .map_or(1.0, |v| v.parse().expect("Failed to parse shake attr"));
-                        params.scale *= xml_node
-                            .attribute("scale")
-                            .map_or(1.0, |v| v.parse().expect("Failed to parse scale attr"));
-                        params.go_left += xml_node
-                            .attribute("go-left")
-                            .map_or(0.0, |v| v.parse().expect("Failed to parse go-left attr"));
-                        params.go_right += xml_node
-                            .attribute("go-right")
-                            .map_or(0.0, |v| v.parse().expect("Failed to parse go-right attr"));
+                        if let Some(fadein) = xml_node.attribute("fadein") {
+                            params.fadein = fadein.parse().expect("Failed to parse fadein attr");
+                        }
+                        if let Some(shake) = xml_node.attribute("shake") {
+                            params.shake = shake.parse().expect("Failed to parse shake attr");
+                        }
+                        if let Some(scale_to) = xml_node.attribute("scale-to") {
+                            params.scale_to =
+                                scale_to.parse().expect("Failed to parse scale-to attr");
+                        }
+                        if let Some(scale_from) = xml_node.attribute("scale-from") {
+                            params.scale_from =
+                                scale_from.parse().expect("Failed to parse scale-from attr");
+                        }
+                        if let Some(go_left) = xml_node.attribute("go-left") {
+                            params.go_left = go_left.parse().expect("Failed to parse go-left attr");
+                        }
+                        if let Some(go_right) = xml_node.attribute("go-right") {
+                            params.go_right =
+                                go_right.parse().expect("Failed to parse go-right attr");
+                        }
                         if let Some(mode) = xml_node.attribute("mode") {
                             params.mode = mode.parse().expect("Failed to parse mode");
                         }
