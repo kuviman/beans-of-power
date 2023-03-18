@@ -45,6 +45,7 @@ pub struct Game {
     pub follow: Option<Id>,
     pub long_fart_sfx: HashMap<Id, LongFartSfx>,
     pub next_golden_glint: f32,
+    pub quicksave: Option<Guy>,
 }
 
 impl Drop for Game {
@@ -124,6 +125,7 @@ impl Game {
             follow: None,
             long_fart_sfx: HashMap::new(),
             next_golden_glint: 0.0,
+            quicksave: None,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -471,6 +473,16 @@ impl geng::State for Game {
             }
             geng::Event::KeyDown { key: geng::Key::I } => {
                 self.camera.fov = self.assets.get().config.camera_fov;
+            }
+            geng::Event::KeyDown { key: geng::Key::F5 } if self.opt.editor => {
+                self.quicksave = self.my_guy.and_then(|id| self.guys.get(&id)).cloned();
+            }
+            geng::Event::KeyDown { key: geng::Key::F7 } if self.opt.editor => {
+                if let Some(save) = &self.quicksave {
+                    let save = save.clone();
+                    self.respawn_my_guy();
+                    *self.guys.get_mut(&self.my_guy.unwrap()).unwrap() = save;
+                }
             }
             _ => {}
         }
