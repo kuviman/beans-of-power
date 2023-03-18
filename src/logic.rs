@@ -71,7 +71,8 @@ impl Game {
             }
             let delta_time = delta_time * time_scale;
 
-            let sfx_speed = (time_scale as f64).powf(self.config.sfx_time_scale_power);
+            let sfx_speed =
+                (self.time_scale as f64 * time_scale as f64).powf(self.config.sfx_time_scale_power);
             if self.my_guy == Some(guy.id) {
                 self.music.set_speed(sfx_speed);
             }

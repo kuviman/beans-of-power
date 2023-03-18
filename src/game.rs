@@ -45,6 +45,7 @@ pub struct Game {
     pub follow: Option<Id>,
     pub long_fart_sfx: HashMap<Id, LongFartSfx>,
     pub next_golden_glint: f32,
+    pub time_scale: f32,
     pub quicksave: Option<Guy>,
 }
 
@@ -126,6 +127,7 @@ impl Game {
             long_fart_sfx: HashMap::new(),
             next_golden_glint: 0.0,
             quicksave: None,
+            time_scale: 0.0,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -289,7 +291,7 @@ impl geng::State for Game {
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
-        let delta_time = delta_time as f32;
+        let delta_time = delta_time as f32 * self.time_scale;
         if self.my_guy.is_none()
             || !self
                 .guys
@@ -309,12 +311,13 @@ impl geng::State for Game {
     }
 
     fn update(&mut self, delta_time: f64) {
+        let delta_time = delta_time as f32;
         // self.volume = self.assets.config.volume;
         if self.geng.window().is_key_pressed(geng::Key::PageUp) {
-            self.volume += delta_time as f32 * 0.5;
+            self.volume += delta_time * 0.5;
         }
         if self.geng.window().is_key_pressed(geng::Key::PageDown) {
-            self.volume -= delta_time as f32 * 0.5;
+            self.volume -= delta_time * 0.5;
         }
         self.volume = self.volume.clamp(0.0, 1.0);
         if self.mute_music {
@@ -322,8 +325,9 @@ impl geng::State for Game {
         } else {
             self.music.set_volume(self.volume as f64);
         }
+
         self.emotes.retain(|&(t, ..)| t >= self.real_time - 1.0);
-        let delta_time = delta_time as f32;
+
         self.real_time += delta_time;
 
         let mut target_center = self.camera.center;
@@ -483,6 +487,15 @@ impl geng::State for Game {
                     self.respawn_my_guy();
                     *self.guys.get_mut(&self.my_guy.unwrap()).unwrap() = save;
                 }
+            }
+            geng::Event::KeyDown { key: geng::Key::Z } if self.opt.editor => {
+                self.time_scale = 1.0;
+            }
+            geng::Event::KeyDown { key: geng::Key::X } if self.opt.editor => {
+                self.time_scale = 0.5;
+            }
+            geng::Event::KeyDown { key: geng::Key::C } if self.opt.editor => {
+                self.time_scale = 0.25;
             }
             _ => {}
         }
