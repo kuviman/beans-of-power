@@ -52,9 +52,30 @@ impl Game {
 
     pub fn handle_customizer_event(&mut self, event: &geng::Event) {
         if !self.show_customizer {
+            if matches!(
+                event,
+                geng::Event::KeyDown {
+                    key: geng::Key::Enter,
+                }
+            ) {
+                self.show_customizer = true;
+            }
             return;
         }
-        for msg in self.ui_controller.handle_event(event, self.buttons.clone()) {
+        let msgs = self
+            .ui_controller
+            .handle_event(event, self.buttons.clone())
+            .into_iter();
+        let msgs = msgs.chain(
+            matches!(
+                event,
+                geng::Event::KeyDown {
+                    key: geng::Key::Enter,
+                }
+            )
+            .then_some(UiMessage::Play),
+        );
+        for msg in msgs {
             match msg {
                 UiMessage::Play => {
                     self.show_customizer = false;
