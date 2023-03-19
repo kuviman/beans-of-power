@@ -141,6 +141,11 @@ impl Game {
                         (editor.selected_tool_index + 1) % editor.available_tools.len();
                     editor.tool = editor.available_tools[editor.selected_tool_index].create();
                 }
+                geng::Key::T => {
+                    if let Some(guy) = self.my_guy.and_then(|id| self.guys.get_mut(&id)) {
+                        guy.ball.pos = editor.cursor.world_pos;
+                    }
+                }
                 geng::Key::Q => {
                     if !self.geng.window().is_key_pressed(geng::Key::LCtrl) {
                         if let Some(id) = self.my_guy.take() {
