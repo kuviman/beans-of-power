@@ -157,7 +157,7 @@ impl Game {
                         ),
                     );
                 }
-                if true {
+                if false {
                     // Show keys pressed
                     let guy_transform =
                         mat3::translate(guy.ball.pos) * mat3::scale_uniform(guy.ball.radius);
