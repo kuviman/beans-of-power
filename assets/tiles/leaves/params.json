@@ -1,8 +1,8 @@
 {
     "svg": true,
     "friction_along_flow": 1.0,
-    "texture_movement_frequency": 0.2,
+    "texture_movement_frequency": 0.5,
     "texture_movement_amplitude": 1,
-    "fadeout_distance": 0.5,
-    "draw_times": 2
+    "draw_times": 2,
+    "fadeout_distance": 0.5
 }

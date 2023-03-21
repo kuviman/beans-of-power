@@ -28,6 +28,8 @@ pub struct TileParams {
     pub time_scale: Option<f32>,
     #[serde(default = "default_draw_times")]
     pub draw_times: usize,
+    #[serde(default)]
+    pub fadeout_distance: f32,
 }
 
 fn default_draw_times() -> usize {

@@ -3,6 +3,8 @@ use super::*;
 #[derive(ugli::Vertex)]
 struct TileVertex {
     a_pos: vec2<f32>,
+    a_side_distances: vec3<f32>,
+    a_corner_distances: vec3<f32>,
     a_flow: vec2<f32>,
 }
 
@@ -54,11 +56,49 @@ impl LevelMesh {
                     tiles: {
                         let mut vertex_data: HashMap<String, Vec<TileVertex>> = HashMap::new();
                         for tile in &layer.tiles {
+                            let fadeout_distance =
+                                assets.tiles[&tile.type_name].params.fadeout_distance;
+                            let data: [vec2<f32>; 3] = std::array::from_fn(|i| {
+                                let mut vs = tile.vertices;
+                                vs.rotate_left(i);
+                                let p1 = vs[1];
+                                let v1 = vs[0] - vs[1];
+                                let p2 = vs[2];
+                                let n2 = (vs[2] - vs[0]).rotate_90().normalize();
+                                let p1 = p1 + v1.rotate_90().normalize() * fadeout_distance;
+                                let p2 = p2 + n2 * fadeout_distance;
+                                let t = ray_hit_time(p1, v1, p2, n2);
+                                p1 + v1 * t
+                            });
                             vertex_data
                                 .entry(tile.type_name.clone())
                                 .or_default()
-                                .extend(tile.vertices.into_iter().map(|v| TileVertex {
+                                .extend(data.into_iter().map(|v| TileVertex {
                                     a_pos: v,
+                                    a_side_distances: {
+                                        let distances: [f32; 3] = std::array::from_fn(|i| {
+                                            let n = (tile.vertices[i] - tile.vertices[(i + 1) % 3])
+                                                .rotate_90()
+                                                .normalize();
+                                            (vec2::dot(v, n) - vec2::dot(tile.vertices[i], n))
+                                                / fadeout_distance
+                                        });
+                                        let [x, y, z] = distances;
+                                        vec3(x, y, z)
+                                    },
+                                    a_corner_distances: {
+                                        let distances: [f32; 3] = std::array::from_fn(|i| {
+                                            let mut vs = tile.vertices;
+                                            vs.rotate_left(i);
+                                            let n1 = (vs[0] - vs[1]).rotate_90().normalize();
+                                            let n2 = (vs[2] - vs[0]).rotate_90().normalize();
+                                            let n = (n1 + n2).normalize();
+                                            (vec2::dot(v, n) - vec2::dot(tile.vertices[i], n))
+                                                / fadeout_distance
+                                        });
+                                        let [x, y, z] = distances;
+                                        vec3(x, y, z)
+                                    },
                                     a_flow: tile.flow,
                                 }));
                         }
