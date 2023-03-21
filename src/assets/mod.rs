@@ -14,6 +14,9 @@ pub struct Assets {
     pub guy: GuyAssets,
     pub surfaces: Listed<SurfaceAssets>,
     pub tiles: Listed<TileAssets>,
+    #[asset(
+        load_with = "Listed::load_with_ext(&geng, &base_path.join(\"objects\"), Some(\"svg\"))"
+    )]
     pub objects: Listed<Texture>,
     #[asset(load_with = "load_font(&geng, &base_path.join(\"Ludum-Dairy-0.2.0.ttf\"))")]
     pub font: geng::Font,
