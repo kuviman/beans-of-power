@@ -118,7 +118,6 @@ impl LevelMesh {
                             for i in this_pass {
                                 let surface = &layer.surfaces[i];
                                 let normal = (surface.p2 - surface.p1).normalize().rotate_90();
-                                let mult = 1.0; //vertex_ts_multiplier.get(&i).copied().unwrap_or(1.0);
                                 let start_t = *vertex_ts.get(&i).unwrap();
                                 let len = (surface.p2 - surface.p1).len();
                                 let end_t = start_t + len;
@@ -171,27 +170,27 @@ impl LevelMesh {
                                                 a_pos: p1,
                                                 a_normal: normal,
                                                 a_flow: surface.flow,
-                                                a_vt: vec2(mult * start_t, 0.0),
+                                                a_vt: vec2(start_t, 0.0),
                                             },
                                             SurfaceVertex {
                                                 a_pos: p2,
                                                 a_normal: normal,
                                                 a_flow: surface.flow,
-                                                a_vt: vec2(mult * end_t, 0.0),
+                                                a_vt: vec2(end_t, 0.0),
                                             },
                                             SurfaceVertex {
                                                 a_pos: p2
                                                     + surface_texture_height(surface) * normal,
                                                 a_normal: normal,
                                                 a_flow: surface.flow,
-                                                a_vt: vec2(mult * end_t, 1.0),
+                                                a_vt: vec2(end_t, 1.0),
                                             },
                                             SurfaceVertex {
                                                 a_pos: p1
                                                     + surface_texture_height(surface) * normal,
                                                 a_normal: normal,
                                                 a_flow: surface.flow,
-                                                a_vt: vec2(mult * start_t, 1.0),
+                                                a_vt: vec2(start_t, 1.0),
                                             },
                                         ];
                                         [vs[0], vs[1], vs[2], vs[0], vs[2], vs[3]]
@@ -277,25 +276,25 @@ impl LevelMesh {
                                                 a_pos: p1.pos,
                                                 a_normal: p1.normal,
                                                 a_flow: surface.flow,
-                                                a_vt: vec2(mult * start_t, 0.0),
+                                                a_vt: vec2(start_t, 0.0),
                                             },
                                             SurfaceVertex {
                                                 a_pos: p2.pos,
                                                 a_normal: p2.normal,
                                                 a_flow: surface.flow,
-                                                a_vt: vec2(mult * end_t, 0.0),
+                                                a_vt: vec2(end_t, 0.0),
                                             },
                                             SurfaceVertex {
                                                 a_pos: p2.pos + p2.height * p2.normal,
                                                 a_normal: p2.normal,
                                                 a_flow: surface.flow,
-                                                a_vt: vec2(mult * end_t, 1.0),
+                                                a_vt: vec2(end_t, 1.0),
                                             },
                                             SurfaceVertex {
                                                 a_pos: p1.pos + p1.height * p1.normal,
                                                 a_normal: p1.normal,
                                                 a_flow: surface.flow,
-                                                a_vt: vec2(mult * start_t, 1.0),
+                                                a_vt: vec2(start_t, 1.0),
                                             },
                                         ];
                                         this_pass_vertex_data
