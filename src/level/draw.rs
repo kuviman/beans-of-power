@@ -203,9 +203,6 @@ impl LevelMesh {
                                     fn lerp(a: vec2<f32>, b: vec2<f32>, t: f32) -> vec2<f32> {
                                         a * (1.0 - t) + b * t
                                     }
-                                    fn slerp(a: vec2<f32>, b: vec2<f32>, t: f32) -> vec2<f32> {
-                                        lerp(a, b, t).normalize()
-                                    }
                                     let n1 = normal;
                                     let n2 = (next.p2 - next.p1).rotate_90().normalize_or_zero();
                                     struct Point {
@@ -243,10 +240,17 @@ impl LevelMesh {
                                             }
                                         }
                                     } else {
+                                        let a = n1.arg();
+                                        let b = n2.arg();
+                                        let mut angle = b - a;
+                                        if angle > 0.0 {
+                                            angle -= 2.0 * f32::PI;
+                                        }
                                         for j in 0..=R {
                                             vs.push(Point {
                                                 pos: surface.p2,
-                                                normal: slerp(n1, n2, j as f32 / R as f32),
+                                                normal: vec2(1.0, 0.0)
+                                                    .rotate(a + angle * j as f32 / R as f32),
                                                 height: surface_texture_height(surface),
                                             });
                                         }
