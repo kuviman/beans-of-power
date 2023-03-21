@@ -93,8 +93,10 @@ impl SurfaceParams {
             let svg = svg::load(path.join("texture.svg")).await?;
             let node_texture = |id: &str| -> Option<Texture> {
                 svg.tree.node_by_id(id).map(|node| {
-                    let mut texture = svg::render(&geng, &svg.tree, Some(&node));
+                    let mut texture = svg::render(geng, &svg.tree, Some(&node));
                     texture.set_wrap_mode_separate(ugli::WrapMode::Repeat, ugli::WrapMode::Clamp);
+                    // TODO: instead do premultiplied alpha
+                    texture.set_filter(ugli::Filter::Nearest);
                     Texture(texture)
                 })
             };
