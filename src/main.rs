@@ -40,8 +40,8 @@ pub struct Opt {
     pub server: Option<String>,
     #[clap(long)]
     pub connect: Option<String>,
-    #[clap(long, default_value = "level.json")]
-    pub level: std::path::PathBuf,
+    #[clap(long)]
+    pub level: Option<std::path::PathBuf>,
     #[clap(long)]
     pub assets: Option<std::path::PathBuf>,
     #[clap(flatten)]
@@ -112,7 +112,10 @@ fn main() {
             let ((assets, level), connection_info) = future::join(
                 future::join(
                     <AssetsHandle as geng::LoadAsset>::load(&geng, &assets_dir),
-                    Level::load(assets_dir.join(&opt.level), opt.editor),
+                    Level::load(
+                        opt.level.clone().unwrap_or(assets_dir.join("level.json")),
+                        opt.editor,
+                    ),
                 ),
                 connection,
             )
