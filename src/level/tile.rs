@@ -16,8 +16,6 @@ pub struct TileParams {
     #[serde(default = "one")]
     pub texture_scale: f32,
     #[serde(default)]
-    pub background: bool,
-    #[serde(default)]
     pub friction_along_flow: f32,
     #[serde(default)]
     pub friction: f32,

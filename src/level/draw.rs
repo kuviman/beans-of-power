@@ -421,13 +421,7 @@ impl Game {
         }
     }
 
-    fn draw_tiles(
-        &self,
-        framebuffer: &mut ugli::Framebuffer,
-        level: &Level,
-        layer_index: usize,
-        background: bool,
-    ) {
+    fn draw_tiles(&self, framebuffer: &mut ugli::Framebuffer, level: &Level, layer_index: usize) {
         let assets = self.assets.get();
         let camera = geng::Camera2d {
             center: self.camera.center * level.layers[layer_index].parallax,
@@ -437,9 +431,6 @@ impl Game {
 
         for (type_name, data) in &mesh.layers[layer_index].tiles {
             let tile_assets = &assets.tiles[type_name];
-            if tile_assets.params.background != background {
-                continue;
-            }
             let texture_scale = vec2(tile_assets.texture.size().map(|x| x as f32).aspect(), 1.0)
                 * tile_assets.params.texture_scale;
             ugli::draw(
@@ -513,7 +504,7 @@ impl Game {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         let assets = self.assets.get();
-        self.draw_tiles(framebuffer, level, layer_index, true);
+        self.draw_tiles(framebuffer, level, layer_index);
         {
             for obj in &level.layers[layer_index].objects {
                 self.geng.draw_2d(
@@ -547,7 +538,6 @@ impl Game {
         layer_index: usize,
         framebuffer: &mut ugli::Framebuffer,
     ) {
-        self.draw_tiles(framebuffer, level, layer_index, false);
         self.draw_surfaces(
             level,
             layer_index,
