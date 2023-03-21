@@ -377,7 +377,6 @@ impl Game {
         layer_index: usize,
         framebuffer: &mut ugli::Framebuffer,
         texture: impl Fn(&SurfaceAssets) -> Option<&Texture>,
-        texture_shift: f32,
         texture_move_direction: f32,
     ) {
         let assets = self.assets.get();
@@ -393,10 +392,8 @@ impl Game {
                 Some(texture) => texture,
                 None => continue,
             };
-            let texture_shift = texture_shift
-                + surface_assets.params.texture_speed
-                    * self.simulation_time
-                    * texture_move_direction;
+            let texture_shift =
+                surface_assets.params.texture_speed * self.simulation_time * texture_move_direction;
             ugli::draw(
                 framebuffer,
                 &assets.shaders.surface,
@@ -526,7 +523,6 @@ impl Game {
             layer_index,
             framebuffer,
             |assets| assets.textures.back.as_ref(),
-            43756.0,
             1.0,
         );
         self.draw_portals(level, framebuffer);
@@ -543,7 +539,6 @@ impl Game {
             layer_index,
             framebuffer,
             |assets| assets.textures.front.as_ref(),
-            -123.0,
             -1.0,
         );
         self.draw_cannons(level, framebuffer);
