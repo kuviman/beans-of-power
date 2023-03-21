@@ -440,6 +440,8 @@ impl Game {
             if tile_assets.params.background != background {
                 continue;
             }
+            let texture_scale = vec2(tile_assets.texture.size().map(|x| x as f32).aspect(), 1.0)
+                * tile_assets.params.texture_scale;
             ugli::draw(
                 framebuffer,
                 &assets.shaders.tile,
@@ -454,6 +456,7 @@ impl Game {
                             self.noise(tile_assets.params.texture_movement_frequency),
                         ) * tile_assets.params.texture_movement_amplitude,
                         u_reveal_radius: level.layers[layer_index].reveal_radius,
+                        u_texture_scale: texture_scale,
                     },
                     geng::camera2d_uniforms(&camera, self.framebuffer_size),
                 ),

@@ -12,6 +12,10 @@ pub struct Tile {
 #[asset(json)]
 pub struct TileParams {
     #[serde(default)]
+    pub svg: bool,
+    #[serde(default = "one")]
+    pub texture_scale: f32,
+    #[serde(default)]
     pub background: bool,
     #[serde(default)]
     pub friction_along_flow: f32,
@@ -26,11 +30,32 @@ pub struct TileParams {
     pub time_scale: Option<f32>,
 }
 
+fn one() -> f32 {
+    1.0
+}
+
 #[derive(geng::Assets)]
+#[asset(sequential)]
 pub struct TileAssets {
     pub params: TileParams,
-    #[asset(postprocess = "make_repeated")]
+    #[asset(load_with = "load_tile_texture(&geng, &base_path, &params)")]
     pub texture: Texture,
+}
+
+async fn load_tile_texture(
+    geng: &Geng,
+    base_path: &std::path::Path,
+    params: &TileParams,
+) -> anyhow::Result<Texture> {
+    let mut texture = geng
+        .load_asset(base_path.join("texture").with_extension(if params.svg {
+            "svg"
+        } else {
+            "png"
+        }))
+        .await?;
+    make_repeated(&mut texture);
+    Ok(texture)
 }
 
 fn make_repeated(texture: &mut Texture) {
