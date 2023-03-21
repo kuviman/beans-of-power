@@ -331,6 +331,24 @@ impl LevelMesh {
                         vertex_data
                             .into_iter()
                             .map(|(type_name, data)| {
+                                let data = {
+                                    // TODO should be handled differently
+                                    let surface_assets = &assets.surfaces[&type_name];
+                                    let texture = surface_assets
+                                        .textures
+                                        .front
+                                        .as_ref()
+                                        .or(surface_assets.textures.back.as_ref())
+                                        .unwrap();
+                                    let height = texture.size().y as f32 / texture.size().x as f32;
+                                    let mut data = data;
+                                    for vertex in &mut data {
+                                        vertex.a_pos -= vertex.a_normal
+                                            * height
+                                            * surface_assets.params.texture_underground;
+                                    }
+                                    data
+                                };
                                 (type_name, ugli::VertexBuffer::new_static(geng.ugli(), data))
                             })
                             .collect()

@@ -59,6 +59,8 @@ pub struct SurfaceParams {
     pub snow_falloff: f32,
     #[serde(default)]
     pub svg: bool,
+    #[serde(default)]
+    pub texture_underground: f32,
 }
 
 fn default_snow_falloff() -> f32 {
