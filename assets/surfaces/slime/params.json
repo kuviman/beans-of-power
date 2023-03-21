@@ -1,4 +1,6 @@
 {
+    "svg": true,
+    "texture_underground": 0.75,
     "bounciness": 1.0,
     "min_bounce_vel": 4.0,
     "friction": 0.5,

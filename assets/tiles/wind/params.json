@@ -1,3 +1,7 @@
 {
-    "friction_along_flow": 1.0
+    "svg": true,
+    "friction_along_flow": 1.0,
+    "texture_movement_frequency": 0.2,
+    "texture_movement_amplitude": 1,
+    "draw_times": 2
 }

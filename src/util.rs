@@ -6,8 +6,14 @@ pub const EPS: f32 = 1e-9;
 
 pub type Id = i32;
 
-#[derive(Deref)]
-pub struct Texture(#[deref] pub ugli::Texture);
+#[derive(Deref, DerefMut)]
+pub struct Texture(#[deref] ugli::Texture);
+
+impl From<ugli::Texture> for Texture {
+    fn from(texture: ugli::Texture) -> Self {
+        Self(texture)
+    }
+}
 
 impl std::borrow::Borrow<ugli::Texture> for Texture {
     fn borrow(&self) -> &ugli::Texture {
@@ -50,9 +56,9 @@ pub fn zero_vec() -> vec2<f32> {
 
 impl Game {
     #[track_caller]
-    pub fn noise(&self, frequency: f32) -> f32 {
+    pub fn noise(&self, phase: f32, frequency: f32) -> f32 {
         let caller = std::panic::Location::caller();
-        let phase = caller.line() as f64 * 1000.0 + caller.column() as f64;
+        let phase = caller.line() as f64 * 1000.0 + caller.column() as f64 + phase as f64;
         self.noise.get([(self.real_time * frequency) as f64, phase]) as f32
     }
 }

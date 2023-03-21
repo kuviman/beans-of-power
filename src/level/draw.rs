@@ -430,29 +430,42 @@ impl Game {
             let tile_assets = &assets.tiles[type_name];
             let texture_scale = vec2(tile_assets.texture.size().map(|x| x as f32).aspect(), 1.0)
                 * tile_assets.params.texture_scale;
-            ugli::draw(
-                framebuffer,
-                &assets.shaders.tile,
-                ugli::DrawMode::Triangles,
-                data,
-                (
-                    ugli::uniforms! {
-                        u_texture: &*tile_assets.texture,
-                        u_simulation_time: self.simulation_time,
-                        u_texture_shift: vec2(
-                            self.noise(tile_assets.params.texture_movement_frequency),
-                            self.noise(tile_assets.params.texture_movement_frequency),
-                        ) * tile_assets.params.texture_movement_amplitude,
-                        u_reveal_radius: level.layers[layer_index].reveal_radius,
-                        u_texture_scale: texture_scale,
+            for draw_index in 0..tile_assets.params.draw_times {
+                let texture_shift = vec2(
+                    self.noise(
+                        draw_index as f32,
+                        tile_assets.params.texture_movement_frequency,
+                    ),
+                    self.noise(
+                        draw_index as f32,
+                        tile_assets.params.texture_movement_frequency,
+                    ),
+                ) * tile_assets.params.texture_movement_amplitude
+                    + vec2(
+                        self.noise(draw_index as f32, 0.0),
+                        self.noise(draw_index as f32, 0.0),
+                    );
+                ugli::draw(
+                    framebuffer,
+                    &assets.shaders.tile,
+                    ugli::DrawMode::Triangles,
+                    data,
+                    (
+                        ugli::uniforms! {
+                            u_texture: &*tile_assets.texture,
+                            u_simulation_time: self.simulation_time,
+                            u_texture_shift: texture_shift,
+                            u_reveal_radius: level.layers[layer_index].reveal_radius,
+                            u_texture_scale: texture_scale,
+                        },
+                        geng::camera2d_uniforms(&camera, self.framebuffer_size),
+                    ),
+                    ugli::DrawParameters {
+                        blend_mode: Some(ugli::BlendMode::straight_alpha()),
+                        ..default()
                     },
-                    geng::camera2d_uniforms(&camera, self.framebuffer_size),
-                ),
-                ugli::DrawParameters {
-                    blend_mode: Some(ugli::BlendMode::straight_alpha()),
-                    ..default()
-                },
-            );
+                );
+            }
         }
     }
 

@@ -28,29 +28,27 @@ impl Game {
 
             struct Params {
                 scale: f32,
-                shake: vec2<f32>,
+                shake: f32,
                 alpha: f32,
             }
             let mut mode_params: HashMap<GuyRenderLayerMode, Params> = default();
 
             if let Some(growl_progress) = guy.animation.growl_progress {
-                let shake = vec2(self.noise(10.0), self.noise(10.0));
                 let k = 1.0 - (growl_progress * 2.0 - 1.0).sqr();
                 mode_params.insert(
                     GuyRenderLayerMode::Growl,
                     Params {
                         scale: k,
-                        shake,
+                        shake: 1.0,
                         alpha: k,
                     },
                 );
             }
-            let fart_shake = vec2(self.noise(10.0), self.noise(10.0))
-                * if guy.input.force_fart {
-                    1.0
-                } else {
-                    fart_progress
-                };
+            let fart_shake = if guy.input.force_fart {
+                1.0
+            } else {
+                fart_progress
+            };
             mode_params.insert(
                 GuyRenderLayerMode::Body,
                 Params {
@@ -78,7 +76,7 @@ impl Game {
                     GuyRenderLayerMode::Cheeks,
                     Params {
                         scale: progress,
-                        shake: vec2(self.noise(10.0), self.noise(10.0)) * progress,
+                        shake: progress,
                         alpha: 1.0, // (0.5 + 1.0 * progress).min(1.0),
                     },
                 );
@@ -89,8 +87,10 @@ impl Game {
                 .custom
                 .get(&guy.customization.name.to_lowercase())
                 .unwrap_or(&assets.guy.regular);
+            let mut shake_phase = 0.0;
             for layer in &guy_assets.layers {
                 if let Some(params) = mode_params.get(&layer.params.mode) {
+                    shake_phase += 1.0;
                     let transform = guy_transform
                         * mat3::translate(layer.params.origin)
                         * mat3::scale_uniform(
@@ -98,7 +98,11 @@ impl Game {
                                 + params.scale * layer.params.scale_to,
                         )
                         * mat3::translate(-layer.params.origin)
-                        * mat3::translate(params.shake * layer.params.shake)
+                        * mat3::translate(
+                            vec2(self.noise(shake_phase, 10.0), self.noise(shake_phase, 10.0))
+                                * params.shake
+                                * layer.params.shake,
+                        )
                         * mat3::translate(vec2(
                             -layer.params.go_left * guy.input.roll_left
                                 + layer.params.go_right * guy.input.roll_right,

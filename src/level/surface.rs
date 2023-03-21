@@ -97,7 +97,7 @@ impl SurfaceParams {
                     texture.set_wrap_mode_separate(ugli::WrapMode::Repeat, ugli::WrapMode::Clamp);
                     // TODO: instead do premultiplied alpha
                     texture.set_filter(ugli::Filter::Nearest);
-                    Texture(texture)
+                    texture.into()
                 })
             };
             Ok(SurfaceTextures {
@@ -107,9 +107,7 @@ impl SurfaceParams {
         } else {
             let load = |path| async {
                 let mut texture: Texture = geng.load_asset(path).await?;
-                texture
-                    .0
-                    .set_wrap_mode_separate(ugli::WrapMode::Repeat, ugli::WrapMode::Clamp);
+                texture.set_wrap_mode_separate(ugli::WrapMode::Repeat, ugli::WrapMode::Clamp);
                 Ok::<_, anyhow::Error>(texture)
             };
             Ok(SurfaceTextures {

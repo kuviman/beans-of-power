@@ -26,6 +26,12 @@ pub struct TileParams {
     #[serde(default = "zero_vec")]
     pub additional_force: vec2<f32>,
     pub time_scale: Option<f32>,
+    #[serde(default = "default_draw_times")]
+    pub draw_times: usize,
+}
+
+fn default_draw_times() -> usize {
+    1
 }
 
 fn one() -> f32 {
@@ -45,17 +51,18 @@ async fn load_tile_texture(
     base_path: &std::path::Path,
     params: &TileParams,
 ) -> anyhow::Result<Texture> {
-    let mut texture = geng
+    let mut texture: Texture = geng
         .load_asset(base_path.join("texture").with_extension(if params.svg {
             "svg"
         } else {
             "png"
         }))
         .await?;
+    texture.set_filter(ugli::Filter::Nearest); // TODO premultiplied alpha instead
     make_repeated(&mut texture);
     Ok(texture)
 }
 
 fn make_repeated(texture: &mut Texture) {
-    texture.0.set_wrap_mode(ugli::WrapMode::Repeat);
+    texture.set_wrap_mode(ugli::WrapMode::Repeat);
 }
