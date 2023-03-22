@@ -7,5 +7,5 @@
     "sound": true,
     "flex_frequency": 0.5,
     "flex_amplitude": 0.03,
-    "texture_underground": 0.5
+    "texture_underground": 0.75
 }

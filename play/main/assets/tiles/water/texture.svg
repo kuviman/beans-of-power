@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   sodipodi:docname="texture.svg"
+   inkscape:version="1.2.2 (732a01da63, 2022-12-09)"
+   id="svg10884"
+   version="1.1"
+   viewBox="0 0 512 512"
+   height="1024"
+   width="1024"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview10886"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="0.64693624"
+     inkscape:cx="379.48098"
+     inkscape:cy="571.92653"
+     inkscape:window-width="2560"
+     inkscape:window-height="1369"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs10881" />
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="water"
+     style="opacity:0.5">
+    <rect
+       style="fill:#0091ff;fill-opacity:1;stroke-width:29.2952;stroke-linecap:round;stroke-linejoin:round"
+       id="rect15969"
+       width="1547.6508"
+       height="1552.288"
+       x="-508.5509"
+       y="-565.74353" />
+    <g
+       inkscape:label="Layer 1"
+       inkscape:groupmode="layer"
+       id="layer1"
+       inkscape:tile-cx="256"
+       inkscape:tile-cy="256"
+       inkscape:tile-w="512"
+       inkscape:tile-h="512"
+       inkscape:tile-x0="0"
+       inkscape:tile-y0="0">
+      <path
+         style="opacity:1;fill:#0089ff;fill-opacity:1;stroke-width:14.6475;stroke-linecap:round;stroke-linejoin:round"
+         d="M 1.3487927,172.59491 C 44.21354,171.86177 93.421695,140.14807 141.42807,138.94468 c 78.93535,-1.9787 153.97691,39.25709 232.81081,43.72033 45.86081,2.59644 99.65669,-9.71321 137.44055,-9.98479 29.64092,-0.21305 30.80954,91.51108 -0.36368,91.78428 -44.43651,0.38944 -122.87963,49.67814 -187.35526,48.26852 C 252.75189,311.1762 190.50863,256.79585 119.56791,250.43154 79.440845,246.83162 37.198406,264.43689 -0.47158435,264.53079 -29.31553,264.60269 -27.491025,173.08817 1.3487927,172.59491 Z"
+         id="path14318"
+         sodipodi:nodetypes="saassaass" />
+      <path
+         style="opacity:1;fill:#0089ff;fill-opacity:1;stroke-width:14.6475;stroke-linecap:round;stroke-linejoin:round"
+         d="M -10.820232,419.67041 146.846,380.25386 c 0,0 236.49936,40.18943 241.90947,40.18943 5.41012,0 157.66623,-27.05058 157.66623,-27.05058 L 545.64885,521.68975 235.72648,549.5132 110.52094,492.32054 -26.277705,508.5509 Z"
+         id="path17824" />
+    </g>
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#layer1"
+       xlink:href="#layer1"
+       id="use13620"
+       transform="translate(-512,-512)" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#layer1"
+       xlink:href="#layer1"
+       transform="translate(-512)"
+       id="use13622" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#layer1"
+       xlink:href="#layer1"
+       transform="translate(-512,512)"
+       id="use13624" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#layer1"
+       xlink:href="#layer1"
+       transform="translate(0,-512)"
+       id="use13626" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#layer1"
+       xlink:href="#layer1"
+       transform="translate(0,512)"
+       id="use13630" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#layer1"
+       xlink:href="#layer1"
+       transform="translate(512,-512)"
+       id="use13632" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#layer1"
+       xlink:href="#layer1"
+       transform="translate(512)"
+       id="use13634" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#layer1"
+       xlink:href="#layer1"
+       transform="translate(512,512)"
+       id="use13636" />
+  </g>
+</svg>
