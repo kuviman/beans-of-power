@@ -67,7 +67,9 @@ uniform sampler2D u_texture;
 uniform float u_simulation_time;
 uniform float u_flex_amplitude;
 uniform float u_flex_frequency;
+uniform vec4 u_layer_color;
 void main() {
     gl_FragColor = texture2D(u_texture, v_vt + v_vt.y * vec2(cnoise(v_world_pos + vec2(0.0, u_simulation_time * u_flex_frequency)) * u_flex_amplitude, 0.0));
+    gl_FragColor.rgb = gl_FragColor.rgb * (1.0 - u_layer_color.a) + u_layer_color.rbg * u_layer_color.a;
 }
 #endif

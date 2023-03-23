@@ -1,1 +1,5 @@
-{}
+{
+    "svg": true,
+    "texture_rotation": 30,
+    "texture_scale": 1
+}

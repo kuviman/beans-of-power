@@ -1,7 +1,9 @@
 {
+    "svg": true,
     "bounciness": 0.2,
     "friction": 0.0,
     "front": false,
     "back": true,
-    "sound": true
+    "sound": true,
+    "texture_underground": 0.5
 }
