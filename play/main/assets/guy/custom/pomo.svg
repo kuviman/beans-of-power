@@ -2,21 +2,21 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-  inkscape:export-ydpi="96"
-  inkscape:export-xdpi="96"
-  inkscape:export-filename="..\Projects\getting-farted-on\dev\assets\guy\closed_eyes.png"
-  inkscape:version="1.2.2 (732a01da63, 2022-12-09)"
-  sodipodi:docname="pomo.svg"
-  xml:space="preserve"
-  id="svg5"
-  version="1.1"
-  viewBox="0 0 65.622687 64.922998"
-  height="1298.46"
-  width="1312.4537"
-  xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-  xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-  xmlns="http://www.w3.org/2000/svg"
-  xmlns:svg="http://www.w3.org/2000/svg"><sodipodi:namedview
+   inkscape:export-ydpi="96"
+   inkscape:export-xdpi="96"
+   inkscape:export-filename="..\Projects\getting-farted-on\dev\assets\guy\closed_eyes.png"
+   inkscape:version="1.2.2 (732a01da63, 2022-12-09)"
+   sodipodi:docname="pomo.svg"
+   xml:space="preserve"
+   id="svg5"
+   version="1.1"
+   viewBox="0 0 65.622687 64.922998"
+   height="1298.46"
+   width="1312.4537"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><sodipodi:namedview
      id="namedview7"
      pagecolor="#ffffff"
      bordercolor="#000000"
@@ -30,14 +30,14 @@
      showguides="true"
      inkscape:lockguides="false"
      inkscape:zoom="0.5"
-     inkscape:cx="725"
-     inkscape:cy="609"
+     inkscape:cx="581"
+     inkscape:cy="611"
      inkscape:window-width="1278"
      inkscape:window-height="1360"
-     inkscape:window-x="1273"
+     inkscape:window-x="1266"
      inkscape:window-y="0"
      inkscape:window-maximized="0"
-     inkscape:current-layer="layer2" /><defs
+     inkscape:current-layer="layer90" /><defs
      id="defs2"><inkscape:path-effect
        effect="fillet_chamfer"
        id="path-effect5968"
@@ -611,7 +611,8 @@
          inkscape:groupmode="layer"
          id="layer90"
          inkscape:label="left"
-         style="display:inline"><g
+         style="display:inline"
+         shake-phase="2"><g
            inkscape:groupmode="layer"
            id="layer94"
            inkscape:label="white 1"
@@ -634,7 +635,8 @@
          inkscape:groupmode="layer"
          id="layer91"
          inkscape:label="right"
-         style="display:inline"><g
+         style="display:inline"
+         shake-phase="1"><g
            inkscape:groupmode="layer"
            id="layer92"
            inkscape:label="white"

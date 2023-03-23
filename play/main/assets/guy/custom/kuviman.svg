@@ -30,14 +30,14 @@
      showguides="true"
      inkscape:lockguides="false"
      inkscape:zoom="0.70710678"
-     inkscape:cx="-105.35891"
-     inkscape:cy="595.38391"
+     inkscape:cx="178.89802"
+     inkscape:cy="598.21234"
      inkscape:window-width="2560"
      inkscape:window-height="1369"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer2" /><defs
+     inkscape:current-layer="layer26" /><defs
      id="defs2"><inkscape:path-effect
        effect="fillet_chamfer"
        id="path-effect23775"
@@ -543,7 +543,8 @@
          id="layer26"
          inkscape:label="left"
          transform="matrix(0.99433171,-0.12512445,0.09034568,0.99433171,-0.19293899,1.6603955)"
-         update-origin="true"><g
+         update-origin="true"
+         shake-phase="2"><g
            inkscape:groupmode="layer"
            id="layer30"
            inkscape:label="back"><path
@@ -581,7 +582,8 @@
          id="layer27"
          inkscape:label="right"
          transform="matrix(0.97851924,0.24261205,-0.1751772,0.97851924,0.92969744,-10.302769)"
-         update-origin="true"><g
+         update-origin="true"
+         shake-phase="1"><g
            inkscape:groupmode="layer"
            id="layer31"
            inkscape:label="back 1"><path
