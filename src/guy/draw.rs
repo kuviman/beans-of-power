@@ -90,7 +90,7 @@ impl Game {
             let mut shake_phase = 0.0;
             for layer in &guy_assets.layers {
                 if let Some(params) = mode_params.get(&layer.params.mode) {
-                    shake_phase += 1.0;
+                    shake_phase -= 1.0;
                     let transform = guy_transform
                         * mat3::translate(layer.params.origin)
                         * mat3::scale_uniform(
@@ -99,8 +99,10 @@ impl Game {
                         )
                         * mat3::translate(-layer.params.origin)
                         * mat3::translate(
-                            vec2(self.noise(shake_phase, 10.0), self.noise(shake_phase, 10.0))
-                                * params.shake
+                            vec2(
+                                self.noise(layer.params.shake_phase.unwrap_or(shake_phase), 10.0),
+                                self.noise(layer.params.shake_phase.unwrap_or(shake_phase), 10.0),
+                            ) * params.shake
                                 * layer.params.shake,
                         )
                         * mat3::translate(vec2(

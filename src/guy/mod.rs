@@ -206,6 +206,7 @@ pub struct GuyRenderLayerParams {
     go_left: f32,
     go_right: f32,
     fadein: f32,
+    shake_phase: Option<f32>,
     mode: GuyRenderLayerMode,
 }
 
@@ -254,6 +255,7 @@ impl geng::LoadAsset for GuyRenderAssets {
                 origin: vec2::ZERO,
                 go_left: 0.0,
                 go_right: 0.0,
+                shake_phase: None,
                 mode: GuyRenderLayerMode::Body,
             }];
 
@@ -324,6 +326,10 @@ impl geng::LoadAsset for GuyRenderAssets {
                         }
                         if let Some(mode) = xml_node.attribute("mode") {
                             params.mode = mode.parse().expect("Failed to parse mode");
+                        }
+                        if let Some(shake_phase) = xml_node.attribute("shake-phase") {
+                            params.shake_phase =
+                                Some(shake_phase.parse().expect("Failed to parse shake-phase"));
                         }
                         params_stack.push(params);
                         t += 1;
