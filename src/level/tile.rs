@@ -30,6 +30,8 @@ pub struct TileParams {
     pub draw_times: usize,
     #[serde(default)]
     pub fadeout_distance: f32,
+    #[serde(default)]
+    pub texture_rotation: f32,
 }
 
 fn default_draw_times() -> usize {

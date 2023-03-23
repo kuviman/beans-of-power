@@ -25,6 +25,18 @@ pub struct LevelLayer {
     pub parallax: vec2<f32>,
     #[serde(default)]
     pub reveal_radius: f32,
+    #[serde(default = "default_layer_color")]
+    pub color: Rgba<f32>,
+    #[serde(default = "default_texture_scale")]
+    pub texture_scale: f32,
+}
+
+fn default_layer_color() -> Rgba<f32> {
+    Rgba::new(0.0, 0.0, 0.0, 0.0)
+}
+
+fn default_texture_scale() -> f32 {
+    1.0
 }
 
 fn default_parallax() -> vec2<f32> {
@@ -56,6 +68,8 @@ impl Default for LevelInfo {
                 objects: vec![],
                 parallax: default_parallax(),
                 reveal_radius: 0.0,
+                color: default_layer_color(),
+                texture_scale: default_texture_scale(),
             }],
             cannons: vec![],
             portals: vec![],

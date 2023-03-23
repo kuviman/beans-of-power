@@ -57,7 +57,8 @@ impl LevelMesh {
                         let mut vertex_data: HashMap<String, Vec<TileVertex>> = HashMap::new();
                         for tile in &layer.tiles {
                             let fadeout_distance =
-                                assets.tiles[&tile.type_name].params.fadeout_distance;
+                                assets.tiles[&tile.type_name].params.fadeout_distance
+                                    * layer.texture_scale;
                             let data: [vec2<f32>; 3] = std::array::from_fn(|i| {
                                 let mut vs = tile.vertices;
                                 vs.rotate_left(i);
@@ -447,6 +448,7 @@ impl Game {
                         u_flex_frequency: surface_assets.params.flex_frequency,
                         u_flex_amplitude: surface_assets.params.flex_amplitude,
                         u_texture_shift: texture_shift,
+                        u_layer_color: level.layers[layer_index].color,
                     },
                     geng::camera2d_uniforms(&camera, self.framebuffer_size),
                 ),
@@ -469,7 +471,8 @@ impl Game {
         for (type_name, data) in &mesh.layers[layer_index].tiles {
             let tile_assets = &assets.tiles[type_name];
             let texture_scale = vec2(tile_assets.texture.size().map(|x| x as f32).aspect(), 1.0)
-                * tile_assets.params.texture_scale;
+                * tile_assets.params.texture_scale
+                * level.layers[layer_index].texture_scale;
             for draw_index in 0..tile_assets.params.draw_times {
                 let texture_shift = vec2(
                     self.noise(
@@ -485,6 +488,7 @@ impl Game {
                         self.noise(draw_index as f32, 0.0),
                         self.noise(draw_index as f32, 0.0),
                     );
+                let texture_rotation = tile_assets.params.texture_rotation * f32::PI / 180.0;
                 ugli::draw(
                     framebuffer,
                     &assets.shaders.tile,
@@ -497,6 +501,8 @@ impl Game {
                             u_texture_shift: texture_shift,
                             u_reveal_radius: level.layers[layer_index].reveal_radius,
                             u_texture_scale: texture_scale,
+                            u_layer_color: level.layers[layer_index].color,
+                            u_texture_rotation: texture_rotation,
                         },
                         geng::camera2d_uniforms(&camera, self.framebuffer_size),
                     ),
