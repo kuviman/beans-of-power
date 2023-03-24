@@ -449,6 +449,7 @@ impl Game {
                         u_flex_amplitude: surface_assets.params.flex_amplitude,
                         u_texture_shift: texture_shift,
                         u_layer_color: level.layers[layer_index].color,
+                        u_reveal_radius: level.layers[layer_index].reveal_radius,
                     },
                     geng::camera2d_uniforms(&camera, self.framebuffer_size),
                 ),

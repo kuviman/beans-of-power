@@ -1,0 +1,10 @@
+{
+    "svg": false,
+    "non_collidable": true,
+    "bounciness": 1.0,
+    "friction": 0.5,
+    "front": true,
+    "back": false,
+    "sound": false,
+    "texture_underground": 0.0
+}
