@@ -41,6 +41,7 @@ float cnoise(vec2 P){
 
 varying vec2 v_vt;
 varying vec2 v_world_pos;
+varying vec2 v_camera_pos;
 
 #ifdef VERTEX_SHADER
 attribute vec2 a_pos;
@@ -56,9 +57,9 @@ void main() {
     v_vt = a_vt + vec2(u_texture_shift - a_flow * u_simulation_time, 0.0);
     vec2 tangent = vec2(-a_normal.y, a_normal.x);
     // vec2 wind_shift = tangent * sin(u_simulation_time * 3.0) * a_vt.y * 0.02;
-    vec3 pos = u_projection_matrix * u_view_matrix * vec3(a_pos, 1.0);
-    v_world_pos = pos.xy;
-    gl_Position = vec4(pos.xy, 0.0, pos.z);
+    v_camera_pos = (u_view_matrix * vec3(a_pos, 1.0)).xy;
+    v_world_pos = (u_projection_matrix * vec3(v_camera_pos, 1.0)).xy;
+    gl_Position = vec4(v_world_pos, 0.0, 1.0);
 }
 #endif
 
@@ -68,8 +69,10 @@ uniform float u_simulation_time;
 uniform float u_flex_amplitude;
 uniform float u_flex_frequency;
 uniform vec4 u_layer_color;
+uniform float u_reveal_radius;
 void main() {
     gl_FragColor = texture2D(u_texture, v_vt + v_vt.y * vec2(cnoise(v_world_pos + vec2(0.0, u_simulation_time * u_flex_frequency)) * u_flex_amplitude, 0.0));
+    gl_FragColor.a *= smoothstep(u_reveal_radius - 1.0, u_reveal_radius, length(v_camera_pos));
     gl_FragColor.rgb = gl_FragColor.rgb * (1.0 - u_layer_color.a) + u_layer_color.rbg * u_layer_color.a;
 }
 #endif
