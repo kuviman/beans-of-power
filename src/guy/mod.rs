@@ -262,6 +262,8 @@ impl geng::LoadAsset for GuyRenderAssets {
             let mut layers = Vec::new();
             let mut t = 0;
             let mut ts = vec![0];
+            let mut ignore = 0;
+            let mut ignore_stack = vec![];
             for edge in svg.root.traverse() {
                 let svg_node = match &edge {
                     rctree::NodeEdge::Start(node) => node,
@@ -332,19 +334,34 @@ impl geng::LoadAsset for GuyRenderAssets {
                                 Some(shake_phase.parse().expect("Failed to parse shake-phase"));
                         }
                         params_stack.push(params);
-                        t += 1;
-                        ts.push(t);
+                        if ignore == 0 {
+                            t += 1;
+                            ts.push(t);
+                        }
+                        let ignore_value = match xml_node
+                            .attribute("render-full")
+                            .map(|v| v.parse().unwrap())
+                        {
+                            Some(true) => 1,
+                            _ => 0,
+                        };
+                        ignore_stack.push(ignore_value);
+                        ignore += ignore_value;
                     }
                     rctree::NodeEdge::End(_) => {
-                        if ts.pop() == Some(t) {
-                            let texture = svg::render(&geng, &svg, Some(svg_node));
-                            layers.push(GuyRenderLayer {
-                                texture,
-                                params: params_stack.last().unwrap().clone(),
-                            });
+                        let ignore_value = ignore_stack.pop().unwrap();
+                        ignore -= ignore_value;
+                        if ignore == 0 {
+                            if ts.pop() == Some(t) {
+                                let texture = svg::render(&geng, &svg, Some(svg_node));
+                                layers.push(GuyRenderLayer {
+                                    texture,
+                                    params: params_stack.last().unwrap().clone(),
+                                });
+                            }
+                            t += 1;
                         }
                         params_stack.pop();
-                        t += 1;
                     }
                 }
             }
