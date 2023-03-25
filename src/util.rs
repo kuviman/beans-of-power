@@ -1,6 +1,7 @@
 use super::*;
 
 pub use noise::NoiseFn;
+pub use std::collections::VecDeque;
 
 pub const EPS: f32 = 1e-9;
 

@@ -657,21 +657,17 @@ impl Game {
                     }
                 }
                 ServerMessage::ClientId(_) => unreachable!(),
-                ServerMessage::UpdateGuy(t, guy) => {
-                    self.remote_simulation_times
-                        .entry(guy.id)
-                        .or_insert_with(|| t - 1.0);
-                    self.remote_updates
-                        .entry(guy.id)
-                        .or_default()
-                        .push_back((t, guy));
-                }
+                ServerMessage::UpdateGuy(t, guy) => match self.remote_updates.entry(guy.id) {
+                    std::collections::hash_map::Entry::Occupied(mut e) => {
+                        e.get_mut().push(t, guy);
+                    }
+                    std::collections::hash_map::Entry::Vacant(e) => {
+                        e.insert(Replay::new(t, guy));
+                    }
+                },
                 ServerMessage::Despawn(id) => {
                     self.guys.remove(&id);
-                    self.remote_simulation_times.remove(&id);
-                    if let Some(updates) = self.remote_updates.get_mut(&id) {
-                        updates.clear();
-                    }
+                    self.remote_updates.remove(&id);
                 }
                 ServerMessage::Emote(id, emote) => {
                     self.emotes.retain(|&(_, x, _)| x != id);

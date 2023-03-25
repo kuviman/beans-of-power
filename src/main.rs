@@ -16,6 +16,7 @@ mod level;
 mod logic;
 mod net;
 mod remote;
+mod replay;
 mod svg;
 mod util;
 
@@ -30,6 +31,7 @@ pub use level::*;
 pub use logic::*;
 pub use net::*;
 pub use remote::*;
+pub use replay::*;
 pub use util::*;
 
 #[derive(clap::Parser, Clone)]

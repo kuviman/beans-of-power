@@ -25,8 +25,7 @@ pub struct Game {
     pub guys: Collection<Guy>,
     pub my_guy: Option<Id>,
     pub simulation_time: f32,
-    pub remote_simulation_times: HashMap<Id, f32>,
-    pub remote_updates: HashMap<Id, std::collections::VecDeque<(f32, Guy)>>,
+    pub remote_updates: HashMap<Id, Replay>,
     pub real_time: f32,
     pub noise: noise::OpenSimplex,
     pub opt: Opt,
@@ -98,7 +97,6 @@ impl Game {
             client_id,
             connection,
             simulation_time: 0.0,
-            remote_simulation_times: HashMap::new(),
             remote_updates: default(),
             customization: preferences::load("customization")
                 .unwrap_or_else(CustomizationOptions::random),
@@ -302,12 +300,10 @@ impl geng::State for Game {
         {
             self.simulation_time += delta_time;
         }
-        for time in self.remote_simulation_times.values_mut() {
-            *time += delta_time;
-        }
         self.update_my_guy_input();
         self.update_guys(delta_time);
         self.update_farticles(delta_time);
+        self.update_remote(delta_time);
     }
 
     fn update(&mut self, delta_time: f64) {
@@ -354,7 +350,6 @@ impl geng::State for Game {
         }
 
         self.handle_connection();
-        self.update_remote();
 
         if let Some(id) = self.my_guy {
             let guy = self.guys.get_mut(&id).unwrap();
