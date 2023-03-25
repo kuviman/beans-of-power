@@ -20,6 +20,7 @@ mod remote;
 mod replay;
 mod svg;
 mod util;
+mod video_editor;
 
 pub use assets::*;
 pub use customizer::*;
@@ -48,6 +49,8 @@ pub struct Opt {
     pub level: Option<std::path::PathBuf>,
     #[clap(long)]
     pub assets: Option<std::path::PathBuf>,
+    #[clap(long)]
+    pub video: Option<std::path::PathBuf>,
     #[clap(flatten)]
     pub geng: geng::CliArgs,
 }

@@ -1,13 +1,22 @@
 use super::*;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct HistoryEntry {
     timestamp: f32,
     snapshot: Guy,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct History(VecDeque<HistoryEntry>);
+
+impl History {
+    pub fn push(&mut self, timestamp: f32, snapshot: Guy) {
+        self.0.push_back(HistoryEntry {
+            timestamp,
+            snapshot,
+        });
+    }
+}
 
 pub struct Replay {
     pub history: History,
@@ -39,10 +48,7 @@ impl Replay {
         }
     }
     pub fn push(&mut self, timestamp: f32, snapshot: Guy) {
-        self.history.0.push_back(HistoryEntry {
-            timestamp,
-            snapshot,
-        });
+        self.history.push(timestamp, snapshot);
     }
     pub fn time_left(&self) -> f32 {
         self.history.0.back().unwrap().timestamp - self.current_time

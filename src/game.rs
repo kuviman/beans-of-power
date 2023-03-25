@@ -48,6 +48,7 @@ pub struct Game {
     pub quicksave: Option<Guy>,
     pub replays: Vec<Replay>,
     pub recording: Option<Replay>,
+    pub video_editor: Option<video_editor::VideoEditor>,
 }
 
 impl Drop for Game {
@@ -141,6 +142,10 @@ impl Game {
                 }
             },
             recording: None,
+            video_editor: opt
+                .video
+                .as_ref()
+                .map(|path| video_editor::VideoEditor::new(geng, path)),
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -403,6 +408,8 @@ impl geng::State for Game {
                 t: 1.0,
             });
         }
+
+        self.update_video_editor(delta_time);
     }
 
     fn handle_event(&mut self, event: geng::Event) {
@@ -551,10 +558,13 @@ impl geng::State for Game {
         self.prev_mouse_pos = self.geng.window().mouse_pos();
     }
     fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a> {
+        use geng::ui::*;
+        let mut result = geng::ui::Void.boxed();
         if self.editor.is_some() {
-            self.editor_ui(cx)
-        } else {
-            Box::new(geng::ui::Void)
+            result = stack![result, self.editor_ui(cx)].boxed();
+        } else if self.video_editor.is_some() {
+            result = stack![result, self.video_editor_ui(cx)].boxed();
         }
+        result
     }
 }
