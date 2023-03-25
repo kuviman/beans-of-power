@@ -18,4 +18,16 @@ impl Game {
             self.remote_updates.remove(&id);
         }
     }
+
+    pub fn update_replays(&mut self, delta_time: f32) {
+        for (i, replay) in self.replays.iter_mut().enumerate() {
+            if let Some(mut new_snapshot) = replay.update(delta_time) {
+                new_snapshot.id = Id::replay(i);
+                self.guys.insert(new_snapshot);
+            }
+            if replay.time_left() < 0.0 {
+                replay.reset();
+            }
+        }
+    }
 }

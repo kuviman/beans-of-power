@@ -46,6 +46,8 @@ pub struct Game {
     pub next_golden_glint: f32,
     pub time_scale: f32,
     pub quicksave: Option<Guy>,
+    pub replays: Vec<Replay>,
+    pub recording: Option<Replay>,
 }
 
 impl Drop for Game {
@@ -66,7 +68,7 @@ impl Game {
     ) -> Self {
         let (client_id, connection) = match connection_info {
             Some((client_id, connection)) => (client_id, Some(connection)),
-            None => (-1, None),
+            None => (Id::LOCALHOST, None),
         };
         let mut result = Self {
             best_time: None,
@@ -126,6 +128,19 @@ impl Game {
             next_golden_glint: 0.0,
             quicksave: None,
             time_scale: 1.0,
+            replays: if cfg!(target_arch = "wasm32") {
+                vec![]
+            } else {
+                match std::fs::File::open(run_dir().join("replays.json")) {
+                    Ok(file) => {
+                        let histories: Vec<History> =
+                            serde_json::from_reader(std::io::BufReader::new(file)).unwrap();
+                        histories.into_iter().map(Replay::from_history).collect()
+                    }
+                    _ => vec![],
+                }
+            },
+            recording: None,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -286,6 +301,18 @@ impl geng::State for Game {
         self.draw_customizer(framebuffer);
         self.draw_leaderboard(framebuffer);
         self.draw_progress(framebuffer);
+
+        if self.recording.is_some() {
+            self.geng.default_font().draw(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                "RECORDING",
+                vec2::ZERO,
+                geng::TextAlign::LEFT,
+                64.0,
+                Rgba::RED,
+            );
+        }
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
@@ -304,6 +331,7 @@ impl geng::State for Game {
         self.update_guys(delta_time);
         self.update_farticles(delta_time);
         self.update_remote(delta_time);
+        self.update_replays(delta_time);
     }
 
     fn update(&mut self, delta_time: f64) {
@@ -491,6 +519,32 @@ impl geng::State for Game {
             }
             geng::Event::KeyDown { key: geng::Key::C } if self.opt.editor => {
                 self.time_scale = 0.25;
+            }
+            geng::Event::KeyDown { key: geng::Key::Q } if self.opt.editor => {
+                if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
+                    if let Some(mut recording) = self.recording.take() {
+                        if let Some(guy) = self.my_guy.and_then(|id| self.guys.get(&id)) {
+                            recording.push(self.simulation_time, guy.clone());
+                        }
+                        self.replays.push(recording);
+                        #[cfg(not(target_arch = "wasm32"))]
+                        {
+                            serde_json::to_writer_pretty(
+                                std::io::BufWriter::new(
+                                    std::fs::File::create(run_dir().join("replays.json")).unwrap(),
+                                ),
+                                &self
+                                    .replays
+                                    .iter()
+                                    .map(|replay| &replay.history)
+                                    .collect::<Vec<_>>(),
+                            )
+                            .unwrap();
+                        }
+                    } else if let Some(guy) = self.my_guy.and_then(|id| self.guys.get(&id)) {
+                        self.recording = Some(Replay::new(self.simulation_time, guy.clone()));
+                    }
+                }
             }
             _ => {}
         }

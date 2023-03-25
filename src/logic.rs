@@ -35,6 +35,9 @@ impl Game {
             if let Some(con) = &mut self.connection {
                 con.send(ClientMessage::Update(self.simulation_time, my_guy.clone()));
             }
+            if let Some(recording) = &mut self.recording {
+                recording.push(self.simulation_time, my_guy.clone());
+            }
         }
     }
 

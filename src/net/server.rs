@@ -9,7 +9,7 @@ struct ClientState {
 }
 
 struct ServerState {
-    next_client_id: Id,
+    id_gen: IdGen,
     messages: Vec<ServerMessage>,
     clients: HashMap<Id, ClientState>,
 }
@@ -79,7 +79,7 @@ impl Server {
     pub fn new<A: std::net::ToSocketAddrs + Debug + Copy>(addr: A) -> Self {
         let state = Arc::new(Mutex::new(ServerState {
             messages: Vec::new(),
-            next_client_id: 0,
+            id_gen: IdGen::new(),
             clients: HashMap::new(),
         }));
         Self {
@@ -129,10 +129,9 @@ impl net::server::App for ServerApp {
     fn connect(&mut self, mut sender: Box<dyn net::Sender<ServerMessage>>) -> Client {
         let mut state = self.state.lock().unwrap();
         let state: &mut ServerState = &mut state;
-        let client_id = state.next_client_id;
+        let client_id = state.id_gen.gen();
         sender.send(ServerMessage::ClientId(client_id));
         state.clients.insert(client_id, ClientState { sender });
-        state.next_client_id += 1;
         Client {
             client_id,
             server_state: self.state.clone(),

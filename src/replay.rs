@@ -1,18 +1,29 @@
 use super::*;
 
+#[derive(Serialize, Deserialize)]
 struct HistoryEntry {
     timestamp: f32,
     snapshot: Guy,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct History(VecDeque<HistoryEntry>);
+
 pub struct Replay {
-    history: VecDeque<HistoryEntry>,
-    current_history_index: usize,
+    pub history: History,
+    next_index: usize,
     current_time: f32,
     // current_state: Guy,
 }
 
 impl Replay {
+    pub fn from_history(history: History) -> Self {
+        Self {
+            current_time: history.0.front().unwrap().timestamp,
+            next_index: 0,
+            history,
+        }
+    }
     pub fn new(timestamp: f32, snapshot: Guy) -> Self {
         let current_state = snapshot.clone();
         let mut history = VecDeque::new();
@@ -21,44 +32,52 @@ impl Replay {
             snapshot,
         });
         Self {
-            history,
+            history: History(history),
             // current_state,
             current_time: timestamp,
-            current_history_index: 0,
+            next_index: 0,
         }
     }
     pub fn push(&mut self, timestamp: f32, snapshot: Guy) {
-        self.history.push_back(HistoryEntry {
+        self.history.0.push_back(HistoryEntry {
             timestamp,
             snapshot,
         });
     }
     pub fn time_left(&self) -> f32 {
-        self.history.back().unwrap().timestamp - self.current_time
+        self.history.0.back().unwrap().timestamp - self.current_time
+    }
+    pub fn reset(&mut self) {
+        self.next_index = 0;
+        self.current_time = self.history.0.front().unwrap().timestamp;
     }
     pub fn update(&mut self, delta_time: f32) -> Option<Guy> {
         // Check for desync
-        if self.history.back().unwrap().timestamp < self.current_time
-            && self.current_history_index != self.history.len() - 1
+        if self
+            .history
+            .0
+            .get(self.next_index)
+            .map_or(false, |entry| entry.timestamp < self.current_time)
         {
-            self.current_time = self.history.back().unwrap().timestamp;
-            self.current_history_index = self.history.len() - 1;
+            self.current_time = self.history.0.back().unwrap().timestamp;
+            self.next_index = self.history.0.len() - 1;
         }
 
         self.current_time += delta_time;
         let mut result = None;
-        while self.current_history_index + 1 < self.history.len()
-            && self.history[self.current_history_index + 1].timestamp <= self.current_time
-        {
-            self.current_history_index += 1;
-            result = Some(self.history[self.current_history_index].snapshot.clone());
+        while let Some(entry) = self.history.0.get(self.next_index) {
+            if entry.timestamp > self.current_time {
+                break;
+            }
+            self.next_index += 1;
+            result = Some(&entry.snapshot);
         }
-        result
+        result.cloned()
     }
     pub fn trim_beginning(&mut self) {
-        while self.current_history_index > 0 {
-            self.current_history_index -= 1;
-            self.history.pop_front();
+        while self.next_index > 0 {
+            self.next_index -= 1;
+            self.history.0.pop_front();
         }
     }
 }

@@ -5,8 +5,6 @@ pub use std::collections::VecDeque;
 
 pub const EPS: f32 = 1e-9;
 
-pub type Id = i32;
-
 #[derive(Deref, DerefMut)]
 pub struct Texture(#[deref] ugli::Texture);
 
