@@ -1,12 +1,31 @@
 use super::*;
 
 impl Game {
+    fn update_replay(id: Id, replay: &mut Replay, delta_time: f32, guys: &mut Collection<Guy>) {
+        if let Some((input, snapshot)) = replay.update(delta_time) {
+            match guys.get_mut(&id) {
+                Some(guy) => {
+                    guy.input = input;
+                    guy.state = snapshot;
+                }
+                None => {
+                    let guy = Guy {
+                        id,
+                        customization: replay.customization().clone(),
+                        input,
+                        state: snapshot,
+                        animation: default(),
+                        progress: default(),
+                    };
+                    guys.insert(guy);
+                }
+            }
+        }
+    }
     pub fn update_remote(&mut self, delta_time: f32) {
         let mut to_remove = Vec::new();
         for (&id, replay) in &mut self.remote_updates {
-            if let Some(new_snapshot) = replay.update(delta_time) {
-                self.guys.insert(new_snapshot);
-            }
+            Self::update_replay(id, replay, delta_time, &mut self.guys);
             // TODO speedup replay instead?
             if replay.time_left() > 5.0 {
                 to_remove.push(id);
@@ -21,10 +40,7 @@ impl Game {
 
     pub fn update_replays(&mut self, delta_time: f32) {
         for (i, replay) in self.replays.iter_mut().enumerate() {
-            if let Some(mut new_snapshot) = replay.update(delta_time) {
-                new_snapshot.id = Id::replay(i);
-                self.guys.insert(new_snapshot);
-            }
+            Self::update_replay(Id::replay(i), replay, delta_time, &mut self.guys);
             if replay.time_left() < 0.0 {
                 replay.reset();
             }

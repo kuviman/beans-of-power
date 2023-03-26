@@ -30,7 +30,7 @@ impl CustomizationOptions {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Default, Serialize, Deserialize, Clone, Debug)]
 pub struct Progress {
     pub finished: bool,
     pub current: f32,
@@ -38,51 +38,36 @@ pub struct Progress {
     pub best_time: Option<f32>,
 }
 
+#[derive(Default, Serialize, Deserialize, Clone, Debug)]
+pub struct GuyAnimationState {
+    pub growl_progress: Option<f32>,
+    pub next_farticle_time: f32,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Ball {
+pub struct PhysicsState {
     pub radius: f32,
     pub pos: vec2<f32>,
     pub vel: vec2<f32>,
     pub rot: f32,
     pub w: f32,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct FartState {
+    pub fart_type: String,
     pub long_farting: bool,
     pub fart_pressure: f32,
-}
-
-impl Default for FartState {
-    fn default() -> Self {
-        Self {
-            long_farting: false,
-            fart_pressure: 0.0,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct GuyAnimationState {
-    pub growl_progress: Option<f32>,
-    pub next_farticle_time: f32,
+    pub snow_layer: f32,
+    pub cannon_timer: Option<CannonTimer>,
+    pub stick_force: vec2<f32>,
+    pub bubble_timer: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, HasId)]
 pub struct Guy {
     pub id: Id,
     pub customization: CustomizationOptions,
-    pub ball: Ball,
-    pub fart_state: FartState,
     pub input: Input,
+    pub state: PhysicsState,
     pub animation: GuyAnimationState,
     pub progress: Progress,
-
-    pub fart_type: String,
-    pub snow_layer: f32,
-    pub cannon_timer: Option<CannonTimer>,
-    pub stick_force: vec2<f32>,
-    pub bubble_timer: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -118,7 +103,7 @@ impl Guy {
         Self {
             id,
             customization: CustomizationOptions::random(),
-            ball: Ball {
+            state: PhysicsState {
                 radius: config.guy_radius,
                 pos: pos
                     + if rng {
@@ -133,9 +118,14 @@ impl Guy {
                     0.0
                 },
                 w: 0.0,
+                snow_layer: 0.0,
+                fart_type: "normal".to_owned(), // TODO
+                cannon_timer: None,
+                stick_force: vec2::ZERO,
+                bubble_timer: None,
+                long_farting: false,
+                fart_pressure: 0.0,
             },
-            snow_layer: 0.0,
-            fart_state: default(),
             input: Input::default(),
             progress: Progress {
                 finished: false,
@@ -147,20 +137,15 @@ impl Guy {
                 growl_progress: None,
                 next_farticle_time: 0.0,
             },
-
-            fart_type: "normal".to_owned(), // TODO
-            cannon_timer: None,
-            stick_force: vec2::ZERO,
-            bubble_timer: None,
         }
     }
 
     pub fn radius(&self) -> f32 {
-        self.ball.radius + self.snow_layer
+        self.state.radius + self.state.snow_layer
     }
 
     pub fn mass(&self, config: &Config) -> f32 {
-        1.0 + self.snow_layer * config.snow_density
+        1.0 + self.state.snow_layer * config.snow_density
     }
 }
 

@@ -7,22 +7,22 @@ impl Game {
             self.guys.iter().filter(|guy| guy.id != self.client_id),
             self.guys.iter().filter(|guy| guy.id == self.client_id),
         ] {
-            let fart_progress = guy.fart_state.fart_pressure / self.config.max_fart_pressure;
+            let fart_progress = guy.state.fart_pressure / self.config.max_fart_pressure;
             let eyes_color = {
                 let k = 0.8;
                 let t = ((fart_progress - k) / (1.0 - k)).clamp(0.0, 1.0) * 0.5;
                 Rgba::new(1.0, 1.0 - t, 1.0 - t, 1.0)
             };
 
-            let guy_transform = mat3::translate(guy.ball.pos)
-                * mat3::rotate(guy.ball.rot)
-                * mat3::scale_uniform(guy.ball.radius);
+            let guy_transform = mat3::translate(guy.state.pos)
+                * mat3::rotate(guy.state.rot)
+                * mat3::scale_uniform(guy.state.radius);
 
-            if guy.snow_layer != 0.0 {
+            if guy.state.snow_layer != 0.0 {
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::Ellipse::circle(guy.ball.pos, guy.radius(), Rgba::WHITE),
+                    &draw_2d::Ellipse::circle(guy.state.pos, guy.radius(), Rgba::WHITE),
                 );
             }
 
@@ -69,8 +69,8 @@ impl Game {
                     alpha: 1.0,
                 },
             );
-            if guy.fart_state.fart_pressure >= self.config.fart_pressure_released {
-                let progress = (guy.fart_state.fart_pressure - self.config.fart_pressure_released)
+            if guy.state.fart_pressure >= self.config.fart_pressure_released {
+                let progress = (guy.state.fart_pressure - self.config.fart_pressure_released)
                     / (self.config.max_fart_pressure - self.config.fart_pressure_released);
                 mode_params.insert(
                     GuyRenderLayerMode::Cheeks,
@@ -146,7 +146,7 @@ impl Game {
                         framebuffer,
                         &self.camera,
                         &draw_2d::Quad::new(
-                            Aabb2::point(guy.ball.pos + vec2(0.0, guy.ball.radius * 1.2))
+                            Aabb2::point(guy.state.pos + vec2(0.0, guy.state.radius * 1.2))
                                 .extend_symmetric(vec2(0.5, 0.02)),
                             Rgba::BLACK,
                         ),
@@ -156,7 +156,7 @@ impl Game {
                         &self.camera,
                         &draw_2d::Quad::new(
                             Aabb2::point(
-                                guy.ball.pos + vec2(-0.5 + fart_progress, guy.ball.radius * 1.2),
+                                guy.state.pos + vec2(-0.5 + fart_progress, guy.state.radius * 1.2),
                             )
                             .extend_uniform(0.04),
                             Rgba::BLACK,
@@ -166,7 +166,7 @@ impl Game {
                 if false {
                     // Show keys pressed
                     let guy_transform =
-                        mat3::translate(guy.ball.pos) * mat3::scale_uniform(guy.ball.radius);
+                        mat3::translate(guy.state.pos) * mat3::scale_uniform(guy.state.radius);
                     let mut draw_arrow = |rot: f32, alpha: f32| {
                         self.geng.draw_2d(
                             framebuffer,
@@ -192,20 +192,20 @@ impl Game {
                     framebuffer,
                     &self.camera,
                     &guy.customization.name,
-                    guy.ball.pos + vec2(0.0, guy.ball.radius * 1.1),
+                    guy.state.pos + vec2(0.0, guy.state.radius * 1.1),
                     geng::TextAlign::CENTER,
                     0.1,
                     Rgba::BLACK,
                 );
             }
 
-            if guy.bubble_timer.is_some() {
+            if guy.state.bubble_timer.is_some() {
                 self.geng.draw_2d(
                     framebuffer,
                     &self.camera,
                     &draw_2d::TexturedQuad::unit(&assets.bubble)
-                        .scale_uniform(guy.ball.radius * self.config.bubble_scale)
-                        .translate(guy.ball.pos),
+                        .scale_uniform(guy.state.radius * self.config.bubble_scale)
+                        .translate(guy.state.pos),
                 );
             }
         }
@@ -218,7 +218,7 @@ impl Game {
                     &self.camera,
                     &draw_2d::TexturedQuad::unit(&assets.emotes[emote])
                         .scale_uniform(0.1)
-                        .translate(guy.ball.pos + vec2(0.0, guy.ball.radius * 2.0)),
+                        .translate(guy.state.pos + vec2(0.0, guy.state.radius * 2.0)),
                 );
             }
         }

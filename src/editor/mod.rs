@@ -143,7 +143,7 @@ impl Game {
                 }
                 geng::Key::T => {
                     if let Some(guy) = self.my_guy.and_then(|id| self.guys.get_mut(&id)) {
-                        guy.ball.pos = editor.cursor.world_pos;
+                        guy.state.pos = editor.cursor.world_pos;
                     }
                 }
                 geng::Key::Q => {

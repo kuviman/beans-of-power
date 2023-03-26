@@ -12,15 +12,95 @@ enum CameraInfo {
 }
 
 #[derive(Serialize, Deserialize)]
-struct Segment {
+struct SegmentConfig {
     start_time: f32,
-    replays: Vec<History>,
     camera_info: CameraInfo,
 }
 
-#[derive(Serialize, Deserialize)]
+struct Segment {
+    config: SegmentConfig,
+    replays: Vec<History>,
+}
+
 struct Save {
     segments: Vec<Segment>,
+}
+
+impl Save {
+    fn save(&self, path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
+        let path = path.as_ref();
+        if path.exists() {
+            std::fs::remove_dir_all(path)?;
+        }
+        std::fs::create_dir_all(path)?;
+        for (index, segment) in self.segments.iter().enumerate() {
+            let path = path.join("segments").join(index.to_string());
+            replay::save(&path, &segment.replays.iter().collect::<Vec<_>>())?;
+            serde_json::to_writer_pretty(
+                std::fs::File::create(path.join("config.json"))?,
+                &segment.config,
+            )?;
+        }
+        Ok(())
+    }
+    fn load(path: impl AsRef<std::path::Path>) -> anyhow::Result<Self> {
+        let path = path.as_ref();
+        if !path.exists() {
+            return Ok(Self {
+                segments: vec![Segment {
+                    config: SegmentConfig {
+                        start_time: 0.0,
+                        camera_info: CameraInfo::Static(geng::Camera2d {
+                            center: vec2::ZERO,
+                            rotation: 0.0,
+                            fov: 10.0,
+                        }),
+                    },
+                    replays: vec![],
+                }],
+            });
+        }
+        let mut segments = std::collections::BTreeMap::new();
+        for entry in std::fs::read_dir(path.join("segments"))? {
+            let entry = entry?;
+            let index: usize = entry.file_name().to_str().unwrap().parse()?;
+            let replays = futures::executor::block_on(replay::load_histories(entry.path()))?;
+            let config =
+                futures::executor::block_on(file::load_json(entry.path().join("config.json")))?;
+            segments.insert(index, Segment { config, replays });
+        }
+        Ok(Self {
+            segments: segments.into_values().collect(),
+        })
+    }
+    fn load2(path: impl AsRef<std::path::Path>) -> anyhow::Result<Self> {
+        match std::fs::File::open(path.as_ref().with_extension("json")) {
+            Ok(file) => {
+                #[derive(Deserialize)]
+                struct SegmentData {
+                    #[serde(flatten)]
+                    config: SegmentConfig,
+                    replays: Vec<replay::Versioned>,
+                }
+                #[derive(Deserialize)]
+                struct Data {
+                    segments: Vec<SegmentData>,
+                }
+                let data: Data = serde_json::from_reader(std::io::BufReader::new(file)).unwrap();
+                Ok(Self {
+                    segments: data
+                        .segments
+                        .into_iter()
+                        .map(|segment| Segment {
+                            config: segment.config,
+                            replays: segment.replays.into_iter().map(|v| v.into()).collect(),
+                        })
+                        .collect(),
+                })
+            }
+            _ => todo!(),
+        }
+    }
 }
 
 pub struct VideoEditor {
@@ -35,11 +115,7 @@ pub struct VideoEditor {
 
 impl Drop for VideoEditor {
     fn drop(&mut self) {
-        serde_json::to_writer_pretty(
-            std::io::BufWriter::new(std::fs::File::create(self.path.join("save.json")).unwrap()),
-            &self.save,
-        )
-        .unwrap();
+        self.save.save(self.path.join("save")).unwrap();
     }
 }
 
@@ -52,20 +128,7 @@ impl VideoEditor {
         Self {
             path: path.to_owned(),
             music,
-            save: match std::fs::File::open(path.join("save.json")) {
-                Ok(file) => serde_json::from_reader(std::io::BufReader::new(file)).unwrap(),
-                _ => Save {
-                    segments: vec![Segment {
-                        start_time: 0.0,
-                        replays: vec![],
-                        camera_info: CameraInfo::Static(geng::Camera2d {
-                            center: vec2::ZERO,
-                            rotation: 0.0,
-                            fov: 10.0,
-                        }),
-                    }],
-                },
-            },
+            save: Save::load(path.join("save")).unwrap(),
             music_effect: None,
             time: 0.0,
             current_segment: 0,
@@ -79,7 +142,7 @@ impl VideoEditor {
         let editor = game.video_editor.as_mut().unwrap();
         if let Some(mut rec) = game.recording.take() {
             if let Some(guy) = game.my_guy.and_then(|id| game.guys.get(&id)) {
-                rec.push(game.simulation_time, guy.clone());
+                rec.push(game.simulation_time, guy);
             }
             editor.save.segments[editor.current_segment]
                 .replays
@@ -90,7 +153,7 @@ impl VideoEditor {
         let editor = game.video_editor.as_mut().unwrap();
         let segment = &editor.save.segments[segment_index];
         game.guys.retain(|guy| Some(guy.id) == game.my_guy);
-        editor.time = segment.start_time;
+        editor.time = segment.config.start_time;
         game.replays = segment
             .replays
             .iter()
@@ -98,7 +161,7 @@ impl VideoEditor {
             .map(Replay::from_history)
             .collect();
         if editor.playthrough {
-            match &segment.camera_info {
+            match &segment.config.camera_info {
                 CameraInfo::Static(camera) => {
                     game.camera = camera.clone();
                     game.follow = None;
@@ -125,13 +188,13 @@ impl Game {
                 .save
                 .segments
                 .iter()
-                .rposition(|segment| segment.start_time <= editor.time);
+                .rposition(|segment| segment.config.start_time <= editor.time);
             editor.time += delta_time;
             let segment_after = editor
                 .save
                 .segments
                 .iter()
-                .rposition(|segment| segment.start_time <= editor.time);
+                .rposition(|segment| segment.config.start_time <= editor.time);
             if segment_before != segment_after {
                 if let Some(index) = segment_after {
                     if editor.playthrough {
@@ -172,14 +235,18 @@ impl Game {
         let new_segment = Button::new(cx, "new");
         if new_segment.was_clicked() {
             editor.save.segments.push(Segment {
-                start_time: editor.time,
+                config: SegmentConfig {
+                    start_time: editor.time,
+                    camera_info: CameraInfo::Static(game.camera.clone()),
+                },
                 replays: vec![],
-                camera_info: CameraInfo::Static(game.camera.clone()),
             })
         }
         let cam = Button::new(cx, "cam");
         if cam.was_clicked() {
-            editor.save.segments[editor.current_segment].camera_info = match game.follow {
+            editor.save.segments[editor.current_segment]
+                .config
+                .camera_info = match game.follow {
                 Some(id) => CameraInfo::Follow(id),
                 None => CameraInfo::Static(game.camera.clone()),
             };
@@ -195,7 +262,7 @@ impl Game {
         let play = Button::new(cx, "play");
         if start_recording.was_clicked() {
             if let Some(guy) = game.my_guy.and_then(|id| game.guys.get(&id)) {
-                game.recording = Some(Replay::new(game.simulation_time, guy.clone()));
+                game.recording = Some(Replay::new(game.simulation_time, guy));
                 let segment = editor.current_segment;
                 VideoEditor::restart_segment(game, segment);
             }

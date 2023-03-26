@@ -132,13 +132,15 @@ impl Game {
             replays: if cfg!(target_arch = "wasm32") {
                 vec![]
             } else {
-                match std::fs::File::open(run_dir().join("replays.json")) {
-                    Ok(file) => {
-                        let histories: Vec<History> =
-                            serde_json::from_reader(std::io::BufReader::new(file)).unwrap();
-                        histories.into_iter().map(Replay::from_history).collect()
-                    }
-                    _ => vec![],
+                let path = run_dir().join("replays");
+                if path.exists() {
+                    futures::executor::block_on(replay::load_histories(path))
+                        .unwrap()
+                        .into_iter()
+                        .map(Replay::from_history)
+                        .collect()
+                } else {
+                    vec![]
                 }
             },
             recording: None,
@@ -188,7 +190,7 @@ impl Game {
             }
             let progress = self
                 .level
-                .progress_at(guy.ball.pos)
+                .progress_at(guy.state.pos)
                 .unwrap_or(guy.progress.current);
             guy.progress.current = progress;
             self.best_progress = self.best_progress.max(progress);
@@ -255,6 +257,20 @@ impl Game {
                     ),
                 );
             }
+        }
+    }
+    fn save_replays(&self) {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            replay::save(
+                run_dir().join("replays"),
+                &self
+                    .replays
+                    .iter()
+                    .map(|replay| &replay.history)
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap();
         }
     }
 }
@@ -362,13 +378,13 @@ impl geng::State for Game {
         let mut target_center = self.camera.center;
         if let Some(id) = self.my_guy {
             let guy = self.guys.get(&id).unwrap();
-            target_center = guy.ball.pos;
+            target_center = guy.state.pos;
             if self.show_customizer {
                 target_center.x += 1.0;
             }
         } else if let Some(id) = self.follow {
             if let Some(guy) = self.guys.get(&id) {
-                target_center = guy.ball.pos;
+                target_center = guy.state.pos;
             }
         }
         self.camera.center += (target_center - self.camera.center) * (delta_time * 5.0).min(1.0);
@@ -440,9 +456,9 @@ impl geng::State for Game {
                 if let Some(guy) = self
                     .guys
                     .iter()
-                    .min_by_key(|guy| r32((guy.ball.pos - pos).len()))
+                    .min_by_key(|guy| r32((guy.state.pos - pos).len()))
                 {
-                    if (guy.ball.pos - pos).len() < guy.radius() {
+                    if (guy.state.pos - pos).len() < guy.radius() {
                         self.follow = Some(guy.id);
                     }
                 }
@@ -531,25 +547,12 @@ impl geng::State for Game {
                 if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
                     if let Some(mut recording) = self.recording.take() {
                         if let Some(guy) = self.my_guy.and_then(|id| self.guys.get(&id)) {
-                            recording.push(self.simulation_time, guy.clone());
+                            recording.push(self.simulation_time, guy);
                         }
                         self.replays.push(recording);
-                        #[cfg(not(target_arch = "wasm32"))]
-                        {
-                            serde_json::to_writer_pretty(
-                                std::io::BufWriter::new(
-                                    std::fs::File::create(run_dir().join("replays.json")).unwrap(),
-                                ),
-                                &self
-                                    .replays
-                                    .iter()
-                                    .map(|replay| &replay.history)
-                                    .collect::<Vec<_>>(),
-                            )
-                            .unwrap();
-                        }
+                        self.save_replays();
                     } else if let Some(guy) = self.my_guy.and_then(|id| self.guys.get(&id)) {
-                        self.recording = Some(Replay::new(self.simulation_time, guy.clone()));
+                        self.recording = Some(Replay::new(self.simulation_time, guy));
                     }
                 }
             }
