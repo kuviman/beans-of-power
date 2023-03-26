@@ -76,14 +76,16 @@ impl Drop for Client {
         state.clients.remove(&self.client_id);
 
         if let Some(history) = self.history.take() {
+            let replays_folder = run_dir().join("server_replays");
+            std::fs::create_dir_all(&replays_folder).unwrap();
             history
-                .save(run_dir().join("server_replays").join(
-                    rand::distributions::DistString::sample_string(
+                .save(
+                    replays_folder.join(rand::distributions::DistString::sample_string(
                         &rand::distributions::Alphanumeric,
                         &mut thread_rng(),
                         16,
-                    ),
-                ))
+                    )),
+                )
                 .unwrap();
         }
     }
