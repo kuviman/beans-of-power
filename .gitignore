@@ -1,5 +1,7 @@
 /target
 /Cargo.lock
 
+/replays.json
+
 # I like having this as git worktree
 /gh-pages/
