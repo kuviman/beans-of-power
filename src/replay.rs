@@ -238,7 +238,7 @@ impl Replay {
         result.map(|entry| (entry.input.clone(), entry.snapshot.clone()))
     }
     pub fn trim_beginning(&mut self) {
-        while self.next_index > 0 {
+        while self.next_index > 0 && self.history.log.len() >= 2 {
             self.next_index -= 1;
             self.history.log.pop_front();
         }
