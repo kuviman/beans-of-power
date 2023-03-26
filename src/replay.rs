@@ -33,11 +33,20 @@ impl History {
         }
     }
     pub fn push(&mut self, timestamp: f32, guy: &Guy) {
+        self.customization = guy.customization.clone();
         self.log.push_back(HistoryEntry {
             timestamp,
             input: guy.input.clone(),
             snapshot: guy.state.clone(),
         });
+    }
+
+    pub fn save(&self, path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
+        let file = std::fs::File::create(path)?;
+        let writer = std::io::BufWriter::new(file);
+        let data: Versioned = self.clone().into();
+        bincode::serialize_into(writer, &data)?;
+        Ok(())
     }
 }
 
@@ -144,10 +153,7 @@ pub fn save(path: impl AsRef<std::path::Path>, histories: &[&History]) -> anyhow
     let path = path.as_ref();
     std::fs::create_dir_all(path)?;
     for (index, &history) in histories.iter().enumerate() {
-        let file = std::fs::File::create(path.join(format!("{index}.bincode")))?;
-        let writer = std::io::BufWriter::new(file);
-        let data: Versioned = history.clone().into();
-        bincode::serialize_into(writer, &data)?;
+        history.save(path.join(format!("{index}.bincode")))?;
     }
     {
         let file = std::fs::File::create(path.join("number.txt"))?;

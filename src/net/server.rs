@@ -36,6 +36,7 @@ impl ServerState {
 
 struct Client {
     client_id: Id,
+    history: Option<History>,
     server_state: Arc<Mutex<ServerState>>,
 }
 
@@ -47,7 +48,17 @@ impl net::Receiver<ClientMessage> for Client {
         match message {
             ClientMessage::ForceReset => state.messages.push(ServerMessage::ForceReset),
             ClientMessage::Ping => client.sender.send(ServerMessage::Pong),
-            ClientMessage::Update(t, guy) => state.messages.push(ServerMessage::UpdateGuy(t, guy)),
+            ClientMessage::Update(t, guy) => {
+                match self.history.as_mut() {
+                    None => {
+                        self.history = Some(History::new(t, &guy));
+                    }
+                    Some(history) => {
+                        history.push(t, &guy);
+                    }
+                }
+                state.messages.push(ServerMessage::UpdateGuy(t, guy));
+            }
             ClientMessage::Despawn => state.messages.push(ServerMessage::Despawn(self.client_id)),
             ClientMessage::Emote(emote) => state
                 .messages
@@ -63,6 +74,18 @@ impl Drop for Client {
         let state: &mut ServerState = &mut state;
         state.messages.push(ServerMessage::Despawn(self.client_id));
         state.clients.remove(&self.client_id);
+
+        if let Some(history) = self.history.take() {
+            history
+                .save(run_dir().join("server_replays").join(
+                    rand::distributions::DistString::sample_string(
+                        &rand::distributions::Alphanumeric,
+                        &mut thread_rng(),
+                        16,
+                    ),
+                ))
+                .unwrap();
+        }
     }
 }
 
@@ -135,6 +158,7 @@ impl net::server::App for ServerApp {
         Client {
             client_id,
             server_state: self.state.clone(),
+            history: None,
         }
     }
 }
