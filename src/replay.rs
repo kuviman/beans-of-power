@@ -32,6 +32,9 @@ impl History {
             log,
         }
     }
+    pub fn customization(&self) -> &CustomizationOptions {
+        &self.customization
+    }
     pub fn push(&mut self, timestamp: f32, guy: &Guy) {
         self.customization = guy.customization.clone();
         self.log.push_back(HistoryEntry {

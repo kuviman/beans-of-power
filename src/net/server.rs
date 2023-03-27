@@ -79,13 +79,15 @@ impl Drop for Client {
             let replays_folder = run_dir().join("server_replays");
             std::fs::create_dir_all(&replays_folder).unwrap();
             history
-                .save(
-                    replays_folder.join(rand::distributions::DistString::sample_string(
+                .save(replays_folder.join(format!(
+                    "{}_{}",
+                    history.customization().name,
+                    rand::distributions::DistString::sample_string(
                         &rand::distributions::Alphanumeric,
                         &mut thread_rng(),
                         16,
-                    )),
-                )
+                    )
+                )))
                 .unwrap();
         }
     }
