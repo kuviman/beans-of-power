@@ -56,7 +56,10 @@ impl Game {
                 event,
                 geng::Event::KeyDown {
                     key: geng::Key::Enter,
-                }
+                } | geng::Event::Gamepad(gilrs::Event {
+                    event: gilrs::EventType::ButtonPressed(gilrs::Button::Start, ..),
+                    ..
+                })
             ) {
                 self.show_customizer = true;
             }
@@ -71,7 +74,10 @@ impl Game {
                 event,
                 geng::Event::KeyDown {
                     key: geng::Key::Enter,
-                }
+                } | geng::Event::Gamepad(gilrs::Event {
+                    event: gilrs::EventType::ButtonPressed(gilrs::Button::Start, ..),
+                    ..
+                })
             )
             .then_some(UiMessage::Play),
         );

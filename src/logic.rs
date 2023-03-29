@@ -9,27 +9,58 @@ impl Game {
             Some(guy) => guy,
             None => return,
         };
-        let new_input = Input {
-            roll_left: if CONTROLS_LEFT
-                .iter()
-                .any(|&key| self.geng.window().is_key_pressed(key))
-            {
-                1.0
-            } else {
-                0.0
-            },
-            roll_right: if CONTROLS_RIGHT
-                .iter()
-                .any(|&key| self.geng.window().is_key_pressed(key))
-            {
-                1.0
-            } else {
-                0.0
-            },
-            force_fart: CONTROLS_FORCE_FART
-                .iter()
-                .any(|&key| self.geng.window().is_key_pressed(key)),
+        let mut new_input = Input {
+            roll_left: 0.0,
+            roll_right: 0.0,
+            force_fart: false,
         };
+
+        // Keyboard
+        if CONTROLS_LEFT
+            .iter()
+            .any(|&key| self.geng.window().is_key_pressed(key))
+        {
+            new_input.roll_left = 1.0;
+        }
+        if CONTROLS_RIGHT
+            .iter()
+            .any(|&key| self.geng.window().is_key_pressed(key))
+        {
+            new_input.roll_right = 1.0;
+        }
+        if CONTROLS_FORCE_FART
+            .iter()
+            .any(|&key| self.geng.window().is_key_pressed(key))
+        {
+            new_input.force_fart = true;
+        }
+
+        // Gamepad
+        if let Some(gamepad) = self.active_gamepad {
+            let gilrs = self.geng.gilrs();
+            let gamepad = gilrs.gamepad(gamepad);
+            for axis in [gilrs::Axis::LeftStickX, gilrs::Axis::RightStickX] {
+                if let Some(axis) = gamepad.axis_data(axis) {
+                    let value = axis.value();
+                    if value < 0.0 {
+                        new_input.roll_left += -value;
+                    } else {
+                        new_input.roll_right += value;
+                    }
+                }
+            }
+            for button in [gilrs::Button::South] {
+                if let Some(button) = gamepad.button_data(button) {
+                    if button.is_pressed() {
+                        new_input.force_fart = true;
+                    }
+                }
+            }
+        }
+
+        new_input.roll_left = new_input.roll_left.clamp(0.0, 1.0);
+        new_input.roll_right = new_input.roll_right.clamp(0.0, 1.0);
+
         if my_guy.input != new_input {
             my_guy.input = new_input;
             if let Some(con) = &mut self.connection {

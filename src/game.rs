@@ -49,6 +49,7 @@ pub struct Game {
     pub replays: Vec<Replay>,
     pub recording: Option<Replay>,
     pub video_editor: Option<video_editor::VideoEditor>,
+    pub active_gamepad: Option<gilrs::GamepadId>,
 }
 
 impl Drop for Game {
@@ -148,6 +149,7 @@ impl Game {
                 .video
                 .as_ref()
                 .map(|path| video_editor::VideoEditor::new(geng, path)),
+            active_gamepad: None,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -432,6 +434,9 @@ impl geng::State for Game {
         self.handle_event_editor(&event);
         self.handle_customizer_event(&event);
         match event {
+            geng::Event::Gamepad(event) => {
+                self.active_gamepad = Some(event.id);
+            }
             geng::Event::MouseMove { position, .. }
                 if self
                     .geng
