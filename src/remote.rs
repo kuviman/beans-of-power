@@ -7,6 +7,7 @@ impl Game {
                 Some(guy) => {
                     guy.input = input;
                     guy.state = snapshot;
+                    guy.customization = replay.customization().clone();
                 }
                 None => {
                     let guy = Guy {
