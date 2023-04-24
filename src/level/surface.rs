@@ -28,8 +28,8 @@ impl Surface {
     }
 }
 
-#[derive(geng::Assets, Deserialize, Debug)]
-#[asset(json)]
+#[derive(geng::asset::Load, Deserialize, Debug)]
+#[load(json)]
 pub struct SurfaceParams {
     #[serde(default)]
     pub non_collidable: bool,
@@ -67,13 +67,13 @@ fn default_snow_falloff() -> f32 {
     1.0
 }
 
-#[derive(geng::Assets)]
-#[asset(sequential)]
+#[derive(geng::asset::Load)]
+#[load(sequential)]
 pub struct SurfaceAssets {
     pub params: SurfaceParams,
-    #[asset(load_with = "params.load_textures(&geng, &base_path)")]
+    #[load(load_with = "params.load_textures(&manager, &base_path)")]
     pub textures: SurfaceTextures,
-    #[asset(if = "params.sound")]
+    #[load(if = "params.sound")]
     pub sound: Option<geng::Sound>,
 }
 
@@ -85,7 +85,7 @@ pub struct SurfaceTextures {
 impl SurfaceParams {
     async fn load_textures(
         &self,
-        geng: &Geng,
+        manager: &geng::asset::Manager,
         path: impl AsRef<std::path::Path>,
     ) -> anyhow::Result<SurfaceTextures> {
         let path = path.as_ref();
@@ -93,7 +93,7 @@ impl SurfaceParams {
             let svg = svg::load(path.join("texture.svg")).await?;
             let node_texture = |id: &str| -> Option<Texture> {
                 svg.tree.node_by_id(id).map(|node| {
-                    let mut texture = svg::render(geng, &svg.tree, Some(&node));
+                    let mut texture = svg::render(manager.ugli(), &svg.tree, Some(&node));
                     texture.set_wrap_mode_separate(ugli::WrapMode::Repeat, ugli::WrapMode::Clamp);
                     // TODO: instead do premultiplied alpha
                     texture.set_filter(ugli::Filter::Nearest);
@@ -106,7 +106,7 @@ impl SurfaceParams {
             })
         } else {
             let load = |path| async {
-                let mut texture: Texture = geng.load_asset(path).await?;
+                let mut texture: Texture = manager.load(path).await?;
                 texture.set_wrap_mode_separate(ugli::WrapMode::Repeat, ugli::WrapMode::Clamp);
                 Ok::<_, anyhow::Error>(texture)
             };

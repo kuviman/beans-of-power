@@ -51,10 +51,10 @@ impl EditorTool for CannonTool {
         framebuffer: &mut ugli::Framebuffer,
     ) {
         if let Some(start) = self.start_drag {
-            self.geng.draw_2d(
+            self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
-                &draw_2d::Segment::new(
+                &draw2d::Segment::new(
                     Segment(start, cursor.world_pos),
                     0.2,
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
@@ -62,10 +62,10 @@ impl EditorTool for CannonTool {
             );
         } else if let Some(index) = self.find_hovered_cannon(cursor, level) {
             let cannon = &level.cannons[index];
-            self.geng.draw_2d(
+            self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
-                &draw_2d::Quad::new(
+                &draw2d::Quad::new(
                     Aabb2::point(cannon.pos).extend_uniform(0.5),
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),

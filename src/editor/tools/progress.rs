@@ -53,17 +53,16 @@ impl EditorTool for ProgressTool {
                 framebuffer,
                 camera,
                 &(i + 1).to_string(),
-                p,
-                geng::TextAlign::CENTER,
-                0.1,
+                vec2::splat(geng::TextAlign::CENTER),
+                mat3::translate(p) * mat3::scale_uniform(0.1),
                 Rgba::new(0.0, 0.0, 0.0, 0.5),
             );
         }
         for path in &level.expected_path {
-            self.geng.draw_2d(
+            self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
-                &draw_2d::Chain::new(
+                &draw2d::Chain::new(
                     CardinalSpline::new(path.clone(), 0.5).chain(5),
                     level.max_progress_distance * 2.0,
                     Rgba::new(0.0, 0.0, 0.0, 0.25),
@@ -73,24 +72,24 @@ impl EditorTool for ProgressTool {
         }
         if let Some((i, j)) = self.find_hovered_point(cursor, level) {
             let point = level.expected_path[i][j];
-            self.geng.draw_2d(
+            self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
-                &draw_2d::Quad::new(
+                &draw2d::Quad::new(
                     Aabb2::point(point).extend_uniform(0.2),
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),
             );
         }
         if let Some(progress) = level.progress_at(cursor.world_pos) {
-            self.geng.draw_2d(
+            self.geng.draw2d().draw2d(
                 framebuffer,
                 &geng::Camera2d {
                     center: vec2::ZERO,
                     rotation: 0.0,
                     fov: 15.0,
                 },
-                &draw_2d::Text::unit(
+                &draw2d::Text::unit(
                     &**self.geng.default_font(),
                     format!("{}%", (progress * 100.0) as i32),
                     Rgba::BLACK,

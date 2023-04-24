@@ -149,7 +149,7 @@ impl Guy {
     }
 }
 
-#[derive(geng::Assets)]
+#[derive(geng::asset::Load)]
 pub struct CustomGuyAssets {
     pub body: Texture,
     pub eyes: Texture,
@@ -204,9 +204,9 @@ pub struct GuyRenderAssets {
     layers: Vec<GuyRenderLayer>,
 }
 
-impl geng::LoadAsset for GuyRenderAssets {
-    fn load(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<Self> {
-        let geng = geng.clone();
+impl geng::asset::Load for GuyRenderAssets {
+    fn load(manager: &geng::asset::Manager, path: &std::path::Path) -> geng::asset::Future<Self> {
+        let manager = manager.clone();
         let path = path.to_owned();
         async move {
             use resvg::usvg::NodeExt;
@@ -338,7 +338,7 @@ impl geng::LoadAsset for GuyRenderAssets {
                         ignore -= ignore_value;
                         if ignore == 0 {
                             if ts.pop() == Some(t) {
-                                let texture = svg::render(&geng, &svg, Some(svg_node));
+                                let texture = svg::render(manager.ugli(), &svg, Some(svg_node));
                                 layers.push(GuyRenderLayer {
                                     texture,
                                     params: params_stack.last().unwrap().clone(),
@@ -358,7 +358,7 @@ impl geng::LoadAsset for GuyRenderAssets {
     const DEFAULT_EXT: Option<&'static str> = Some("svg");
 }
 
-#[derive(geng::Assets)]
+#[derive(geng::asset::Load)]
 pub struct GuyAssets {
     pub regular: GuyRenderAssets,
     pub custom: Listed<GuyRenderAssets>,

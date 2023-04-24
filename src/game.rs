@@ -184,9 +184,8 @@ impl Game {
                     framebuffer,
                     &camera,
                     &"GG",
-                    vec2(0.0, 3.0),
-                    geng::TextAlign::CENTER,
-                    1.5,
+                    vec2::splat(geng::TextAlign::CENTER),
+                    mat3::translate(vec2(0.0, 3.0)) * mat3::scale_uniform(1.5),
                     text_color,
                 );
             }
@@ -218,9 +217,8 @@ impl Game {
                 framebuffer,
                 &camera,
                 &time_text,
-                vec2(0.0, -3.3),
-                geng::TextAlign::CENTER,
-                0.5,
+                vec2::splat(geng::TextAlign::CENTER),
+                mat3::translate(vec2(0.0, -3.3)) * mat3::scale_uniform(0.5),
                 text_color,
             );
             if !guy.progress.finished {
@@ -228,32 +226,31 @@ impl Game {
                     framebuffer,
                     &camera,
                     &"progress",
-                    vec2(0.0, -4.0),
-                    geng::TextAlign::CENTER,
-                    0.5,
+                    vec2::splat(geng::TextAlign::CENTER),
+                    mat3::translate(vec2(0.0, -4.0)) * mat3::scale_uniform(0.5),
                     text_color,
                 );
-                self.geng.draw_2d(
+                self.geng.draw2d().draw2d(
                     framebuffer,
                     &camera,
-                    &draw_2d::Quad::new(
+                    &draw2d::Quad::new(
                         Aabb2::point(vec2(0.0, -4.5)).extend_symmetric(vec2(3.0, 0.1)),
                         text_color,
                     ),
                 );
-                self.geng.draw_2d(
+                self.geng.draw2d().draw2d(
                     framebuffer,
                     &camera,
-                    &draw_2d::Quad::new(
+                    &draw2d::Quad::new(
                         Aabb2::point(vec2(-3.0 + 6.0 * self.best_progress, -4.5))
                             .extend_uniform(0.3),
                         Rgba::new(0.0, 0.0, 0.0, 0.5),
                     ),
                 );
-                self.geng.draw_2d(
+                self.geng.draw2d().draw2d(
                     framebuffer,
                     &camera,
-                    &draw_2d::Quad::new(
+                    &draw2d::Quad::new(
                         Aabb2::point(vec2(-3.0 + 6.0 * progress, -4.5)).extend_uniform(0.3),
                         text_color,
                     ),
@@ -301,16 +298,16 @@ impl geng::State for Game {
                 self.draw_layer_back(&self.level, index, framebuffer);
             }
             if layer.name == "main" {
-                self.geng.draw_2d(
+                self.geng.draw2d().draw2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit(&self.assets.get().closed_outhouse)
+                    &draw2d::TexturedQuad::unit(&self.assets.get().closed_outhouse)
                         .translate(self.level.spawn_point),
                 );
-                self.geng.draw_2d(
+                self.geng.draw2d().draw2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit(&self.assets.get().golden_toilet)
+                    &draw2d::TexturedQuad::unit(&self.assets.get().golden_toilet)
                         .translate(self.level.finish_point),
                 );
                 self.draw_guys(framebuffer);
@@ -330,9 +327,8 @@ impl geng::State for Game {
                 framebuffer,
                 &geng::PixelPerfectCamera,
                 "RECORDING",
-                vec2::ZERO,
-                geng::TextAlign::LEFT,
-                64.0,
+                vec2::splat(geng::TextAlign::LEFT),
+                mat3::scale_uniform(64.0),
                 Rgba::RED,
             );
         }
@@ -563,7 +559,7 @@ impl geng::State for Game {
             }
             _ => {}
         }
-        self.prev_mouse_pos = self.geng.window().mouse_pos();
+        self.prev_mouse_pos = self.geng.window().cursor_position();
     }
     fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a> {
         use geng::ui::*;

@@ -57,10 +57,10 @@ impl EditorTool for ObjectTool {
     ) {
         if let Some(index) = self.find_hovered_object(cursor, level, selected_layer) {
             let object = &level.layers[selected_layer].objects[index];
-            self.geng.draw_2d(
+            self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
-                &draw_2d::Quad::new(
+                &draw2d::Quad::new(
                     Aabb2::point(object.pos).extend_uniform(0.5),
                     Rgba::new(1.0, 0.0, 0.0, 0.5),
                 ),

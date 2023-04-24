@@ -67,16 +67,16 @@ impl EditorTool for TileTool {
         if self.points.is_empty() {
             if let Some(index) = self.find_hovered_tile(cursor, level, selected_layer) {
                 let tile = &level.layers[selected_layer].tiles[index];
-                self.geng.draw_2d(
+                self.geng.draw2d().draw2d(
                     framebuffer,
                     camera,
-                    &draw_2d::Polygon::new(tile.vertices.into(), Rgba::new(0.0, 0.0, 1.0, 0.5)),
+                    &draw2d::Polygon::new(tile.vertices.into(), Rgba::new(0.0, 0.0, 1.0, 0.5)),
                 );
                 if self.wind_drag.is_none() {
-                    self.geng.draw_2d(
+                    self.geng.draw2d().draw2d(
                         framebuffer,
                         camera,
-                        &draw_2d::Segment::new(
+                        &draw2d::Segment::new(
                             Segment(cursor.world_pos, cursor.world_pos + tile.flow),
                             0.2,
                             Rgba::new(1.0, 0.0, 0.0, 0.5),
@@ -86,10 +86,10 @@ impl EditorTool for TileTool {
             }
         } else {
             for &p in &self.points {
-                self.geng.draw_2d(
+                self.geng.draw2d().draw2d(
                     framebuffer,
                     camera,
-                    &draw_2d::Quad::new(
+                    &draw2d::Quad::new(
                         Aabb2::point(p).extend_uniform(0.1),
                         Rgba::new(0.0, 1.0, 0.0, 0.5),
                     ),
@@ -97,10 +97,10 @@ impl EditorTool for TileTool {
             }
             match *self.points {
                 [p1] => {
-                    self.geng.draw_2d(
+                    self.geng.draw2d().draw2d(
                         framebuffer,
                         camera,
-                        &draw_2d::Segment::new(
+                        &draw2d::Segment::new(
                             Segment(p1, cursor.snapped_world_pos),
                             0.1,
                             Rgba::new(1.0, 1.0, 1.0, 0.5),
@@ -108,10 +108,10 @@ impl EditorTool for TileTool {
                     );
                 }
                 [p1, p2] => {
-                    self.geng.draw_2d(
+                    self.geng.draw2d().draw2d(
                         framebuffer,
                         camera,
-                        &draw_2d::Polygon::new(
+                        &draw2d::Polygon::new(
                             vec![p1, p2, cursor.snapped_world_pos],
                             Rgba::new(1.0, 1.0, 1.0, 0.5),
                         ),
@@ -121,10 +121,10 @@ impl EditorTool for TileTool {
             }
         }
         if let Some((_, start)) = self.wind_drag {
-            self.geng.draw_2d(
+            self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
-                &draw_2d::Segment::new(
+                &draw2d::Segment::new(
                     Segment(start, cursor.world_pos),
                     0.2,
                     Rgba::new(1.0, 0.0, 0.0, 0.5),

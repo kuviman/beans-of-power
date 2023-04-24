@@ -51,9 +51,8 @@ impl Game {
                 framebuffer,
                 &camera,
                 &text,
-                vec2(1.0, camera.fov / 2.0 - place as f32),
-                geng::TextAlign::LEFT,
-                1.0,
+                vec2::splat(geng::TextAlign::LEFT),
+                mat3::translate(vec2(1.0, camera.fov / 2.0 - place as f32)),
                 Rgba::BLACK,
             );
         }

@@ -23,18 +23,16 @@ impl Game {
                 framebuffer,
                 &camera,
                 "type your name",
-                vec2(0.0, 3.0),
-                geng::TextAlign::CENTER,
-                1.0,
+                vec2::splat(geng::TextAlign::CENTER),
+                mat3::translate(vec2(0.0, 3.0)),
                 Rgba::new(0.5, 0.5, 1.0, 0.5),
             );
             self.assets.get().font.draw(
                 framebuffer,
                 &camera,
                 "yes just type it",
-                vec2(0.0, 2.0),
-                geng::TextAlign::CENTER,
-                1.0,
+                vec2::splat(geng::TextAlign::CENTER),
+                mat3::translate(vec2(0.0, 2.0)),
                 Rgba::new(0.5, 0.5, 1.0, 0.5),
             );
         } else {
@@ -42,9 +40,8 @@ impl Game {
                 framebuffer,
                 &camera,
                 &self.customization.name,
-                vec2(0.0, 3.0),
-                geng::TextAlign::CENTER,
-                1.0,
+                vec2::splat(geng::TextAlign::CENTER),
+                mat3::translate(vec2(0.0, 3.0)),
                 Rgba::new(0.5, 0.5, 1.0, 1.0),
             );
         }

@@ -57,7 +57,7 @@ pub struct Opt {
 
 fn main() {
     geng::setup_panic_handler();
-    let mut opt: Opt = program_args::parse();
+    let mut opt: Opt = cli::parse();
 
     let assets_dir = opt.assets.clone().unwrap_or(run_dir().join("assets"));
 
@@ -118,7 +118,7 @@ fn main() {
         geng.clone().run_loading(async move {
             let ((assets, level), connection_info) = future::join(
                 future::join(
-                    <AssetsHandle as geng::LoadAsset>::load(&geng, &assets_dir),
+                    <AssetsHandle as geng::asset::Load>::load(geng.asset_manager(), &assets_dir),
                     Level::load(
                         opt.level.clone().unwrap_or(assets_dir.join("level.json")),
                         opt.editor,

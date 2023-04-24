@@ -8,8 +8,8 @@ pub struct Tile {
     pub type_name: String,
 }
 
-#[derive(geng::Assets, Deserialize)]
-#[asset(json)]
+#[derive(geng::asset::Load, Deserialize)]
+#[load(json)]
 pub struct TileParams {
     #[serde(default)]
     pub svg: bool,
@@ -42,25 +42,25 @@ fn one() -> f32 {
     1.0
 }
 
-#[derive(geng::Assets)]
-#[asset(sequential)]
+#[derive(geng::asset::Load)]
+#[load(sequential)]
 pub struct TileAssets {
     pub params: TileParams,
-    #[asset(load_with = "load_tile_texture(&geng, &base_path, &params)")]
+    #[load(load_with = "load_tile_texture(&manager, &base_path, &params)")]
     pub texture: Texture,
 }
 
 async fn load_tile_texture(
-    geng: &Geng,
+    manager: &geng::asset::Manager,
     base_path: &std::path::Path,
     params: &TileParams,
 ) -> anyhow::Result<Texture> {
-    let mut texture: Texture = geng
-        .load_asset(base_path.join("texture").with_extension(if params.svg {
-            "svg"
-        } else {
-            "png"
-        }))
+    let mut texture: Texture = manager
+        .load(
+            base_path
+                .join("texture")
+                .with_extension(if params.svg { "svg" } else { "png" }),
+        )
         .await?;
     texture.set_filter(ugli::Filter::Nearest); // TODO premultiplied alpha instead
     make_repeated(&mut texture);

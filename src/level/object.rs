@@ -19,21 +19,21 @@ impl Object {
 }
 
 pub fn load_objects_assets(
-    geng: &Geng,
+    manager: &geng::asset::Manager,
     path: &std::path::Path,
-) -> geng::AssetFuture<HashMap<String, Texture>> {
-    let geng = geng.clone();
+) -> geng::asset::Future<HashMap<String, Texture>> {
+    let manager = manager.clone();
     let path = path.to_owned();
     async move {
-        let json = <String as geng::LoadAsset>::load(&geng, &path.join("_list.json")).await?;
+        let json = <String as geng::asset::Load>::load(&manager, &path.join("_list.json")).await?;
         let list: Vec<String> = serde_json::from_str(&json).unwrap();
         future::join_all(list.into_iter().map(|name| {
-            let geng = geng.clone();
+            let manager = manager.clone();
             let path = path.clone();
             async move {
                 Ok((
                     name.clone(),
-                    geng::LoadAsset::load(&geng, &path.join(format!("{}.png", name))).await?,
+                    geng::asset::Load::load(&manager, &path.join(format!("{}.png", name))).await?,
                 ))
             }
         }))

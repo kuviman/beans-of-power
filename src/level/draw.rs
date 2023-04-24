@@ -344,7 +344,7 @@ impl LevelMesh {
                                             .extend([vs[0], vs[1], vs[2], vs[0], vs[2], vs[3]]);
                                     }
                                 } else {
-                                    warn!("Not connected????");
+                                    log::warn!("Not connected????");
                                 }
                             }
 
@@ -406,7 +406,7 @@ impl Game {
             let mut mesh = level.mesh.borrow_mut();
             if mesh.is_none() {
                 *mesh = Some(LevelMesh::new(&self.geng, &self.assets, level));
-                debug!("Creating level mesh");
+                log::debug!("Creating level mesh");
             };
         }
         Ref::map(level.mesh.borrow(), |opt| opt.as_ref().unwrap())
@@ -451,7 +451,7 @@ impl Game {
                         u_layer_color: level.layers[layer_index].color,
                         u_reveal_radius: level.layers[layer_index].reveal_radius,
                     },
-                    geng::camera2d_uniforms(&camera, self.framebuffer_size),
+                    camera.uniforms(self.framebuffer_size),
                 ),
                 ugli::DrawParameters {
                     blend_mode: Some(ugli::BlendMode::straight_alpha()),
@@ -505,7 +505,7 @@ impl Game {
                             u_layer_color: level.layers[layer_index].color,
                             u_texture_rotation: texture_rotation,
                         },
-                        geng::camera2d_uniforms(&camera, self.framebuffer_size),
+                        camera.uniforms(self.framebuffer_size),
                     ),
                     ugli::DrawParameters {
                         blend_mode: Some(ugli::BlendMode::straight_alpha()),
@@ -523,17 +523,17 @@ impl Game {
             if cannon.rot > f32::PI / 2.0 || cannon.rot < -f32::PI / 2.0 {
                 scale.x = -scale.x;
             }
-            self.geng.draw_2d(
+            self.geng.draw2d().draw2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::TexturedQuad::unit(&assets.cannon.body)
+                &draw2d::TexturedQuad::unit(&assets.cannon.body)
                     .rotate(cannon.rot)
                     .translate(cannon.pos),
             );
-            self.geng.draw_2d(
+            self.geng.draw2d().draw2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::TexturedQuad::unit(&assets.cannon.base)
+                &draw2d::TexturedQuad::unit(&assets.cannon.base)
                     .scale(scale)
                     .translate(cannon.pos),
             );
@@ -543,10 +543,10 @@ impl Game {
     pub fn draw_portals(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
         let assets = self.assets.get();
         for portal in &level.portals {
-            self.geng.draw_2d(
+            self.geng.draw2d().draw2d(
                 framebuffer,
                 &self.camera,
-                &draw_2d::TexturedQuad::unit_colored(&assets.portal, portal.color)
+                &draw2d::TexturedQuad::unit_colored(&assets.portal, portal.color)
                     .scale_uniform(self.config.portal.size)
                     .rotate(self.real_time)
                     .translate(portal.pos),
@@ -564,10 +564,10 @@ impl Game {
         self.draw_tiles(framebuffer, level, layer_index);
         {
             for obj in &level.layers[layer_index].objects {
-                self.geng.draw_2d(
+                self.geng.draw2d().draw2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit(&assets.objects[&obj.type_name])
+                    &draw2d::TexturedQuad::unit(&assets.objects[&obj.type_name])
                         .transform(mat3::rotate(if obj.fart_type().is_some() {
                             self.real_time
                         } else {

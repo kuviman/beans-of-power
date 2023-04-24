@@ -24,17 +24,17 @@ impl<T> Index<&str> for Listed<T> {
     }
 }
 
-impl<T: geng::LoadAsset> Listed<T> {
+impl<T: geng::asset::Load> Listed<T> {
     // TODO remove
     pub async fn load_with_ext(
-        geng: &Geng,
+        manager: &geng::asset::Manager,
         path: &std::path::Path,
         ext: Option<&str>,
     ) -> anyhow::Result<Self> {
         let list: Vec<String> = file::load_detect(path.join("_list.ron")).await?;
         Ok(Self {
             list: futures::future::try_join_all(list.iter().map(|name| {
-                geng.load_asset(match ext.or(T::DEFAULT_EXT) {
+                manager.load(match ext.or(T::DEFAULT_EXT) {
                     Some(ext) => path.join(format!("{name}.{ext}")),
                     None => path.join(name),
                 })
@@ -49,11 +49,11 @@ impl<T: geng::LoadAsset> Listed<T> {
     }
 }
 
-impl<T: geng::LoadAsset> geng::LoadAsset for Listed<T> {
-    fn load(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<Self> {
-        let geng = geng.clone();
+impl<T: geng::asset::Load> geng::asset::Load for Listed<T> {
+    fn load(manager: &geng::asset::Manager, path: &std::path::Path) -> geng::asset::Future<Self> {
+        let manager = manager.clone();
         let path = path.to_owned();
-        async move { Self::load_with_ext(&geng, &path, None).await }.boxed_local()
+        async move { Self::load_with_ext(&manager, &path, None).await }.boxed_local()
     }
 
     const DEFAULT_EXT: Option<&'static str> = None;

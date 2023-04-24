@@ -350,7 +350,7 @@ impl Game {
                     sfx.sfx.set_speed(sfx_speed);
                 }
             } else {
-                warn!("No sfx for long fart?");
+                log::warn!("No sfx for long fart?");
             }
 
             if guy.state.long_farting {

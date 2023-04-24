@@ -19,10 +19,10 @@ impl Game {
                 * mat3::scale_uniform(guy.state.radius);
 
             if guy.state.snow_layer != 0.0 {
-                self.geng.draw_2d(
+                self.geng.draw2d().draw2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::Ellipse::circle(guy.state.pos, guy.radius(), Rgba::WHITE),
+                    &draw2d::Ellipse::circle(guy.state.pos, guy.radius(), Rgba::WHITE),
                 );
             }
 
@@ -130,10 +130,10 @@ impl Game {
                     } else {
                         1.0
                     };
-                    self.geng.draw_2d(
+                    self.geng.draw2d().draw2d(
                         framebuffer,
                         &self.camera,
-                        &draw_2d::TexturedQuad::unit_colored(&layer.texture, color)
+                        &draw2d::TexturedQuad::unit_colored(&layer.texture, color)
                             .transform(transform),
                     );
                 }
@@ -142,19 +142,19 @@ impl Game {
             if self.opt.editor {
                 if false {
                     // Visualize fart pressure
-                    self.geng.draw_2d(
+                    self.geng.draw2d().draw2d(
                         framebuffer,
                         &self.camera,
-                        &draw_2d::Quad::new(
+                        &draw2d::Quad::new(
                             Aabb2::point(guy.state.pos + vec2(0.0, guy.state.radius * 1.2))
                                 .extend_symmetric(vec2(0.5, 0.02)),
                             Rgba::BLACK,
                         ),
                     );
-                    self.geng.draw_2d(
+                    self.geng.draw2d().draw2d(
                         framebuffer,
                         &self.camera,
-                        &draw_2d::Quad::new(
+                        &draw2d::Quad::new(
                             Aabb2::point(
                                 guy.state.pos + vec2(-0.5 + fart_progress, guy.state.radius * 1.2),
                             )
@@ -168,10 +168,10 @@ impl Game {
                     let guy_transform =
                         mat3::translate(guy.state.pos) * mat3::scale_uniform(guy.state.radius);
                     let mut draw_arrow = |rot: f32, alpha: f32| {
-                        self.geng.draw_2d(
+                        self.geng.draw2d().draw2d(
                             framebuffer,
                             &self.camera,
-                            &draw_2d::TexturedQuad::unit_colored(
+                            &draw2d::TexturedQuad::unit_colored(
                                 &assets.arrow_key,
                                 Rgba::new(1.0, 1.0, 1.0, alpha),
                             )
@@ -192,18 +192,18 @@ impl Game {
                     framebuffer,
                     &self.camera,
                     &guy.customization.name,
-                    guy.state.pos + vec2(0.0, guy.state.radius * 1.1),
-                    geng::TextAlign::CENTER,
-                    0.1,
+                    vec2::splat(geng::TextAlign::CENTER),
+                    mat3::translate(guy.state.pos + vec2(0.0, guy.state.radius * 1.1))
+                        * mat3::scale_uniform(0.1),
                     Rgba::BLACK,
                 );
             }
 
             if guy.state.bubble_timer.is_some() {
-                self.geng.draw_2d(
+                self.geng.draw2d().draw2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit(&assets.bubble)
+                    &draw2d::TexturedQuad::unit(&assets.bubble)
                         .scale_uniform(guy.state.radius * self.config.bubble_scale)
                         .translate(guy.state.pos),
                 );
@@ -213,10 +213,10 @@ impl Game {
         // Emotes
         for &(_, id, emote) in &self.emotes {
             if let Some(guy) = self.guys.get(&id) {
-                self.geng.draw_2d(
+                self.geng.draw2d().draw2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit(&assets.emotes[emote])
+                    &draw2d::TexturedQuad::unit(&assets.emotes[emote])
                         .scale_uniform(0.1)
                         .translate(guy.state.pos + vec2(0.0, guy.state.radius * 2.0)),
                 );

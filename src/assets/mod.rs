@@ -6,7 +6,7 @@ pub use listed::*;
 
 pub type AssetsHandle = Rc<Hot<Assets>>;
 
-#[derive(geng::Assets)]
+#[derive(geng::asset::Load)]
 pub struct Assets {
     pub config: Rc<Config>,
     pub sfx: SfxAssets,
@@ -14,33 +14,33 @@ pub struct Assets {
     pub guy: GuyAssets,
     pub surfaces: Listed<SurfaceAssets>,
     pub tiles: Listed<TileAssets>,
-    #[asset(
-        load_with = "Listed::load_with_ext(&geng, &base_path.join(\"objects\"), Some(\"svg\"))"
+    #[load(
+        load_with = "Listed::load_with_ext(&manager, &base_path.join(\"objects\"), Some(\"svg\"))"
     )]
     pub objects: Listed<Texture>,
-    #[asset(load_with = "load_font(&geng, &base_path.join(\"Ludum-Dairy-0.2.0.ttf\"))")]
+    #[load(load_with = "load_font(&manager, &base_path.join(\"Ludum-Dairy-0.2.0.ttf\"))")]
     pub font: geng::Font,
-    #[asset(ext = "svg")]
+    #[load(ext = "svg")]
     pub closed_outhouse: Texture,
-    #[asset(ext = "svg")]
+    #[load(ext = "svg")]
     pub golden_toilet: Texture,
-    #[asset(listed_in = "_list.ron")]
+    #[load(listed_in = "_list.ron")]
     pub emotes: Vec<Texture>,
     pub shaders: Shaders,
     pub cannon: CannonAssets,
     pub portal: Texture,
     pub bubble: Texture,
-    #[asset(ext = "svg")]
+    #[load(ext = "svg")]
     pub arrow_key: Texture,
 }
 
-#[derive(geng::Assets)]
+#[derive(geng::asset::Load)]
 pub struct Shaders {
     pub tile: ugli::Program,
     pub surface: ugli::Program,
 }
 
-#[derive(geng::Assets)]
+#[derive(geng::asset::Load)]
 pub struct CannonAssets {
     pub body: Texture,
     pub base: Texture,
@@ -63,8 +63,8 @@ pub struct PortalConfig {
     pub size: f32,
 }
 
-#[derive(geng::Assets, Deserialize, Clone, Debug)]
-#[asset(json)]
+#[derive(geng::asset::Load, Deserialize, Clone, Debug)]
+#[load(json)]
 pub struct Config {
     pub volume: f32,
     pub sfx_time_scale_power: f64,
@@ -99,31 +99,35 @@ pub struct Config {
     pub camera_fov: f32,
 }
 
-#[derive(geng::Assets)]
+#[derive(geng::asset::Load)]
 pub struct SfxAssets {
     pub fart_recharge: geng::Sound,
     pub water_splash: geng::Sound,
-    #[asset(path = "music.mp3", postprocess = "make_looped")]
+    #[load(path = "music.mp3", postprocess = "make_looped")]
     pub old_music: geng::Sound,
-    #[asset(path = "KuviFart.wav", postprocess = "make_looped")]
+    #[load(path = "KuviFart.wav", postprocess = "make_looped")]
     pub new_music: geng::Sound,
 }
 
 fn make_looped(sound: &mut geng::Sound) {
-    sound.looped = true;
+    sound.set_looped(true);
 }
 
-fn load_font(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<geng::Font> {
-    let geng = geng.clone();
+fn load_font(
+    manager: &geng::asset::Manager,
+    path: &std::path::Path,
+) -> geng::asset::Future<geng::Font> {
+    let manager = manager.clone();
     let path = path.to_owned();
     async move {
-        let data = <Vec<u8> as geng::LoadAsset>::load(&geng, &path).await?;
+        let data: Vec<u8> = manager.load(&path).await?;
         geng::Font::new(
-            &geng,
+            manager.ugli(),
             &data,
-            geng::ttf::Options {
+            geng::font::Options {
                 pixel_size: 64.0,
                 max_distance: 0.1,
+                antialias: true,
             },
         )
     }
@@ -148,8 +152,8 @@ impl FartColors {
     }
 }
 
-#[derive(geng::Assets, Serialize, Deserialize)]
-#[asset(json)]
+#[derive(geng::asset::Load, Serialize, Deserialize)]
+#[load(json)]
 pub struct FartConfig {
     #[serde(default = "one")]
     pub sfx_count: usize,
@@ -179,13 +183,13 @@ fn one() -> usize {
     1
 }
 
-#[derive(geng::Assets)]
-#[asset(sequential)]
+#[derive(geng::asset::Load)]
+#[load(sequential)]
 pub struct FartAssets {
     pub config: FartConfig,
-    #[asset(path = "farticle.png")]
+    #[load(path = "farticle.png")]
     pub farticle_texture: Texture,
-    #[asset(path = "sfx*.wav", list = "1..=config.sfx_count")]
+    #[load(path = "sfx*.wav", list = "1..=config.sfx_count")]
     pub sfx: Vec<geng::Sound>,
     pub long_sfx: geng::Sound,
 }

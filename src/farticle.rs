@@ -49,10 +49,10 @@ impl Game {
                     let color2 = farticle.colors[(index + 1).min(farticle.colors.len() - 1)];
                     Rgba::lerp(color1, color2, t)
                 };
-                self.geng.draw_2d(
+                self.geng.draw2d().draw2d(
                     framebuffer,
                     &self.camera,
-                    &draw_2d::TexturedQuad::unit_colored(
+                    &draw2d::TexturedQuad::unit_colored(
                         texture,
                         Rgba {
                             a: color.a * farticle.t,

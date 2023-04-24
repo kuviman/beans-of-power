@@ -124,7 +124,8 @@ impl VideoEditor {
         use futures::executor::block_on;
         let path = path.as_ref();
         let config: Config = block_on(file::load_json(path.join("config.json"))).unwrap();
-        let music: geng::Sound = block_on(geng.load_asset(path.join(&config.music))).unwrap();
+        let music: geng::Sound =
+            block_on(geng.asset_manager().load(path.join(&config.music))).unwrap();
         Self {
             path: path.to_owned(),
             music,
@@ -175,7 +176,7 @@ impl VideoEditor {
             game.music.stop();
             game.music = editor.music.effect();
             game.music
-                .play_from(Duration::from_secs_f64(editor.time as f64));
+                .play_from(time::Duration::from_secs_f64(editor.time as f64));
         }
     }
 }

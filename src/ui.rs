@@ -69,9 +69,8 @@ impl Controller {
                 framebuffer,
                 &self.camera,
                 &button.text,
-                position,
-                geng::TextAlign::LEFT,
-                button.size,
+                vec2::splat(geng::TextAlign::LEFT),
+                mat3::translate(position) * mat3::scale_uniform(button.size),
                 if hovered {
                     Rgba::new(0.5, 0.5, 1.0, 1.0)
                 } else {

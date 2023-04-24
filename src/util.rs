@@ -25,18 +25,18 @@ impl std::borrow::Borrow<ugli::Texture> for &'_ Texture {
     }
 }
 
-impl geng::LoadAsset for Texture {
-    fn load(geng: &Geng, path: &std::path::Path) -> geng::AssetFuture<Self> {
+impl geng::asset::Load for Texture {
+    fn load(manager: &geng::asset::Manager, path: &std::path::Path) -> geng::asset::Future<Self> {
         if path.extension() == Some("svg".as_ref()) {
-            let geng = geng.clone();
+            let manager = manager.clone();
             let path = path.to_owned();
             async move {
                 let svg = svg::load(path).await?;
-                Ok(Texture(svg::render(&geng, &svg.tree, None)))
+                Ok(Texture(svg::render(manager.ugli(), &svg.tree, None)))
             }
             .boxed_local()
         } else {
-            let texture = <ugli::Texture as geng::LoadAsset>::load(geng, path);
+            let texture = <ugli::Texture as geng::asset::Load>::load(manager, path);
             async move {
                 let mut texture = texture.await?;
                 texture.set_filter(ugli::Filter::Nearest);

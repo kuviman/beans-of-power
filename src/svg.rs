@@ -14,7 +14,7 @@ pub async fn load(path: impl AsRef<std::path::Path>) -> anyhow::Result<Document>
     Ok(Document { raw_xml, tree })
 }
 
-pub fn render(geng: &Geng, tree: &Tree, node: Option<&Node>) -> ugli::Texture {
+pub fn render(ugli: &Ugli, tree: &Tree, node: Option<&Node>) -> ugli::Texture {
     let size = tree.size.to_screen_size();
     let mut pixmap = resvg::tiny_skia::Pixmap::new(size.width(), size.height())
         .expect("Failed to create pixmap");
@@ -52,5 +52,5 @@ pub fn render(geng: &Geng, tree: &Tree, node: Option<&Node>) -> ugli::Texture {
         color[3] = rgba.alpha();
     }
     let image = image::RgbaImage::from_vec(size.width(), size.height(), image_data).unwrap();
-    ugli::Texture::from_image_image(geng.ugli(), image)
+    ugli::Texture::from_image_image(ugli, image)
 }
