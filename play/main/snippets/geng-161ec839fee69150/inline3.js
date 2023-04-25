@@ -1,6 +1,6 @@
 
-        export function setup_image(image, handler) {
-            image.onload = function() { handler(true); };
-            image.onerror = function() { handler(false); };
-        }
-        
+            export function finish_loading() {
+                document.getElementById("geng-progress-screen").style.display = "none";
+                document.getElementById("geng-canvas").style.display = "block";
+            }
+            
