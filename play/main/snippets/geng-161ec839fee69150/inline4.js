@@ -1,9 +1,6 @@
 
-        export function run(main_loop) {
-            function main_loop_wrapper() {
-                main_loop();
-                window.requestAnimationFrame(main_loop_wrapper);
+            export function finish_loading() {
+                document.getElementById("geng-progress-screen").style.display = "none";
+                document.getElementById("geng-canvas").style.display = "block";
             }
-            main_loop_wrapper();
-        }
-        
+            

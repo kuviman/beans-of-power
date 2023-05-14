@@ -1,6 +1,5 @@
 
-            export function finish_loading() {
-                document.getElementById("geng-progress-screen").style.display = "none";
-                document.getElementById("geng-canvas").style.display = "block";
+            export function set_progress(progress, total) {
+                window.gengUpdateProgress(progress, total);
             }
             
