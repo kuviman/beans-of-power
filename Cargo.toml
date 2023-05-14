@@ -3,7 +3,16 @@ name = "getting-farted-on"
 version = "0.1.0"
 edition = "2021"
 
+# Enable a small amount of optimization in debug mode
+[profile.dev]
+opt-level = 1
+
+# Enable high optimizations for dependencies (incl. Bevy)
+[profile.dev.package."*"]
+opt-level = 3
+
 [dependencies]
+dynamic-linking = { path = "dynamic-linking", optional = true }
 geng.git = "https://github.com/kuviman/geng"
 serde = "1"
 noise = "0.8.2"

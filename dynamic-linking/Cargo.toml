@@ -1,0 +1,17 @@
+[package]
+name = "dynamic-linking"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+geng.git = "https://github.com/kuviman/geng"
+serde = "1"
+noise = "0.8.2"
+resvg = "0.29"
+image = "0.24"
+bytemuck = "1"
+rctree = "0.5"
+roxmltree = "0.18"
+
+[lib]
+crate-type = ["dylib"]

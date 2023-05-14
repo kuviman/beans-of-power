@@ -1,3 +1,6 @@
+#[cfg(feature = "dynamic-linking")]
+use dynamic_linking;
+
 // TODO: custom fart texture/color/sound
 
 // TODO: write the rest of this comment
