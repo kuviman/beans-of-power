@@ -92,14 +92,12 @@ impl Controller {
                     .camera
                     .screen_to_world(self.framebuffer_size, position.map(|x| x as f32));
             }
-            geng::Event::TouchStart { ref touches, .. }
-            | geng::Event::TouchMove { ref touches, .. }
-            | geng::Event::TouchEnd { ref touches, .. } => {
-                if let Some(touch) = touches.get(0) {
-                    self.mouse = self
-                        .camera
-                        .screen_to_world(self.framebuffer_size, touch.position.map(|x| x as f32));
-                }
+            geng::Event::TouchStart(touch)
+            | geng::Event::TouchMove(touch)
+            | geng::Event::TouchEnd(touch) => {
+                self.mouse = self
+                    .camera
+                    .screen_to_world(self.framebuffer_size, touch.position.map(|x| x as f32));
             }
             _ => {}
         }
