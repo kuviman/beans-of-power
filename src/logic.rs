@@ -32,6 +32,10 @@ impl Game {
         if CONTROLS_FORCE_FART
             .iter()
             .any(|&key| self.geng.window().is_key_pressed(key))
+            || self
+                .geng
+                .window()
+                .is_button_pressed(geng::MouseButton::Left)
         {
             new_input.force_fart = true;
         }
@@ -56,6 +60,21 @@ impl Game {
                         new_input.force_fart = true;
                     }
                 }
+            }
+        }
+
+        // Accessibility
+        if let Some(radius) = self.opt.accessibility {
+            let p = (self.geng.window().cursor_position().map(|x| x as f32)
+                - self.framebuffer_size / 2.0)
+                / radius;
+            if p.x < 0.0 {
+                new_input.roll_left += -p.x;
+            } else {
+                new_input.roll_right += p.x;
+            }
+            if p.y > 0.0 {
+                new_input.force_fart = true;
             }
         }
 

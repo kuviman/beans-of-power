@@ -54,6 +54,8 @@ pub struct Opt {
     pub assets: Option<std::path::PathBuf>,
     #[clap(long)]
     pub video: Option<std::path::PathBuf>,
+    #[clap(long)]
+    pub accessibility: Option<f32>,
     #[clap(flatten)]
     pub geng: geng::CliArgs,
 }

@@ -333,6 +333,28 @@ impl geng::State for Game {
                 Rgba::RED,
             );
         }
+
+        if let Some(radius) = self.opt.accessibility {
+            let center = framebuffer.size().map(|x| x as f32) / 2.0;
+            self.geng.draw2d().draw2d(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                &draw2d::Segment::new(
+                    Segment(center - vec2(radius, 0.0), center + vec2(radius, 0.0)),
+                    5.0,
+                    Rgba::new(0.0, 0.0, 0.0, 0.5),
+                ),
+            );
+            self.geng.draw2d().draw2d(
+                framebuffer,
+                &geng::PixelPerfectCamera,
+                &draw2d::Segment::new(
+                    Segment(center - vec2(0.0, radius), center + vec2(0.0, radius)),
+                    5.0,
+                    Rgba::new(0.0, 0.0, 0.0, 0.5),
+                ),
+            );
+        }
     }
 
     fn fixed_update(&mut self, delta_time: f64) {
