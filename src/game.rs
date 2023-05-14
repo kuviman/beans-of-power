@@ -50,6 +50,7 @@ pub struct Game {
     pub recording: Option<Replay>,
     pub video_editor: Option<video_editor::VideoEditor>,
     pub active_gamepad: Option<gilrs::GamepadId>,
+    pub next_save: f32,
 }
 
 impl Drop for Game {
@@ -100,7 +101,7 @@ impl Game {
             volume: assets.get().config.volume,
             client_id,
             connection,
-            simulation_time: 0.0,
+            simulation_time: preferences::load("simulation_time").unwrap_or(0.0),
             remote_updates: default(),
             customization: preferences::load("customization")
                 .unwrap_or_else(CustomizationOptions::random),
@@ -150,15 +151,15 @@ impl Game {
                 .as_ref()
                 .map(|path| video_editor::VideoEditor::new(geng, path)),
             active_gamepad: None,
+            next_save: 0.0,
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
-            result.guys.insert(Guy::new(
-                client_id,
-                result.level.spawn_point,
-                true,
-                &result.config,
-            ));
+            let mut me = Guy::new(client_id, result.level.spawn_point, true, &result.config);
+            if let Some(state) = preferences::load("save") {
+                me.state = state;
+            }
+            result.guys.insert(me);
         }
         result
     }
@@ -336,15 +337,10 @@ impl geng::State for Game {
 
     fn fixed_update(&mut self, delta_time: f64) {
         let delta_time = delta_time as f32 * self.time_scale;
-        if self.my_guy.is_none()
-            || !self
-                .guys
-                .get(&self.my_guy.unwrap())
-                .unwrap()
-                .progress
-                .finished
-        {
-            self.simulation_time += delta_time;
+        if let Some(me) = self.my_guy.and_then(|id| self.guys.get(&id)) {
+            if !me.progress.finished && !me.paused {
+                self.simulation_time += delta_time;
+            }
         }
         self.update_my_guy_input();
         self.update_guys(delta_time);
@@ -355,6 +351,16 @@ impl geng::State for Game {
 
     fn update(&mut self, delta_time: f64) {
         let delta_time = delta_time as f32;
+
+        self.next_save -= delta_time;
+        if self.next_save < 0.0 {
+            self.next_save = 1.0;
+            if let Some(me) = self.my_guy.and_then(|id| self.guys.get(&id)) {
+                preferences::save("save", &me.state);
+                preferences::save("simulation_time", &self.simulation_time);
+            }
+        }
+
         // self.volume = self.assets.config.volume;
         if self.geng.window().is_key_pressed(geng::Key::PageUp) {
             self.volume += delta_time * 0.5;
