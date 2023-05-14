@@ -2,13 +2,14 @@ use super::*;
 
 impl Game {
     pub fn update_my_guy_input(&mut self) {
-        if self.show_customizer {
-            return;
-        }
         let my_guy = match self.my_guy.map(|id| self.guys.get_mut(&id).unwrap()) {
             Some(guy) => guy,
             None => return,
         };
+        my_guy.paused = self.show_customizer;
+        if self.show_customizer {
+            return;
+        }
         let mut new_input = Input {
             roll_left: 0.0,
             roll_right: 0.0,
@@ -85,6 +86,9 @@ impl Game {
             false
         };
         for guy in &mut self.guys {
+            if guy.paused {
+                continue;
+            }
             let mut time_scale = 1.0;
             for tile in self.level.gameplay_tiles() {
                 if !Aabb2::points_bounding_box(tile.vertices)

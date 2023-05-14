@@ -68,6 +68,7 @@ pub struct Guy {
     pub state: PhysicsState,
     pub animation: GuyAnimationState,
     pub progress: Progress,
+    pub paused: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -137,6 +138,7 @@ impl Guy {
                 growl_progress: None,
                 next_farticle_time: 0.0,
             },
+            paused: true,
         }
     }
 

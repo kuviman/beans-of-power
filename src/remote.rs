@@ -17,6 +17,7 @@ impl Game {
                         state: snapshot,
                         animation: default(),
                         progress: default(),
+                        paused: false,
                     };
                     guys.insert(guy);
                 }
