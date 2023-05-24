@@ -1,52 +1,68 @@
+# https://scvalex.net/posts/63/
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    rust-overlay.url = "github:oxalica/rust-overlay";
+    naersk.url = "github:nmattia/naersk/master";
+    # This must be the stable nixpkgs if you're running the app on a
+    # stable NixOS install.  Mixing EGL library versions doesn't work.
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, rust-overlay }:
-    let
-      overlays = [ (import rust-overlay) ];
-      pkgs = import nixpkgs {
-        inherit system overlays;
-      };
+  outputs = { self, nixpkgs, utils, naersk, ... }:
+    utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+        naersk-lib = pkgs.callPackage naersk { };
+        name = "getting-farted-on";
+        waylandDeps = with pkgs; [
+          libxkbcommon
+          wayland
+        ];
+        xorgDeps = with pkgs; [
+          xorg.libX11
+          xorg.libXcursor
+          xorg.libXi
+          xorg.libXrandr
+        ];
+        libDeps = with pkgs; waylandDeps ++ xorgDeps ++ [
+          alsa-lib
+          udev
+          libGL
+          xorg.libxcb
+        ];
+        nativeBuildDeps = with pkgs; [ pkg-config ];
+        buildDeps = with pkgs; libDeps ++ [ xorg.libxcb ];
+        libPath = pkgs.lib.makeLibraryPath libDeps;
+      in
+      {
+        defaultPackage = naersk-lib.buildPackage {
+          src = ./.;
+          doCheck = true;
+          pname = name;
+          nativeBuildInputs = nativeBuildDeps ++ [ pkgs.makeWrapper ];
+          buildInputs = buildDeps;
+          postInstall = ''
+            wrapProgram "$out/bin/${name}" --prefix LD_LIBRARY_PATH : "${libPath}"
+          '';
+        };
 
-      system = "x86_64-linux";
-      app = "getting-farted-on";
+        defaultApp = utils.lib.mkApp {
+          drv = self.defaultPackage."${system}";
+        };
 
-      shellInputs = with pkgs; [
-        (rust-bin.stable.latest.default.override { extensions = [ "rust-src" ]; })
-        clang
-      ];
-      appNativeBuildInputs = with pkgs; [
-        pkg-config
-      ];
-      appBuildInputs = appRuntimeInputs ++ (with pkgs; [
-        udev
-        alsa-lib
-        vulkan-loader
-        xorg.libX11 xorg.libXcursor xorg.libXi xorg.libXrandr # To use the x11 feature
-        libxkbcommon wayland # To use the wayland feature
-      ]);
-      # TODO figure out appRuntimeInputs
-      appRuntimeInputs = with pkgs; [
-        vulkan-loader
-        xorg.libXcursor
-        xorg.libXi
-        xorg.libXrandr
-        wayland
-      ];
-    in
-    {
-      devShells.${system}.${app} = pkgs.mkShell {
-        nativeBuildInputs = appNativeBuildInputs;
-        buildInputs = shellInputs ++ appBuildInputs;
+        devShell = with pkgs; mkShell {
+          nativeBuildInputs = nativeBuildDeps;
+          buildInputs = buildDeps ++ [
+            cargo
+            rustPackages.clippy
+            rustfmt
+            rust-analyzer
+          ];
+          shellHook = ''
+            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${libPath}"
+          '';
+        };
 
-        shellHook = ''
-          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${pkgs.lib.makeLibraryPath appRuntimeInputs}"
-        '';
-      };
-      devShell.${system} = self.devShells.${system}.${app};
-      formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixpkgs-fmt;
-    };
+        formatter = pkgs.nixpkgs-fmt;
+      });
 }
