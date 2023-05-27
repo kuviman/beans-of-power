@@ -58,6 +58,8 @@ pub struct Opt {
     pub accessibility: Option<f32>,
     #[clap(long)]
     pub mouse_aim: bool,
+    #[clap(long, default_value = "0.0")]
+    pub add_flow: f32,
     #[clap(flatten)]
     pub geng: geng::CliArgs,
 }
@@ -136,6 +138,12 @@ fn main() {
             .await;
             let assets = assets.expect("Failed to load assets");
             let assets = Rc::new(assets);
+            let mut level = level;
+            for layer in &mut level.modify().layers {
+                for surface in &mut layer.surfaces {
+                    surface.flow += opt.add_flow;
+                }
+            }
             Game::new(&geng, &assets, level, opt, connection_info)
         });
 
