@@ -171,6 +171,7 @@ pub async fn load_histories(path: impl AsRef<std::path::Path>) -> anyhow::Result
     let number = file::load_string(path.join("number.txt"))
         .await
         .context("Failed to load number")?
+        .trim()
         .parse()?;
     future::try_join_all((0..number).map(|index| async move {
         let bytes = file::load_bytes(path.join(format!("{index}.bincode")))
