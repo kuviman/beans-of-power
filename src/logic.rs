@@ -78,6 +78,17 @@ impl Game {
             }
         }
 
+        if self.opt.mouse_aim {
+            let cursor = self.camera.screen_to_world(
+                self.framebuffer_size,
+                self.geng.window().cursor_position().map(|x| x as f32),
+            );
+            let v = ((cursor - my_guy.state.pos) / my_guy.state.radius).clamp_len(..=1.0);
+            let dir = vec2(0.0, 1.0).rotate(my_guy.state.rot);
+            new_input.roll_left = vec2::skew(dir, v);
+            new_input.roll_right = -new_input.roll_left;
+        }
+
         new_input.roll_left = new_input.roll_left.clamp(0.0, 1.0);
         new_input.roll_right = new_input.roll_right.clamp(0.0, 1.0);
 

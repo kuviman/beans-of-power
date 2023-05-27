@@ -56,6 +56,8 @@ pub struct Opt {
     pub video: Option<std::path::PathBuf>,
     #[clap(long)]
     pub accessibility: Option<f32>,
+    #[clap(long)]
+    pub mouse_aim: bool,
     #[clap(flatten)]
     pub geng: geng::CliArgs,
 }
