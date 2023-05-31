@@ -1,6 +1,5 @@
 use super::*;
 
-mod cannon;
 mod draw;
 mod object;
 mod portal;
@@ -8,7 +7,6 @@ mod progress;
 mod surface;
 mod tile;
 
-pub use cannon::*;
 pub use object::*;
 pub use portal::*;
 pub use surface::*;
@@ -49,7 +47,7 @@ pub struct LevelInfo {
     pub finish_point: vec2<f32>,
     pub expected_path: Vec<Vec<vec2<f32>>>,
     pub layers: Vec<LevelLayer>,
-    pub cannons: Vec<Cannon>,
+    pub cannon: features::cannon::LevelInfo,
     pub portals: Vec<Portal>,
     pub max_progress_distance: f32,
 }
@@ -71,7 +69,7 @@ impl Default for LevelInfo {
                 color: default_layer_color(),
                 texture_scale: default_texture_scale(),
             }],
-            cannons: vec![],
+            cannon: default(),
             portals: vec![],
             max_progress_distance: 10.0,
         }

@@ -21,6 +21,7 @@ pub struct CannonTool {
 impl CannonTool {
     fn find_hovered_cannon(&self, cursor: &Cursor, level: &Level) -> Option<usize> {
         level
+            .cannon
             .cannons
             .iter()
             .enumerate()
@@ -32,7 +33,7 @@ impl CannonTool {
     }
 }
 
-impl EditorTool for CannonTool {
+impl crate::editor::EditorTool for CannonTool {
     type Config = CannonToolConfig;
     fn new(geng: &Geng, assets: &AssetsHandle, config: CannonToolConfig) -> Self {
         Self {
@@ -61,7 +62,7 @@ impl EditorTool for CannonTool {
                 ),
             );
         } else if let Some(index) = self.find_hovered_cannon(cursor, level) {
-            let cannon = &level.cannons[index];
+            let cannon = &level.cannon.cannons[index];
             self.geng.draw2d().draw2d(
                 framebuffer,
                 camera,
@@ -89,7 +90,7 @@ impl EditorTool for CannonTool {
                 ..
             } => {
                 if let Some(start) = self.start_drag.take() {
-                    level.modify().cannons.push(Cannon {
+                    level.modify().cannon.cannons.push(Cannon {
                         pos: start,
                         rot: (cursor.world_pos - start).arg(),
                     });
@@ -100,7 +101,7 @@ impl EditorTool for CannonTool {
                 ..
             } => {
                 if let Some(index) = self.find_hovered_cannon(cursor, level) {
-                    level.modify().cannons.remove(index);
+                    level.modify().cannon.cannons.remove(index);
                 }
             }
             _ => {}

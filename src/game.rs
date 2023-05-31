@@ -29,8 +29,6 @@ pub struct Game {
     pub real_time: f32,
     pub noise: noise::OpenSimplex,
     pub opt: Opt,
-    pub farticles: HashMap<String, Vec<Farticle>>,
-    pub volume: f32,
     pub client_id: Id,
     pub connection: Option<Connection>,
     pub customization: CustomizationOptions,
@@ -51,6 +49,8 @@ pub struct Game {
     pub video_editor: Option<video_editor::VideoEditor>,
     pub active_gamepad: Option<gilrs::GamepadId>,
     pub next_save: f32,
+    pub farticles: farticle::System,
+    pub sound: sound::System,
 }
 
 impl Drop for Game {
@@ -97,8 +97,7 @@ impl Game {
             noise: noise::OpenSimplex::new(0),
             prev_mouse_pos: vec2::ZERO,
             opt: opt.clone(),
-            farticles: default(),
-            volume: assets.get().config.volume,
+            farticles: farticle::System::new(geng),
             client_id,
             connection,
             simulation_time: preferences::load("simulation_time").unwrap_or(0.0),
@@ -152,6 +151,7 @@ impl Game {
                 .map(|path| video_editor::VideoEditor::new(geng, path)),
             active_gamepad: None,
             next_save: 0.0,
+            sound: sound::System::new(geng),
         };
         if !opt.editor {
             result.my_guy = Some(client_id);
@@ -312,7 +312,7 @@ impl geng::State for Game {
                         .translate(self.level.finish_point),
                 );
                 self.draw_guys(framebuffer);
-                self.draw_farticles(framebuffer);
+                self.farticles.draw(framebuffer, &self.camera);
             }
             if !finished {
                 self.draw_layer_front(&self.level, index, framebuffer);
@@ -366,7 +366,7 @@ impl geng::State for Game {
         }
         self.update_my_guy_input();
         self.update_guys(delta_time);
-        self.update_farticles(delta_time);
+        self.farticles.update(delta_time, &self.level);
         self.update_remote(delta_time);
         self.update_replays(delta_time);
     }
@@ -385,16 +385,16 @@ impl geng::State for Game {
 
         // self.volume = self.assets.config.volume;
         if self.geng.window().is_key_pressed(geng::Key::PageUp) {
-            self.volume += delta_time * 0.5;
+            self.sound.volume += delta_time * 0.5;
         }
         if self.geng.window().is_key_pressed(geng::Key::PageDown) {
-            self.volume -= delta_time * 0.5;
+            self.sound.volume -= delta_time * 0.5;
         }
-        self.volume = self.volume.clamp(0.0, 1.0);
+        self.sound.volume = self.sound.volume.clamp(0.0, 1.0);
         if self.mute_music {
             self.music.set_volume(0.0);
         } else {
-            self.music.set_volume(self.volume as f64);
+            self.music.set_volume(self.sound.volume as f64);
         }
 
         self.emotes.retain(|&(t, ..)| t >= self.real_time - 1.0);
@@ -414,6 +414,7 @@ impl geng::State for Game {
             }
         }
         self.camera.center += (target_center - self.camera.center) * (delta_time * 5.0).min(1.0);
+        self.sound.sync_with_camera(&self.camera);
 
         if self.editor.is_none() {
             // let target_fov = if self.show_customizer { 2.0 } else { 6.0 };
@@ -434,21 +435,14 @@ impl geng::State for Game {
 
         self.next_golden_glint -= delta_time;
         if self.next_golden_glint < 0.0 {
-            let fart_type = "glint".to_owned();
             let assets = self.assets.get();
-            let fart_assets = &assets.farts[&fart_type];
+            let fart_assets = &assets.farts["glint"];
+            self.farticles.spawn_single(
+                fart_assets,
+                thread_rng().gen_circle(self.level.finish_point, 1.0),
+                vec2::ZERO,
+            );
             self.next_golden_glint = 1.0 / fart_assets.config.farticle_count as f32;
-            self.farticles.entry(fart_type).or_default().push(Farticle {
-                size: fart_assets.config.farticle_size,
-                pos: thread_rng().gen_circle(self.level.finish_point, 1.0),
-                vel: thread_rng()
-                    .gen_circle(vec2::ZERO, fart_assets.config.farticle_additional_vel),
-                rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
-                w: thread_rng()
-                    .gen_range(-fart_assets.config.farticle_w..=fart_assets.config.farticle_w),
-                colors: fart_assets.config.colors.get(),
-                t: 1.0,
-            });
         }
 
         self.update_video_editor(delta_time);

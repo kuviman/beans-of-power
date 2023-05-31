@@ -8,6 +8,9 @@ use geng::prelude::*;
 
 mod ui;
 
+mod features;
+mod sound;
+
 mod assets;
 mod customizer;
 mod editor;
@@ -28,7 +31,6 @@ mod video_editor;
 pub use assets::*;
 pub use customizer::*;
 pub use editor::*;
-pub use farticle::*;
 pub use game::*;
 pub use guy::*;
 pub use id::*;

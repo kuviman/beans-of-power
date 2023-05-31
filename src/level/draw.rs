@@ -516,30 +516,6 @@ impl Game {
         }
     }
 
-    pub fn draw_cannons(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
-        let assets = self.assets.get();
-        for cannon in &level.cannons {
-            let mut scale = vec2(1.0, 1.0);
-            if cannon.rot > f32::PI / 2.0 || cannon.rot < -f32::PI / 2.0 {
-                scale.x = -scale.x;
-            }
-            self.geng.draw2d().draw2d(
-                framebuffer,
-                &self.camera,
-                &draw2d::TexturedQuad::unit(&assets.cannon.body)
-                    .rotate(cannon.rot)
-                    .translate(cannon.pos),
-            );
-            self.geng.draw2d().draw2d(
-                framebuffer,
-                &self.camera,
-                &draw2d::TexturedQuad::unit(&assets.cannon.base)
-                    .scale(scale)
-                    .translate(cannon.pos),
-            );
-        }
-    }
-
     pub fn draw_portals(&self, level: &Level, framebuffer: &mut ugli::Framebuffer) {
         let assets = self.assets.get();
         for portal in &level.portals {
@@ -601,6 +577,8 @@ impl Game {
             |assets| assets.textures.front.as_ref(),
             -1.0,
         );
-        self.draw_cannons(level, framebuffer);
+        level
+            .cannon
+            .draw(&self.geng, &self.assets.get(), framebuffer, &self.camera);
     }
 }

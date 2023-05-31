@@ -1,8 +1,10 @@
 use super::*;
 
 mod listed;
+mod texture;
 
 pub use listed::*;
+pub use texture::*;
 
 pub type AssetsHandle = Rc<Hot<Assets>>;
 
@@ -10,7 +12,7 @@ pub type AssetsHandle = Rc<Hot<Assets>>;
 pub struct Assets {
     pub config: Rc<Config>,
     pub sfx: SfxAssets,
-    pub farts: Listed<FartAssets>,
+    pub farts: Listed<Rc<FartAssets>>,
     pub guy: GuyAssets,
     pub surfaces: Listed<SurfaceAssets>,
     pub tiles: Listed<TileAssets>,
@@ -27,7 +29,7 @@ pub struct Assets {
     #[load(listed_in = "_list.ron")]
     pub emotes: Vec<Texture>,
     pub shaders: Shaders,
-    pub cannon: CannonAssets,
+    pub cannon: features::cannon::Assets,
     pub portal: Texture,
     pub bubble: Texture,
     #[load(ext = "svg")]
@@ -38,24 +40,6 @@ pub struct Assets {
 pub struct Shaders {
     pub tile: ugli::Program,
     pub surface: ugli::Program,
-}
-
-#[derive(geng::asset::Load)]
-pub struct CannonAssets {
-    pub body: Texture,
-    pub base: Texture,
-    pub shot: geng::Sound,
-}
-
-#[derive(Deserialize, Clone, Debug)]
-pub struct CannonConfig {
-    pub strength: f32,
-    pub activate_distance: f32,
-    pub shoot_time: f32,
-    pub particle_size: f32,
-    pub particle_count: usize,
-    pub particle_colors: Rc<Vec<Rgba<f32>>>,
-    pub particle_speed: f32,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -88,7 +72,6 @@ pub struct Config {
     pub snow_falloff_impulse_max: f32,
     pub snow_density: f32,
     pub snow_particle_colors: Rc<Vec<Rgba<f32>>>,
-    pub cannon: CannonConfig,
     pub portal: PortalConfig,
     pub stick_force_fadeout_speed: f32,
     pub max_penetration: f32,
@@ -97,6 +80,8 @@ pub struct Config {
     pub bubble_acceleration: f32,
     pub bubble_target_speed: f32,
     pub camera_fov: f32,
+
+    pub cannon: features::cannon::Config,
 }
 
 #[derive(geng::asset::Load)]
@@ -159,6 +144,8 @@ pub struct FartConfig {
     pub sfx_count: usize,
     pub colors: FartColors,
 
+    #[serde(default = "create_true")]
+    pub long_fart_sfx: bool,
     pub long_fart_farticles_per_second: f32,
     pub long_fart_farticle_speed: f32,
     pub farticle_w: f32,
@@ -191,5 +178,18 @@ pub struct FartAssets {
     pub farticle_texture: Texture,
     #[load(path = "sfx*.wav", list = "1..=config.sfx_count")]
     pub sfx: Vec<geng::Sound>,
-    pub long_sfx: geng::Sound,
+    #[load(load_with = "load_long_sfx(&config, &manager, &base_path)")]
+    pub long_sfx: Option<geng::Sound>,
+}
+
+async fn load_long_sfx(
+    config: &FartConfig,
+    manager: &geng::asset::Manager,
+    base_path: &std::path::Path,
+) -> anyhow::Result<Option<geng::Sound>> {
+    Ok(if config.long_fart_sfx {
+        Some(manager.load(base_path.join("long_sfx.wav")).await?)
+    } else {
+        None
+    })
 }

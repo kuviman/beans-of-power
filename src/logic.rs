@@ -184,65 +184,15 @@ impl Game {
                 }
             }
 
-            // This is where we do the cannon mechanics aha
-            if guy.state.cannon_timer.is_none() {
-                for (index, cannon) in self.level.cannons.iter().enumerate() {
-                    if (guy.state.pos - cannon.pos).len() < self.config.cannon.activate_distance {
-                        guy.state.long_farting = false;
-                        guy.state.fart_pressure = 0.0;
-                        guy.state.cannon_timer = Some(CannonTimer {
-                            cannon_index: index,
-                            time: self.config.cannon.shoot_time,
-                        });
-                    }
-                }
-            }
-            if let Some(timer) = &mut guy.state.cannon_timer {
-                let cannon = &self.level.cannons[timer.cannon_index];
-                guy.state.pos = cannon.pos;
-                guy.state.rot = cannon.rot - f32::PI / 2.0;
-                timer.time -= delta_time;
-                if timer.time < 0.0 {
-                    guy.state.cannon_timer = None;
-                    let dir = vec2(1.0, 0.0).rotate(cannon.rot);
-                    guy.state.pos += dir * self.config.cannon.activate_distance * 1.01;
-                    guy.state.vel = dir * self.config.cannon.strength;
-                    guy.state.w = 0.0;
-
-                    let mut effect = assets.cannon.shot.effect();
-                    effect.set_volume(
-                        (self.volume
-                            * 0.6
-                            * (1.0 - (guy.state.pos - self.camera.center).len() / self.camera.fov))
-                            .clamp(0.0, 1.0) as f64,
-                    );
-                    effect.set_speed(sfx_speed);
-                    effect.play();
-
-                    let fart_type = "normal"; // TODO: not normal LUL
-                    let fart_assets = &assets.farts[fart_type];
-                    let farticles = self.farticles.entry(fart_type.to_owned()).or_default();
-                    for _ in 0..self.config.cannon.particle_count {
-                        farticles.push(Farticle {
-                            size: self.config.cannon.particle_size,
-                            pos: guy.state.pos,
-                            vel: dir * self.config.cannon.particle_speed
-                                + vec2(
-                                    thread_rng().gen_range(
-                                        0.0..=fart_assets.config.farticle_additional_vel,
-                                    ),
-                                    0.0,
-                                )
-                                .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI)),
-                            rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
-                            w: thread_rng().gen_range(
-                                -fart_assets.config.farticle_w..=fart_assets.config.farticle_w,
-                            ),
-                            colors: self.config.cannon.particle_colors.clone(),
-                            t: 1.0,
-                        });
-                    }
-                }
+            if let std::ops::ControlFlow::Break(()) = features::cannon::update_guy(
+                &mut guy.state,
+                delta_time,
+                &self.level,
+                &self.config,
+                &assets,
+                &self.sound,
+                &mut self.farticles,
+            ) {
                 return;
             }
 
@@ -351,7 +301,7 @@ impl Game {
                         self.long_fart_sfx.remove(&guy.id);
                     } else {
                         sfx.sfx.set_volume(
-                            (self.volume
+                            (self.sound.volume
                                 * (1.0
                                     - (guy.state.pos - self.camera.center).len() / self.camera.fov))
                                 .clamp(0.0, 1.0) as f64
@@ -360,24 +310,26 @@ impl Game {
                     }
                 }
             } else if let Some(sfx) = self.long_fart_sfx.get_mut(&guy.id) {
-                let volume = (self.volume
+                let volume = (self.sound.volume
                     * (1.0 - (guy.state.pos - self.camera.center).len() / self.camera.fov))
                     .clamp(0.0, 1.0) as f64;
                 if fart_type != sfx.type_name {
                     // TODO: this is copypasta
-                    let mut sfx = fart_assets.long_sfx.effect();
-                    sfx.set_volume(volume);
-                    sfx.set_speed(sfx_speed);
-                    sfx.play();
-                    if let Some(mut sfx) = self.long_fart_sfx.insert(
-                        guy.id,
-                        LongFartSfx {
-                            type_name: fart_type.to_owned(),
-                            finish_time: None,
-                            sfx,
-                        },
-                    ) {
-                        sfx.sfx.stop();
+                    if let Some(sound) = &fart_assets.long_sfx {
+                        let mut sfx = sound.effect();
+                        sfx.set_volume(volume);
+                        sfx.set_speed(sfx_speed);
+                        sfx.play();
+                        if let Some(mut sfx) = self.long_fart_sfx.insert(
+                            guy.id,
+                            LongFartSfx {
+                                type_name: fart_type.to_owned(),
+                                finish_time: None,
+                                sfx,
+                            },
+                        ) {
+                            sfx.sfx.stop();
+                        }
                     }
                 } else {
                     sfx.sfx.set_volume(volume);
@@ -392,33 +344,13 @@ impl Game {
                 while guy.animation.next_farticle_time < 0.0 {
                     guy.animation.next_farticle_time +=
                         1.0 / fart_assets.config.long_fart_farticles_per_second;
-                    self.farticles
-                        .entry(fart_type.to_owned())
-                        .or_default()
-                        .push(Farticle {
-                            size: 1.0,
-                            pos: butt,
-                            vel: guy.state.vel
-                                + vec2(
-                                    thread_rng().gen_range(
-                                        0.0..=fart_assets.config.farticle_additional_vel,
-                                    ),
-                                    0.0,
-                                )
-                                .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI))
-                                + vec2(0.0, -fart_assets.config.long_fart_farticle_speed)
-                                    .rotate(guy.state.rot),
-                            rot: if fart_assets.config.farticle_random_rotation {
-                                thread_rng().gen_range(0.0..2.0 * f32::PI)
-                            } else {
-                                0.0
-                            },
-                            w: thread_rng().gen_range(
-                                -fart_assets.config.farticle_w..=fart_assets.config.farticle_w,
-                            ),
-                            colors: fart_assets.config.colors.get(),
-                            t: 1.0,
-                        });
+                    self.farticles.spawn_single(
+                        fart_assets,
+                        butt,
+                        guy.state.vel
+                            - vec2(0.0, fart_assets.config.long_fart_farticle_speed)
+                                .rotate(guy.state.rot),
+                    );
                 }
                 guy.state.vel += vec2(0.0, self.config.fart_continued_force * delta_time)
                     .rotate(guy.state.rot)
@@ -430,8 +362,9 @@ impl Game {
                 guy.state.bubble_timer = None;
                 guy.state.fart_pressure -= self.config.fart_pressure_released;
                 guy.state.long_farting = true;
-                {
-                    let mut sfx = fart_assets.long_sfx.effect();
+                if let Some(sound) = &fart_assets.long_sfx {
+                    // TODO: copypasta??
+                    let mut sfx = sound.effect();
                     sfx.set_volume(0.0);
                     sfx.set_speed(sfx_speed);
                     sfx.play();
@@ -446,35 +379,12 @@ impl Game {
                         sfx.sfx.stop();
                     }
                 }
-                let farticles = self.farticles.entry(fart_type.to_owned()).or_default();
-                for _ in 0..fart_assets.config.farticle_count {
-                    farticles.push(Farticle {
-                        size: 1.0,
-                        pos: butt,
-                        vel: guy.state.vel
-                            + vec2(
-                                thread_rng()
-                                    .gen_range(0.0..=fart_assets.config.farticle_additional_vel),
-                                0.0,
-                            )
-                            .rotate(thread_rng().gen_range(0.0..=2.0 * f32::PI)),
-                        rot: if fart_assets.config.farticle_random_rotation {
-                            thread_rng().gen_range(0.0..2.0 * f32::PI)
-                        } else {
-                            0.0
-                        },
-                        w: thread_rng().gen_range(
-                            -fart_assets.config.farticle_w..=fart_assets.config.farticle_w,
-                        ),
-                        colors: fart_assets.config.colors.get(),
-                        t: 1.0,
-                    });
-                }
+                self.farticles.spawn(fart_assets, butt, guy.state.vel);
                 guy.state.vel += vec2(0.0, self.config.fart_strength).rotate(guy.state.rot)
                     / guy.mass(&self.config);
                 let mut effect = fart_assets.sfx.choose(&mut thread_rng()).unwrap().effect();
                 effect.set_volume(
-                    (self.volume
+                    (self.sound.volume
                         * (1.0 - (guy.state.pos - self.camera.center).len() / self.camera.fov))
                         .clamp(0.0, 1.0) as f64,
                 );
@@ -484,7 +394,7 @@ impl Game {
                 // Growling stomach recharge
                 if Some(guy.id) == self.my_guy {
                     let mut effect = assets.sfx.fart_recharge.effect();
-                    effect.set_volume(self.volume as f64 * 0.5);
+                    effect.set_volume(self.sound.volume as f64 * 0.5);
                     effect.play();
                 }
                 guy.animation.growl_progress = Some(0.0);
@@ -524,45 +434,41 @@ impl Game {
                     if surface.type_name == "water" && !was_colliding_water {
                         was_colliding_water = true;
                         if vec2::dot(from_surface, guy.state.vel).abs() > 0.5 {
-                            let mut effect = assets.sfx.water_splash.effect();
-                            effect.set_volume(
-                                (self.volume
-                                    * 0.6
-                                    * (1.0
-                                        - (guy.state.pos - self.camera.center).len()
-                                            / self.camera.fov))
-                                    .clamp(0.0, 1.0) as f64,
-                            );
-                            effect.set_speed(sfx_speed);
-                            effect.play();
+                            self.sound.play(&assets.sfx.water_splash, 1.0, guy.state.pos);
                             let fart_type = "bubble";
                             let fart_assets = &assets.farts[fart_type];
-                            let farticles = self.farticles.entry(fart_type.to_owned()).or_default();
+                            // TODO
                             for _ in 0..30 {
-                                farticles.push(Farticle {
-                                    size: 0.6,
-                                    pos: guy.state.pos - from_surface
-                                        + vec2(
-                                            thread_rng().gen_range(-guy.radius()..=guy.radius()),
-                                            0.0,
-                                        ),
-                                    vel: {
-                                        let mut v = vec2(0.0, thread_rng().gen_range(0.0..=1.0))
-                                            .rotate(
+                                self.farticles.push(
+                                    fart_assets,
+                                    farticle::Farticle {
+                                        size: 0.6,
+                                        pos: guy.state.pos - from_surface
+                                            + vec2(
                                                 thread_rng()
-                                                    .gen_range(-f32::PI / 4.0..=f32::PI / 4.0),
-                                            );
-                                        v.y *= 0.3;
-                                        v * 2.0
+                                                    .gen_range(-guy.radius()..=guy.radius()),
+                                                0.0,
+                                            ),
+                                        vel: {
+                                            let mut v =
+                                                vec2(0.0, thread_rng().gen_range(0.0..=1.0))
+                                                    .rotate(
+                                                        thread_rng().gen_range(
+                                                            -f32::PI / 4.0..=f32::PI / 4.0,
+                                                        ),
+                                                    );
+                                            v.y *= 0.3;
+                                            v * 2.0
+                                        },
+                                        rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
+                                        w: thread_rng().gen_range(
+                                            -fart_assets.config.farticle_w
+                                                ..=fart_assets.config.farticle_w,
+                                        ),
+                                        colors: fart_assets.config.colors.get(),
+                                        t: 0.5,
                                     },
-                                    rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
-                                    w: thread_rng().gen_range(
-                                        -fart_assets.config.farticle_w
-                                            ..=fart_assets.config.farticle_w,
-                                    ),
-                                    colors: fart_assets.config.colors.get(),
-                                    t: 0.5,
-                                });
+                                );
                             }
                         }
                     }
@@ -653,21 +559,23 @@ impl Game {
                     guy.state.snow_layer -= snow_falloff;
                     let fart_type = "normal"; // TODO: not normal?
                     let fart_assets = &assets.farts[fart_type];
-                    let farticles = self.farticles.entry(fart_type.to_owned()).or_default();
                     for _ in 0..(100.0 * snow_falloff / self.config.max_snow_layer) as i32 {
-                        farticles.push(Farticle {
-                            size: 0.6,
-                            pos: guy.state.pos
-                                + vec2(guy.radius(), 0.0)
-                                    .rotate(thread_rng().gen_range(0.0..2.0 * f32::PI)),
-                            vel: thread_rng().gen_circle(before.vel, 1.0),
-                            rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
-                            w: thread_rng().gen_range(
-                                -fart_assets.config.farticle_w..=fart_assets.config.farticle_w,
-                            ),
-                            colors: self.config.snow_particle_colors.clone(),
-                            t: 0.5,
-                        });
+                        self.farticles.push(
+                            fart_assets,
+                            farticle::Farticle {
+                                size: 0.6,
+                                pos: guy.state.pos
+                                    + vec2(guy.radius(), 0.0)
+                                        .rotate(thread_rng().gen_range(0.0..2.0 * f32::PI)),
+                                vel: thread_rng().gen_circle(before.vel, 1.0),
+                                rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
+                                w: thread_rng().gen_range(
+                                    -fart_assets.config.farticle_w..=fart_assets.config.farticle_w,
+                                ),
+                                colors: self.config.snow_particle_colors.clone(),
+                                t: 0.5,
+                            },
+                        );
                     }
                 }
                 guy.state.snow_layer = guy.state.snow_layer.clamp(0.0, self.config.max_snow_layer);
@@ -675,16 +583,7 @@ impl Game {
                 if let Some(sound) = &collision.assets.sound {
                     let volume = ((-0.5 + impulse / 2.0) / 2.0).clamp(0.0, 1.0);
                     if volume > 0.0 {
-                        let mut effect = sound.effect();
-                        effect.set_volume(
-                            (self.volume
-                                * volume
-                                * (1.0
-                                    - (guy.state.pos - self.camera.center).len() / self.camera.fov))
-                                .clamp(0.0, 1.0) as f64,
-                        );
-                        effect.set_speed(sfx_speed);
-                        effect.play();
+                        self.sound.play(sound, volume, guy.state.pos);
                     }
                 }
             } else {

@@ -25,11 +25,6 @@
         "activate_distance": 1.0,
         "shoot_time": 1.0,
         "strength": 10.0,
-        "particle_count": 10,
-        "particle_colors": [
-            "#555"
-        ],
-        "particle_size": 2.0,
         "particle_speed": 1.0
     },
     "portal": {

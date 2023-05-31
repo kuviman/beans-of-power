@@ -1,0 +1,14 @@
+{
+    "colors": {
+        "Fixed": [
+            "#555"
+        ]
+    },
+    "long_fart_sfx": false,
+    "long_fart_farticles_per_second": 30.0,
+    "long_fart_farticle_speed": 3.5,
+    "farticle_size": 0.4,
+    "farticle_count": 10,
+    "farticle_w": 10.0,
+    "farticle_additional_vel": 1.0
+}
