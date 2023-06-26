@@ -605,6 +605,22 @@ version = "0.14.0"
 source = "git+https://github.com/kuviman/geng#f8712f8e4b1d54a8ecf38336bfbc8c0b2bfa8818"
 
 [[package]]
+name = "beans-of-power"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "cmake",
+ "dynamic-linking",
+ "geng",
+ "image",
+ "noise",
+ "rctree",
+ "resvg",
+ "roxmltree",
+ "serde",
+]
+
+[[package]]
 name = "bincode"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1807,22 +1823,6 @@ dependencies = [
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "getting-farted-on"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "cmake",
- "dynamic-linking",
- "geng",
- "image",
- "noise",
- "rctree",
- "resvg",
- "roxmltree",
- "serde",
 ]
 
 [[package]]

@@ -2,8 +2,8 @@ theme = "no-style-please"
 
 base_url = "https://fart-game.kuviman.com"
 
-title = "Getting Farted On"
-description = "Foddian Game"
+title = "Beans of Power"
+description = "Rage Game"
 
 compile_sass = true
 

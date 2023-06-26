@@ -59,6 +59,8 @@ pub struct Config {
     pub gravity: f32,
     pub max_angular_speed: f32, // TODO: maybe?
 
+    pub default_fart_type: String,
+
     pub fart_continued_force: f32,
     pub fart_continuation_pressure_speed: f32,
     pub force_fart_pressure_multiplier: f32,

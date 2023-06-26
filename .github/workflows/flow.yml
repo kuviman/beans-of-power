@@ -55,9 +55,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build
-    environment:
-      name: main
-      url: https://kuviman.itch.io/getting-farted-on
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v2
@@ -66,7 +63,7 @@ jobs:
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
           CHANNEL: html5
-          ITCH_GAME: getting-farted-on
+          ITCH_GAME: beans-of-power
           ITCH_USER: kuviman
           PACKAGE: web
       - name: Deploy GitHub Pages
@@ -82,14 +79,14 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           source: linux
-          target: getting-farted-on
+          target: beans-of-power
       - name: Deploy server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          script: systemctl --user restart gfo
+          script: systemctl --user restart beans-of-power
 
   deploy-dev:
     name: Deploy (Dev)
@@ -97,9 +94,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build
-    environment:
-      name: dev
-      url: https://kuviman.github.io/getting-farted-on/dev/?connect=singleplayer
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v2

@@ -120,7 +120,7 @@ impl Guy {
                 },
                 w: 0.0,
                 snow_layer: 0.0,
-                fart_type: "normal".to_owned(), // TODO
+                fart_type: config.default_fart_type.clone(),
                 cannon_timer: None,
                 stick_force: vec2::ZERO,
                 bubble_timer: None,

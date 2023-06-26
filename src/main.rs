@@ -104,7 +104,7 @@ fn main() {
         };
 
         let geng = Geng::new_with(geng::ContextOptions {
-            title: "LD51 - Getting Farted On".to_owned(),
+            title: "Beans of Power".to_owned(),
             fixed_delta_time: 1.0 / 200.0,
             ..geng::ContextOptions::from_args(&opt.geng)
         });
