@@ -9,7 +9,7 @@ pub struct Tile {
 }
 
 #[derive(geng::asset::Load, Deserialize)]
-#[load(json)]
+#[load(serde = "json")]
 pub struct TileParams {
     #[serde(default)]
     pub svg: bool,

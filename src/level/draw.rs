@@ -280,8 +280,8 @@ impl LevelMesh {
                                             }
                                         }
                                     } else {
-                                        let a = n1.arg();
-                                        let b = n2.arg();
+                                        let a = n1.arg().as_radians();
+                                        let b = n2.arg().as_radians();
                                         let mut angle = b - a;
                                         if angle > 0.0 {
                                             angle -= 2.0 * f32::PI;
@@ -289,8 +289,9 @@ impl LevelMesh {
                                         for j in 0..=R {
                                             vs.push(Point {
                                                 pos: surface.p2,
-                                                normal: vec2(1.0, 0.0)
-                                                    .rotate(a + angle * j as f32 / R as f32),
+                                                normal: vec2(1.0, 0.0).rotate(Angle::from_radians(
+                                                    a + angle * j as f32 / R as f32,
+                                                )),
                                                 height: surface_texture_height(surface),
                                             });
                                         }
@@ -524,7 +525,7 @@ impl Game {
                 &self.camera,
                 &draw2d::TexturedQuad::unit_colored(&assets.portal, portal.color)
                     .scale_uniform(self.config.portal.size)
-                    .rotate(self.real_time)
+                    .rotate(Angle::from_radians(self.real_time))
                     .translate(portal.pos),
             );
         }
@@ -544,11 +545,13 @@ impl Game {
                     framebuffer,
                     &self.camera,
                     &draw2d::TexturedQuad::unit(&assets.objects[&obj.type_name])
-                        .transform(mat3::rotate(if obj.fart_type().is_some() {
-                            self.real_time
-                        } else {
-                            0.0
-                        }))
+                        .transform(mat3::rotate(Angle::from_radians(
+                            if obj.fart_type().is_some() {
+                                self.real_time
+                            } else {
+                                0.0
+                            },
+                        )))
                         .scale_uniform(0.6)
                         .translate(obj.pos),
                 );

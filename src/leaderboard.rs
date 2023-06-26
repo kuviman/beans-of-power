@@ -19,7 +19,7 @@ impl Game {
         });
         let mut camera = geng::Camera2d {
             center: vec2::ZERO,
-            rotation: 0.0,
+            rotation: Angle::ZERO,
             fov: 40.0,
         };
         camera.center.x += camera.fov * self.framebuffer_size.x / self.framebuffer_size.y / 2.0;

@@ -81,7 +81,7 @@ impl Game {
             assets: assets.clone(),
             camera: geng::Camera2d {
                 center: level.spawn_point,
-                rotation: 0.0,
+                rotation: Angle::ZERO,
                 fov: assets.get().config.camera_fov,
             },
             framebuffer_size: vec2(1.0, 1.0),
@@ -171,7 +171,7 @@ impl Game {
         if let Some(id) = self.my_guy {
             let camera = geng::Camera2d {
                 center: vec2::ZERO,
-                rotation: 0.0,
+                rotation: Angle::ZERO,
                 fov: 10.0,
             };
             let guy = self.guys.get_mut(&id).unwrap();

@@ -40,7 +40,7 @@ impl Controller {
             mouse: vec2(0.0, 0.0),
             camera: geng::Camera2d {
                 center: vec2(0.0, 0.0),
-                rotation: 0.0,
+                rotation: Angle::ZERO,
                 fov: 1.0,
             },
             framebuffer_size: vec2(1.0, 1.0),

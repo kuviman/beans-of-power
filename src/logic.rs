@@ -42,22 +42,23 @@ impl Game {
 
         // Gamepad
         if let Some(gamepad) = self.active_gamepad {
-            let gilrs = self.geng.gilrs();
-            let gamepad = gilrs.gamepad(gamepad);
-            for axis in [gilrs::Axis::LeftStickX, gilrs::Axis::RightStickX] {
-                if let Some(axis) = gamepad.axis_data(axis) {
-                    let value = axis.value();
-                    if value < 0.0 {
-                        new_input.roll_left += -value;
-                    } else {
-                        new_input.roll_right += value;
+            if let Some(gilrs) = self.geng.gilrs() {
+                let gamepad = gilrs.gamepad(gamepad);
+                for axis in [gilrs::Axis::LeftStickX, gilrs::Axis::RightStickX] {
+                    if let Some(axis) = gamepad.axis_data(axis) {
+                        let value = axis.value();
+                        if value < 0.0 {
+                            new_input.roll_left += -value;
+                        } else {
+                            new_input.roll_right += value;
+                        }
                     }
                 }
-            }
-            for button in [gilrs::Button::South] {
-                if let Some(button) = gamepad.button_data(button) {
-                    if button.is_pressed() {
-                        new_input.force_fart = true;
+                for button in [gilrs::Button::South] {
+                    if let Some(button) = gamepad.button_data(button) {
+                        if button.is_pressed() {
+                            new_input.force_fart = true;
+                        }
                     }
                 }
             }
@@ -122,6 +123,7 @@ impl Game {
             let mut time_scale = 1.0;
             for tile in self.level.gameplay_tiles() {
                 if !Aabb2::points_bounding_box(tile.vertices)
+                    .unwrap()
                     .extend_uniform(self.config.guy_radius)
                     .contains(guy.state.pos)
                 {
@@ -198,23 +200,24 @@ impl Game {
 
             if guy.progress.finished {
                 guy.state.fart_pressure = 0.0;
-                guy.state.rot -= delta_time;
+                guy.state.rot -= Angle::from_radians(delta_time);
                 guy.state.pos = self.level.finish_point
                     + (guy.state.pos - self.level.finish_point)
                         .normalize_or_zero()
-                        .rotate(delta_time)
+                        .rotate(Angle::from_radians(delta_time))
                         * 1.0;
                 continue;
             }
 
-            guy.state.w += (guy.input.roll_direction().clamp(-1.0, 1.0)
-                * self.config.angular_acceleration
-                / guy.mass(&self.config)
-                * delta_time)
-                .clamp(
-                    -(guy.state.w + self.config.max_angular_speed).max(0.0),
-                    (self.config.max_angular_speed - guy.state.w).max(0.0),
-                );
+            guy.state.w += Angle::from_radians(
+                (guy.input.roll_direction().clamp(-1.0, 1.0) * self.config.angular_acceleration
+                    / guy.mass(&self.config)
+                    * delta_time)
+                    .clamp(
+                        -(guy.state.w.as_radians() + self.config.max_angular_speed).max(0.0),
+                        (self.config.max_angular_speed - guy.state.w.as_radians()).max(0.0),
+                    ),
+            );
 
             if guy.state.bubble_timer.is_none() {
                 guy.state.vel.y -= self.config.gravity * delta_time;
@@ -224,6 +227,7 @@ impl Game {
             let butt = guy.state.pos + vec2(0.0, -guy.state.radius * 0.9).rotate(guy.state.rot);
             for tile in self.level.gameplay_tiles() {
                 if !Aabb2::points_bounding_box(tile.vertices)
+                    .unwrap()
                     .extend_uniform(self.config.guy_radius)
                     .contains(guy.state.pos)
                 {
@@ -434,7 +438,8 @@ impl Game {
                     if surface.type_name == "water" && !was_colliding_water {
                         was_colliding_water = true;
                         if vec2::dot(from_surface, guy.state.vel).abs() > 0.5 {
-                            self.sound.play(&assets.sfx.water_splash, 1.0, guy.state.pos);
+                            self.sound
+                                .play(&assets.sfx.water_splash, 1.0, guy.state.pos);
                             let fart_type = "bubble";
                             let fart_assets = &assets.farts[fart_type];
                             // TODO
@@ -452,19 +457,21 @@ impl Game {
                                         vel: {
                                             let mut v =
                                                 vec2(0.0, thread_rng().gen_range(0.0..=1.0))
-                                                    .rotate(
+                                                    .rotate(Angle::from_radians(
                                                         thread_rng().gen_range(
                                                             -f32::PI / 4.0..=f32::PI / 4.0,
                                                         ),
-                                                    );
+                                                    ));
                                             v.y *= 0.3;
                                             v * 2.0
                                         },
-                                        rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
-                                        w: thread_rng().gen_range(
+                                        rot: Angle::from_radians(
+                                            thread_rng().gen_range(0.0..2.0 * f32::PI),
+                                        ),
+                                        w: Angle::from_radians(thread_rng().gen_range(
                                             -fart_assets.config.farticle_w
                                                 ..=fart_assets.config.farticle_w,
-                                        ),
+                                        )),
                                         colors: fart_assets.config.colors.get(),
                                         t: 0.5,
                                     },
@@ -515,7 +522,8 @@ impl Game {
 
                 let normal_vel = vec2::dot(guy.state.vel, collision.normal);
                 let tangent = collision.normal.rotate_90();
-                let tangent_vel = vec2::dot(guy.state.vel, tangent) - guy.state.w * guy.radius()
+                let tangent_vel = vec2::dot(guy.state.vel, tangent)
+                    - guy.state.w.as_radians() * guy.radius()
                     + collision.surface.flow;
                 let bounce_impulse = -normal_vel * (1.0 + collision.assets.params.bounciness);
                 let impulse =
@@ -526,7 +534,8 @@ impl Game {
 
                 guy.state.pos += collision.normal * collision.penetration;
                 guy.state.vel += tangent * friction_impulse / guy.mass(&self.config);
-                guy.state.w -= friction_impulse / guy.radius() / guy.mass(&self.config);
+                guy.state.w -=
+                    Angle::from_radians(friction_impulse / guy.radius() / guy.mass(&self.config));
 
                 guy.state.vel -=
                     guy.state.vel * (delta_time * collision.assets.params.speed_friction).min(1.0);
@@ -544,7 +553,8 @@ impl Game {
 
                 // Snow layer
                 if collision.surface.type_name == "snow" {
-                    guy.state.snow_layer += guy.state.w.abs() * delta_time * 1e-2;
+                    guy.state.snow_layer += guy.state.w.as_radians().abs() * delta_time * 1e-2;
+                    // TODO magic constant??
                 }
 
                 {
@@ -565,13 +575,16 @@ impl Game {
                             farticle::Farticle {
                                 size: 0.6,
                                 pos: guy.state.pos
-                                    + vec2(guy.radius(), 0.0)
-                                        .rotate(thread_rng().gen_range(0.0..2.0 * f32::PI)),
+                                    + vec2(guy.radius(), 0.0).rotate(Angle::from_radians(
+                                        thread_rng().gen_range(0.0..2.0 * f32::PI),
+                                    )),
                                 vel: thread_rng().gen_circle(before.vel, 1.0),
-                                rot: thread_rng().gen_range(0.0..2.0 * f32::PI),
-                                w: thread_rng().gen_range(
-                                    -fart_assets.config.farticle_w..=fart_assets.config.farticle_w,
+                                rot: Angle::from_radians(
+                                    thread_rng().gen_range(0.0..2.0 * f32::PI),
                                 ),
+                                w: Angle::from_radians(thread_rng().gen_range(
+                                    -fart_assets.config.farticle_w..=fart_assets.config.farticle_w,
+                                )),
                                 colors: self.config.snow_particle_colors.clone(),
                                 t: 0.5,
                             },

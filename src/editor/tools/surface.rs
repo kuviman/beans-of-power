@@ -46,10 +46,10 @@ impl SurfaceTool {
             return None;
         }
         if self.geng.window().is_key_pressed(geng::Key::LShift) {
-            let arg = (p2 - p1).arg();
+            let arg = (p2 - p1).arg().as_radians();
             let round_step = 15.0 * f32::PI / 180.0;
             let arg = (arg / round_step).round() * round_step;
-            p2 = p1 + vec2((p2 - p1).len(), 0.0).rotate(arg);
+            p2 = p1 + vec2((p2 - p1).len(), 0.0).rotate(Angle::from_radians(arg));
         }
         Some(Segment(p1, p2))
     }

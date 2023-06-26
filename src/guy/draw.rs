@@ -177,7 +177,7 @@ impl Game {
                             )
                             .scale_uniform(0.5)
                             .translate(vec2(2.0, 0.0))
-                            .rotate(rot)
+                            .rotate(Angle::from_radians(rot))
                             .transform(guy_transform),
                         );
                     };

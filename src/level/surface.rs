@@ -29,7 +29,7 @@ impl Surface {
 }
 
 #[derive(geng::asset::Load, Deserialize, Debug)]
-#[load(json)]
+#[load(serde = "json")]
 pub struct SurfaceParams {
     #[serde(default)]
     pub non_collidable: bool,

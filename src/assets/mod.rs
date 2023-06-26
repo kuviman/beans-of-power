@@ -48,7 +48,7 @@ pub struct PortalConfig {
 }
 
 #[derive(geng::asset::Load, Deserialize, Clone, Debug)]
-#[load(json)]
+#[load(serde = "json")]
 pub struct Config {
     pub volume: f32,
     pub sfx_time_scale_power: f64,
@@ -140,7 +140,7 @@ impl FartColors {
 }
 
 #[derive(geng::asset::Load, Serialize, Deserialize)]
-#[load(json)]
+#[load(serde = "json")]
 pub struct FartConfig {
     #[serde(default = "one")]
     pub sfx_count: usize,

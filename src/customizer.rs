@@ -13,7 +13,7 @@ impl Game {
         }
         let camera = geng::Camera2d {
             center: vec2::ZERO,
-            rotation: 0.0,
+            rotation: Angle::ZERO,
             fov: 10.0,
         };
         self.ui_controller

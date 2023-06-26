@@ -49,8 +49,8 @@ pub struct PhysicsState {
     pub radius: f32,
     pub pos: vec2<f32>,
     pub vel: vec2<f32>,
-    pub rot: f32,
-    pub w: f32,
+    pub rot: Angle<f32>,
+    pub w: Angle<f32>,
     pub fart_type: String,
     pub long_farting: bool,
     pub fart_pressure: f32,
@@ -113,12 +113,12 @@ impl Guy {
                         vec2::ZERO
                     },
                 vel: vec2::ZERO,
-                rot: if rng {
+                rot: Angle::from_radians(if rng {
                     thread_rng().gen_range(-1.0..=1.0)
                 } else {
                     0.0
-                },
-                w: 0.0,
+                }),
+                w: Angle::ZERO,
                 snow_layer: 0.0,
                 fart_type: config.default_fart_type.clone(),
                 cannon_timer: None,

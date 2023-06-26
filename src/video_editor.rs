@@ -52,7 +52,7 @@ impl Save {
                         start_time: 0.0,
                         camera_info: CameraInfo::Static(geng::Camera2d {
                             center: vec2::ZERO,
-                            rotation: 0.0,
+                            rotation: Angle::ZERO,
                             fov: 10.0,
                         }),
                     },

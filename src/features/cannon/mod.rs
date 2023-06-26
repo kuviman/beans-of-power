@@ -3,7 +3,7 @@ use super::*;
 pub mod editor;
 
 #[derive(geng::asset::Load, Deserialize, Clone, Debug)]
-#[load(json)] // TODO toml
+#[load(serde = "json")] // TODO toml
 pub struct Config {
     pub strength: f32,
     pub activate_distance: f32,
@@ -21,7 +21,7 @@ pub struct Assets {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Cannon {
     pub pos: vec2<f32>,
-    pub rot: f32,
+    pub rot: Angle<f32>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -45,7 +45,9 @@ impl LevelInfo {
     ) {
         for cannon in &self.cannons {
             let mut scale = vec2(1.0, 1.0);
-            if cannon.rot > f32::PI / 2.0 || cannon.rot < -f32::PI / 2.0 {
+            if cannon.rot > Angle::from_radians(f32::PI / 2.0)
+                || cannon.rot < Angle::from_radians(-f32::PI / 2.0)
+            {
                 scale.x = -scale.x;
             }
             geng.draw2d().draw2d(
@@ -94,7 +96,7 @@ pub fn update_guy(
     if let Some(timer) = &mut guy.cannon_timer {
         let cannon = &level.cannon.cannons[timer.cannon_index];
         guy.pos = cannon.pos;
-        guy.rot = cannon.rot - f32::PI / 2.0;
+        guy.rot = cannon.rot - Angle::from_radians(f32::PI / 2.0);
         timer.time -= delta_time;
         if timer.time < 0.0 {
             guy.cannon_timer = None;
@@ -105,7 +107,7 @@ pub fn update_guy(
             guy.pos += dir * config.activate_distance * 1.01;
 
             guy.vel = dir * config.strength;
-            guy.w = 0.0;
+            guy.w = Angle::ZERO;
 
             sound.play(
                 assets.farticles.sfx.choose(&mut thread_rng()).unwrap(),

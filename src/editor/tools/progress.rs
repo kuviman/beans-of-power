@@ -86,7 +86,7 @@ impl EditorTool for ProgressTool {
                 framebuffer,
                 &geng::Camera2d {
                     center: vec2::ZERO,
-                    rotation: 0.0,
+                    rotation: Angle::ZERO,
                     fov: 15.0,
                 },
                 &draw2d::Text::unit(

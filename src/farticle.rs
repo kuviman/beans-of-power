@@ -5,8 +5,8 @@ pub struct Farticle {
     pub pos: vec2<f32>,
     pub vel: vec2<f32>,
     pub colors: Rc<Vec<Rgba<f32>>>,
-    pub rot: f32,
-    pub w: f32,
+    pub rot: Angle<f32>,
+    pub w: Angle<f32>,
     pub t: f32,
 }
 
@@ -16,12 +16,12 @@ impl Farticle {
             size: config.farticle_size,
             pos,
             vel: thread_rng().gen_circle(vel, config.farticle_additional_vel),
-            rot: if config.farticle_random_rotation {
+            rot: Angle::from_radians(if config.farticle_random_rotation {
                 thread_rng().gen_range(0.0..2.0 * f32::PI)
             } else {
                 0.0
-            },
-            w: thread_rng().gen_range(-1.0..1.0) * config.farticle_w,
+            }),
+            w: Angle::from_radians(thread_rng().gen_range(-1.0..1.0) * config.farticle_w),
             colors: config.colors.get(),
             t: 1.0,
         }
