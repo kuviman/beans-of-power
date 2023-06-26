@@ -447,7 +447,7 @@ impl Game {
                                 self.farticles.push(
                                     fart_assets,
                                     farticle::Farticle {
-                                        size: 0.6,
+                                        size: 0.6 * fart_assets.config.farticle_size,
                                         pos: guy.state.pos - from_surface
                                             + vec2(
                                                 thread_rng()
@@ -573,7 +573,7 @@ impl Game {
                         self.farticles.push(
                             fart_assets,
                             farticle::Farticle {
-                                size: 0.6,
+                                size: 0.6 * fart_assets.config.farticle_size,
                                 pos: guy.state.pos
                                     + vec2(guy.radius(), 0.0).rotate(Angle::from_radians(
                                         thread_rng().gen_range(0.0..2.0 * f32::PI),
