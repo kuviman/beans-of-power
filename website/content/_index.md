@@ -1,8 +1,8 @@
 ---
 ---
 
-![img](farts.gif)
-_MMO foddian farting simulator_
+![img](gameplay.gif)
+_rage game_
 
 # Play the game
 

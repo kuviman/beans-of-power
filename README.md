@@ -1,6 +1,6 @@
 # Beans of Power
 
-![power](website/content/farts.gif)
+![power](website/content/gameplay.gif)
 
 ## Play
 
