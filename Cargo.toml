@@ -24,3 +24,6 @@ roxmltree = "0.18"
 
 [build-dependencies]
 cmake = "<=0.1.45" # https://github.com/PistonDevelopers/freetype-sys/issues/99
+
+[patch.crates-io]
+async-broadcast = { git = "https://github.com/kuviman/async-broadcast", branch = "fix-wasm" }
