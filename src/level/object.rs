@@ -25,15 +25,14 @@ pub fn load_objects_assets(
     let manager = manager.clone();
     let path = path.to_owned();
     async move {
-        let json = <String as geng::asset::Load>::load(&manager, &path.join("_list.json")).await?;
-        let list: Vec<String> = serde_json::from_str(&json).unwrap();
+        let list: Vec<String> = file::load_detect(path.join("_list.json")).await?;
         future::join_all(list.into_iter().map(|name| {
             let manager = manager.clone();
             let path = path.clone();
             async move {
                 Ok((
                     name.clone(),
-                    geng::asset::Load::load(&manager, &path.join(format!("{}.png", name))).await?,
+                    manager.load(path.join(format!("{}.png", name))).await?,
                 ))
             }
         }))

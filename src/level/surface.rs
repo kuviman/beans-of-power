@@ -73,7 +73,7 @@ pub struct SurfaceAssets {
     pub params: SurfaceParams,
     #[load(load_with = "params.load_textures(&manager, &base_path)")]
     pub textures: SurfaceTextures,
-    #[load(if = "params.sound")]
+    #[load(condition = "params.sound")]
     pub sound: Option<geng::Sound>,
 }
 

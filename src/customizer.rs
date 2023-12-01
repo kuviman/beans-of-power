@@ -51,12 +51,13 @@ impl Game {
         if !self.show_customizer {
             if matches!(
                 event,
-                geng::Event::KeyDown {
+                geng::Event::KeyPress {
                     key: geng::Key::Enter,
-                } | geng::Event::Gamepad(gilrs::Event {
-                    event: gilrs::EventType::ButtonPressed(gilrs::Button::Start, ..),
-                    ..
-                })
+                } /* TODO
+                      | geng::Event::Gamepad(gilrs::Event {
+                      event: gilrs::EventType::ButtonPressed(gilrs::Button::Start, ..),
+                      ..
+                  })*/
             ) {
                 self.show_customizer = true;
             }
@@ -69,12 +70,13 @@ impl Game {
         let msgs = msgs.chain(
             matches!(
                 event,
-                geng::Event::KeyDown {
+                geng::Event::KeyPress {
                     key: geng::Key::Enter,
-                } | geng::Event::Gamepad(gilrs::Event {
-                    event: gilrs::EventType::ButtonPressed(gilrs::Button::Start, ..),
-                    ..
-                })
+                } /* TODO
+                  geng::Event::Gamepad(gilrs::Event {
+                      event: gilrs::EventType::ButtonPressed(gilrs::Button::Start, ..),
+                      ..
+                  }) */
             )
             .then_some(UiMessage::Play),
         );
@@ -89,7 +91,7 @@ impl Game {
                 }
             }
         }
-        if let geng::Event::KeyDown { key } = event {
+        if let geng::Event::KeyPress { key } = event {
             let s = format!("{key:?}");
             let c = if s.len() == 1 {
                 Some(s.as_str())

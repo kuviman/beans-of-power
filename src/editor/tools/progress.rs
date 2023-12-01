@@ -107,13 +107,13 @@ impl EditorTool for ProgressTool {
         selected_layer: usize,
     ) {
         match event {
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Left,
                 ..
             } => {
                 let level = level.modify();
                 if level.expected_path.is_empty()
-                    || self.geng.window().is_key_pressed(geng::Key::LShift)
+                    || self.geng.window().is_key_pressed(geng::Key::ShiftLeft)
                 {
                     level.expected_path.push(vec![]);
                 }
@@ -123,7 +123,7 @@ impl EditorTool for ProgressTool {
                     .unwrap()
                     .push(cursor.world_pos);
             }
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Right,
                 ..
             } => {

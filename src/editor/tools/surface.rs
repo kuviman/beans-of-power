@@ -45,7 +45,7 @@ impl SurfaceTool {
         if (p2 - p1).len() < self.config.snap_distance {
             return None;
         }
-        if self.geng.window().is_key_pressed(geng::Key::LShift) {
+        if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
             let arg = (p2 - p1).arg().as_radians();
             let round_step = 15.0 * f32::PI / 180.0;
             let arg = (arg / round_step).round() * round_step;
@@ -128,13 +128,13 @@ impl EditorTool for SurfaceTool {
         selected_layer: usize,
     ) {
         match event {
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Left,
                 ..
             } => {
                 self.start_drag = Some(cursor.snapped_world_pos);
             }
-            geng::Event::MouseUp {
+            geng::Event::MouseRelease {
                 button: geng::MouseButton::Left,
                 ..
             } => {
@@ -151,7 +151,7 @@ impl EditorTool for SurfaceTool {
                         });
                 }
             }
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Right,
                 ..
             } => {
@@ -160,14 +160,14 @@ impl EditorTool for SurfaceTool {
                 }
             }
 
-            geng::Event::KeyDown { key: geng::Key::W } => {
-                if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
+            geng::Event::KeyPress { key: geng::Key::W } => {
+                if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
                     if let Some(surface) = self.find_hovered_surface(cursor, level, selected_layer)
                     {
                         let surface = &level.layers[selected_layer].surfaces[surface];
                         self.saved_flow = surface.flow;
                     }
-                } else if self.geng.window().is_key_pressed(geng::Key::LShift) {
+                } else if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
                     if let Some(surface) = self.find_hovered_surface(cursor, level, selected_layer)
                     {
                         level.modify().layers[selected_layer].surfaces[surface].flow =
@@ -179,7 +179,7 @@ impl EditorTool for SurfaceTool {
                         .map(|index| (index, cursor.world_pos));
                 }
             }
-            geng::Event::KeyUp { key: geng::Key::W } => {
+            geng::Event::KeyRelease { key: geng::Key::W } => {
                 if let Some((index, start)) = self.wind_drag.take() {
                     let level = level.modify();
                     let surface = &mut level.layers[selected_layer].surfaces[index];

@@ -140,9 +140,8 @@ impl EditorTool for TileTool {
         selected_layer: usize,
     ) {
         match event {
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Left,
-                ..
             } => {
                 self.points.push(cursor.snapped_world_pos);
                 // Check points are not too close
@@ -179,9 +178,8 @@ impl EditorTool for TileTool {
                     });
                 }
             }
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Right,
-                ..
             } => {
                 if self.points.is_empty() {
                     if let Some(index) = self.find_hovered_tile(cursor, level, selected_layer) {
@@ -191,7 +189,7 @@ impl EditorTool for TileTool {
                     self.points.clear();
                 }
             }
-            geng::Event::KeyDown { key: geng::Key::X } => {
+            geng::Event::KeyPress { key: geng::Key::X } => {
                 let assets = self.assets.get();
                 let mut options: Vec<&str> = assets.tiles.keys().collect();
                 options.sort();
@@ -202,13 +200,13 @@ impl EditorTool for TileTool {
                 self.config.selected_type = options[(idx + 1) % options.len()].to_owned();
             }
 
-            geng::Event::KeyDown { key: geng::Key::W } => {
-                if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
+            geng::Event::KeyPress { key: geng::Key::W } => {
+                if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
                     if let Some(tile) = self.find_hovered_tile(cursor, level, selected_layer) {
                         let tile = &level.layers[selected_layer].tiles[tile];
                         self.saved_flow = tile.flow;
                     }
-                } else if self.geng.window().is_key_pressed(geng::Key::LShift) {
+                } else if self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
                     if let Some(tile) = self.find_hovered_tile(cursor, level, selected_layer) {
                         level.modify().layers[selected_layer].tiles[tile].flow = self.saved_flow;
                     }
@@ -218,7 +216,7 @@ impl EditorTool for TileTool {
                         .map(|index| (index, cursor.world_pos));
                 }
             }
-            geng::Event::KeyUp { key: geng::Key::W } => {
+            geng::Event::KeyRelease { key: geng::Key::W } => {
                 if let Some((index, start)) = self.wind_drag.take() {
                     self.saved_flow = cursor.world_pos - start;
                     level.modify().layers[selected_layer].tiles[index].flow = self.saved_flow;

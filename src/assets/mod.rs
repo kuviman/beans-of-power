@@ -111,9 +111,10 @@ fn load_font(
         geng::Font::new(
             manager.ugli(),
             &data,
-            geng::font::Options {
+            &geng::font::Options {
                 pixel_size: 64.0,
                 max_distance: 0.1,
+                distance_mode: geng::font::DistanceMode::Euclid,
                 antialias: true,
             },
         )

@@ -50,7 +50,12 @@ impl<T: geng::asset::Load> Listed<T> {
 }
 
 impl<T: geng::asset::Load> geng::asset::Load for Listed<T> {
-    fn load(manager: &geng::asset::Manager, path: &std::path::Path) -> geng::asset::Future<Self> {
+    type Options = ();
+    fn load(
+        manager: &geng::asset::Manager,
+        path: &std::path::Path,
+        _options: &(),
+    ) -> geng::asset::Future<Self> {
         let manager = manager.clone();
         let path = path.to_owned();
         async move { Self::load_with_ext(&manager, &path, None).await }.boxed_local()

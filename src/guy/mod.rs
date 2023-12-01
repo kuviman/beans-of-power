@@ -207,7 +207,12 @@ pub struct GuyRenderAssets {
 }
 
 impl geng::asset::Load for GuyRenderAssets {
-    fn load(manager: &geng::asset::Manager, path: &std::path::Path) -> geng::asset::Future<Self> {
+    type Options = ();
+    fn load(
+        manager: &geng::asset::Manager,
+        path: &std::path::Path,
+        _options: &(),
+    ) -> geng::asset::Future<Self> {
         let manager = manager.clone();
         let path = path.to_owned();
         async move {
@@ -256,7 +261,9 @@ impl geng::asset::Load for GuyRenderAssets {
                     rctree::NodeEdge::Start(node) => node,
                     rctree::NodeEdge::End(node) => node,
                 };
-                let Some(xml_node) = xml_nodes.get(&*svg_node.id()) else { continue };
+                let Some(xml_node) = xml_nodes.get(&*svg_node.id()) else {
+                    continue;
+                };
                 if !matches!(*svg_node.borrow(), resvg::usvg::NodeKind::Group(_)) {
                     continue;
                 }

@@ -81,11 +81,11 @@ impl crate::editor::EditorTool for CannonTool {
         selected_layer: usize,
     ) {
         match event {
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Left,
                 ..
             } => self.start_drag = Some(cursor.world_pos),
-            geng::Event::MouseUp {
+            geng::Event::MouseRelease {
                 button: geng::MouseButton::Left,
                 ..
             } => {
@@ -96,7 +96,7 @@ impl crate::editor::EditorTool for CannonTool {
                     });
                 }
             }
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Right,
                 ..
             } => {

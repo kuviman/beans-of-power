@@ -80,7 +80,7 @@ impl EditorTool for PortalTool {
         selected_layer: usize,
     ) {
         match event {
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Left,
                 ..
             } => {
@@ -95,7 +95,7 @@ impl EditorTool for PortalTool {
                     });
                 }
             }
-            geng::Event::MouseUp {
+            geng::Event::MouseRelease {
                 button: geng::MouseButton::Left,
                 ..
             } => {
@@ -107,7 +107,7 @@ impl EditorTool for PortalTool {
                     }
                 }
             }
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Right,
                 ..
             } => {
@@ -125,7 +125,7 @@ impl EditorTool for PortalTool {
                     }
                 }
             }
-            geng::Event::KeyDown { key: geng::Key::C } => {
+            geng::Event::KeyPress { key: geng::Key::C } => {
                 if let Some(index) = self.find_hovered_portal(cursor, level) {
                     level.modify().portals[index].color = random_hue();
                 }

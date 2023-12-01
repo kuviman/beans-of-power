@@ -85,9 +85,7 @@ impl Controller {
         buttons: Vec<Button<T>>,
     ) -> Vec<T> {
         match *event {
-            geng::Event::MouseMove { position, .. }
-            | geng::Event::MouseDown { position, .. }
-            | geng::Event::MouseUp { position, .. } => {
+            geng::Event::CursorMove { position } => {
                 self.mouse = self
                     .camera
                     .screen_to_world(self.framebuffer_size, position.map(|x| x as f32));
@@ -103,7 +101,7 @@ impl Controller {
         }
         let mut result = Vec::new();
         match *event {
-            geng::Event::MouseUp {
+            geng::Event::MouseRelease {
                 button: geng::MouseButton::Left,
                 ..
             }

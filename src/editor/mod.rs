@@ -65,7 +65,9 @@ impl EditorState {
 
 impl Game {
     pub fn snapped_cursor_position(&self, level: &Level) -> vec2<f32> {
-        let Some(editor) = &self.editor else { return vec2::ZERO; };
+        let Some(editor) = &self.editor else {
+            return vec2::ZERO;
+        };
         let camera = geng::Camera2d {
             center: self.camera.center * level.layers[editor.selected_layer].parallax,
             ..self.camera
@@ -74,7 +76,11 @@ impl Game {
             level,
             camera.screen_to_world(
                 self.framebuffer_size,
-                self.geng.window().cursor_position().map(|x| x as f32),
+                self.geng
+                    .window()
+                    .cursor_position()
+                    .unwrap_or(self.prev_mouse_pos)
+                    .map(|x| x as f32),
             ),
         )
     }
@@ -119,15 +125,17 @@ impl Game {
         if self.editor.is_none() {
             return;
         }
-        let cursor_pos = self.snapped_cursor_position(&self.level);
+        let snapped_cursor_pos = self.snapped_cursor_position(&self.level);
         let editor = self.editor.as_mut().unwrap();
+        let Some(cursor_pos) = self.geng.window().cursor_position() else {
+            return;
+        };
         editor.cursor = Cursor {
-            screen_pos: self.geng.window().cursor_position().map(|x| x as f32),
-            world_pos: self.camera.screen_to_world(
-                self.framebuffer_size,
-                self.geng.window().cursor_position().map(|x| x as f32),
-            ),
-            snapped_world_pos: cursor_pos,
+            screen_pos: cursor_pos.map(|x| x as f32),
+            world_pos: self
+                .camera
+                .screen_to_world(self.framebuffer_size, cursor_pos.map(|x| x as f32)),
+            snapped_world_pos: snapped_cursor_pos,
         };
 
         editor.tool.handle_event(
@@ -137,7 +145,7 @@ impl Game {
             editor.selected_layer,
         );
 
-        if let geng::Event::KeyDown { key } = event {
+        if let geng::Event::KeyPress { key } = event {
             match key {
                 geng::Key::Tab => {
                     editor.selected_tool_index =
@@ -150,7 +158,7 @@ impl Game {
                     }
                 }
                 geng::Key::Q => {
-                    if !self.geng.window().is_key_pressed(geng::Key::LCtrl) {
+                    if !self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
                         if let Some(id) = self.my_guy.take() {
                             if let Some(con) = &mut self.connection {
                                 con.send(ClientMessage::Despawn);
@@ -167,13 +175,13 @@ impl Game {
                         }
                     }
                 }
-                geng::Key::S if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
+                geng::Key::S if self.geng.window().is_key_pressed(geng::Key::ControlLeft) => {
                     editor.save_level(&mut self.level);
                 }
-                geng::Key::Z if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
+                geng::Key::Z if self.geng.window().is_key_pressed(geng::Key::ControlLeft) => {
                     self.level.undo();
                 }
-                geng::Key::Y if self.geng.window().is_key_pressed(geng::Key::LCtrl) => {
+                geng::Key::Y if self.geng.window().is_key_pressed(geng::Key::ControlLeft) => {
                     self.level.redo();
                 }
                 _ => {}

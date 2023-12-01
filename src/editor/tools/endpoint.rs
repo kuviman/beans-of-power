@@ -40,13 +40,13 @@ impl EditorTool for EndpointTool {
         selected_layer: usize,
     ) {
         match event {
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Left,
                 ..
             } => {
                 level.modify().spawn_point = cursor.world_pos;
             }
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Right,
                 ..
             } => {

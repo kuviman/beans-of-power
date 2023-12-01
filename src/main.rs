@@ -75,6 +75,7 @@ fn main() {
     if opt.connect.is_none() && opt.server.is_none() {
         if cfg!(target_arch = "wasm32") {
             opt.connect = Some(
+                #[allow(clippy::option_env_unwrap)]
                 option_env!("CONNECT")
                     .expect("Set CONNECT compile time env var")
                     .to_owned(),
@@ -103,56 +104,61 @@ fn main() {
             None
         };
 
-        let geng = Geng::new_with(geng::ContextOptions {
-            title: "Beans of Power".to_owned(),
-            fixed_delta_time: 1.0 / 200.0,
-            ..geng::ContextOptions::from_args(&opt.geng)
-        });
-        let connection = future::OptionFuture::<_>::from(match opt.connect.as_deref().unwrap() {
-            "singleplayer" => None,
-            addr => Some(geng::net::client::connect::<ServerMessage, ClientMessage>(
-                addr,
-            )),
-        })
-        .then(|connection| {
-            future::OptionFuture::from(connection.map(|connection| async {
-                let connection = connection.unwrap();
-                let (message, mut connection) = connection.into_future().await;
-                let id = match message.unwrap().unwrap() {
-                    ServerMessage::ClientId(id) => id,
-                    _ => unreachable!(),
+        Geng::run_with(
+            &{
+                let mut options = geng::ContextOptions {
+                    window: geng::window::Options::new("Beans of Power"),
+                    fixed_delta_time: 1.0 / 200.0,
+                    ..default()
                 };
-                connection.send(ClientMessage::Ping);
-                (id, connection)
-            }))
-        });
-        geng.clone().run_loading(async move {
-            let ((assets, level), connection_info) = future::join(
-                future::join(
-                    <AssetsHandle as geng::asset::Load>::load(geng.asset_manager(), &assets_dir),
-                    Level::load(
-                        opt.level.clone().unwrap_or(assets_dir.join("level.json")),
-                        opt.editor,
-                    ),
-                ),
-                connection,
-            )
-            .await;
-            let assets = assets.expect("Failed to load assets");
-            let assets = Rc::new(assets);
-            let mut level = level;
-            for layer in &mut level.modify().layers {
-                for surface in &mut layer.surfaces {
-                    surface.flow += opt.add_flow;
-                }
-            }
-            Game::new(&geng, &assets, level, opt, connection_info)
-        });
+                options.with_cli(&opt.geng);
+                options
+            },
+            |geng| async move {
+                let connection_info = match opt.connect.as_deref().unwrap() {
+                    "singleplayer" => None,
+                    addr => Some({
+                        let connection =
+                            geng::net::client::connect::<ServerMessage, ClientMessage>(addr)
+                                .await
+                                .expect("Failed to connect to server");
+                        let (message, mut connection) = connection.into_future().await;
+                        let id = match message.unwrap().unwrap() {
+                            ServerMessage::ClientId(id) => id,
+                            _ => unreachable!(),
+                        };
+                        connection.send(ClientMessage::Ping);
+                        (id, connection)
+                    }),
+                };
+                let assets = geng
+                    .asset_manager()
+                    .load::<AssetsHandle>(&assets_dir)
+                    .await
+                    .expect("Failed to load assets");
+                let level = Level::load(
+                    opt.level.clone().unwrap_or(assets_dir.join("level.json")),
+                    opt.editor,
+                )
+                .await;
 
-        #[cfg(not(target_arch = "wasm32"))]
-        if let Some((server_handle, server_thread)) = server {
-            server_handle.shutdown();
-            server_thread.join().unwrap();
-        }
+                let assets = Rc::new(assets);
+                let mut level = level;
+                for layer in &mut level.modify().layers {
+                    for surface in &mut layer.surfaces {
+                        surface.flow += opt.add_flow;
+                    }
+                }
+
+                geng.run_state(Game::new(&geng, &assets, level, opt, connection_info))
+                    .await;
+
+                #[cfg(not(target_arch = "wasm32"))]
+                if let Some((server_handle, server_thread)) = server {
+                    server_handle.shutdown();
+                    server_thread.join().unwrap();
+                }
+            },
+        );
     }
 }

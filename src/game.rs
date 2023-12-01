@@ -1,8 +1,9 @@
 use super::*;
 
-pub const CONTROLS_LEFT: [geng::Key; 2] = [geng::Key::A, geng::Key::Left];
-pub const CONTROLS_RIGHT: [geng::Key; 2] = [geng::Key::D, geng::Key::Right];
-pub const CONTROLS_FORCE_FART: [geng::Key; 3] = [geng::Key::W, geng::Key::Up, geng::Key::Space];
+pub const CONTROLS_LEFT: [geng::Key; 2] = [geng::Key::A, geng::Key::ArrowLeft];
+pub const CONTROLS_RIGHT: [geng::Key; 2] = [geng::Key::D, geng::Key::ArrowRight];
+pub const CONTROLS_FORCE_FART: [geng::Key; 3] =
+    [geng::Key::W, geng::Key::ArrowUp, geng::Key::Space];
 
 pub struct LongFartSfx {
     pub finish_time: Option<f32>,
@@ -452,10 +453,11 @@ impl geng::State for Game {
         self.handle_event_editor(&event);
         self.handle_customizer_event(&event);
         match event {
-            geng::Event::Gamepad(event) => {
-                self.active_gamepad = Some(event.id);
-            }
-            geng::Event::MouseMove { position, .. }
+            // TODO
+            // geng::Event::Gamepad(event) => {
+            //     self.active_gamepad = Some(event.id);
+            // }
+            geng::Event::CursorMove { position }
                 if self
                     .geng
                     .window()
@@ -469,105 +471,105 @@ impl geng::State for Game {
                     .screen_to_world(self.framebuffer_size, position.map(|x| x as f32));
                 self.camera.center += old_pos - new_pos;
             }
-            geng::Event::MouseDown {
-                position,
+            geng::Event::MousePress {
                 button: geng::MouseButton::Left,
             } if self.my_guy.is_none() && self.editor.is_none() => {
-                let pos = self
-                    .camera
-                    .screen_to_world(self.framebuffer_size, position.map(|x| x as f32));
-                if let Some(guy) = self
-                    .guys
-                    .iter()
-                    .min_by_key(|guy| r32((guy.state.pos - pos).len()))
-                {
-                    if (guy.state.pos - pos).len() < guy.radius() {
-                        self.follow = Some(guy.id);
+                if let Some(cursor_position) = self.geng.window().cursor_position() {
+                    let pos = self
+                        .camera
+                        .screen_to_world(self.framebuffer_size, cursor_position.map(|x| x as f32));
+                    if let Some(guy) = self
+                        .guys
+                        .iter()
+                        .min_by_key(|guy| r32((guy.state.pos - pos).len()))
+                    {
+                        if (guy.state.pos - pos).len() < guy.radius() {
+                            self.follow = Some(guy.id);
+                        }
                     }
                 }
             }
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Right,
-                ..
             } => {
                 self.follow = None;
             }
             geng::Event::Wheel { delta } if self.opt.editor => {
                 self.camera.fov = (self.camera.fov * 1.01f32.powf(-delta as f32)).clamp(1.0, 200.0);
             }
-            geng::Event::KeyDown { key: geng::Key::R }
-                if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
+            geng::Event::KeyPress { key: geng::Key::R }
+                if self.geng.window().is_key_pressed(geng::Key::ControlLeft) =>
             {
                 self.respawn_my_guy();
             }
-            geng::Event::KeyDown { key: geng::Key::M } if !self.show_customizer => {
+            geng::Event::KeyPress { key: geng::Key::M } if !self.show_customizer => {
                 self.mute_music = !self.mute_music;
             }
-            geng::Event::KeyDown { key: geng::Key::H } if !self.show_customizer => {
+            geng::Event::KeyPress { key: geng::Key::H } if !self.show_customizer => {
                 self.show_names = !self.show_names;
             }
-            geng::Event::KeyDown { key: geng::Key::L } if !self.show_customizer => {
+            geng::Event::KeyPress { key: geng::Key::L } if !self.show_customizer => {
                 self.show_leaderboard = !self.show_leaderboard;
             }
-            geng::Event::KeyDown {
-                key: geng::Key::Num1,
+            geng::Event::KeyPress {
+                key: geng::Key::Digit1,
             } => {
                 if let Some(con) = &mut self.connection {
                     con.send(ClientMessage::Emote(0));
                 }
             }
-            geng::Event::KeyDown {
-                key: geng::Key::Num2,
+            geng::Event::KeyPress {
+                key: geng::Key::Digit2,
             } => {
                 if let Some(con) = &mut self.connection {
                     con.send(ClientMessage::Emote(1));
                 }
             }
-            geng::Event::KeyDown {
-                key: geng::Key::Num3,
+            geng::Event::KeyPress {
+                key: geng::Key::Digit3,
             } => {
                 if let Some(con) = &mut self.connection {
                     con.send(ClientMessage::Emote(2));
                 }
             }
-            geng::Event::KeyDown {
-                key: geng::Key::Num4,
+            geng::Event::KeyPress {
+                key: geng::Key::Digit4,
             } => {
                 if let Some(con) = &mut self.connection {
                     con.send(ClientMessage::Emote(3));
                 }
             }
-            geng::Event::KeyDown {
+            geng::Event::KeyPress {
                 key: geng::Key::Tab,
             } if self.opt.editor => {
                 if self.editor.take().is_none() {
                     self.editor = Some(EditorState::new(&self.geng, &self.assets));
                 }
             }
-            geng::Event::KeyDown { key: geng::Key::I } => {
+            geng::Event::KeyPress { key: geng::Key::I } => {
                 self.camera.fov = self.assets.get().config.camera_fov;
             }
-            geng::Event::KeyDown { key: geng::Key::F5 } if self.opt.editor => {
+            geng::Event::KeyPress { key: geng::Key::F5 } if self.opt.editor => {
                 self.quicksave = self.my_guy.and_then(|id| self.guys.get(&id)).cloned();
             }
-            geng::Event::KeyDown { key: geng::Key::F7 } if self.opt.editor => {
+            geng::Event::KeyPress { key: geng::Key::F7 } if self.opt.editor => {
                 if let Some(save) = &self.quicksave {
                     let save = save.clone();
                     self.respawn_my_guy();
                     *self.guys.get_mut(&self.my_guy.unwrap()).unwrap() = save;
                 }
             }
-            geng::Event::KeyDown { key: geng::Key::Z } if self.opt.editor => {
+            geng::Event::KeyPress { key: geng::Key::Z } if self.opt.editor => {
                 self.time_scale = 1.0;
             }
-            geng::Event::KeyDown { key: geng::Key::X } if self.opt.editor => {
+            geng::Event::KeyPress { key: geng::Key::X } if self.opt.editor => {
                 self.time_scale = 0.5;
             }
-            geng::Event::KeyDown { key: geng::Key::C } if self.opt.editor => {
+            geng::Event::KeyPress { key: geng::Key::C } if self.opt.editor => {
                 self.time_scale = 0.25;
             }
-            geng::Event::KeyDown { key: geng::Key::Q } if self.opt.editor => {
-                if self.geng.window().is_key_pressed(geng::Key::LCtrl) {
+            geng::Event::KeyPress { key: geng::Key::Q } if self.opt.editor => {
+                if self.geng.window().is_key_pressed(geng::Key::ControlLeft) {
                     if let Some(mut recording) = self.recording.take() {
                         if let Some(guy) = self.my_guy.and_then(|id| self.guys.get(&id)) {
                             recording.push(self.simulation_time, guy);
@@ -581,7 +583,9 @@ impl geng::State for Game {
             }
             _ => {}
         }
-        self.prev_mouse_pos = self.geng.window().cursor_position();
+        if let Some(cursor_pos) = self.geng.window().cursor_position() {
+            self.prev_mouse_pos = cursor_pos;
+        }
     }
     fn ui<'a>(&'a mut self, cx: &'a geng::ui::Controller) -> Box<dyn geng::ui::Widget + 'a> {
         use geng::ui::*;

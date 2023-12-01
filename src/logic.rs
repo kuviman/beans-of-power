@@ -66,28 +66,29 @@ impl Game {
 
         // Accessibility
         if let Some(radius) = self.opt.accessibility {
-            let p = (self.geng.window().cursor_position().map(|x| x as f32)
-                - self.framebuffer_size / 2.0)
-                / radius;
-            if p.x < 0.0 {
-                new_input.roll_left += -p.x;
-            } else {
-                new_input.roll_right += p.x;
-            }
-            if p.y > 0.0 {
-                new_input.force_fart = true;
+            if let Some(cursor_pos) = self.geng.window().cursor_position() {
+                let p = (cursor_pos.map(|x| x as f32) - self.framebuffer_size / 2.0) / radius;
+                if p.x < 0.0 {
+                    new_input.roll_left += -p.x;
+                } else {
+                    new_input.roll_right += p.x;
+                }
+                if p.y > 0.0 {
+                    new_input.force_fart = true;
+                }
             }
         }
 
         if self.opt.mouse_aim {
-            let cursor = self.camera.screen_to_world(
-                self.framebuffer_size,
-                self.geng.window().cursor_position().map(|x| x as f32),
-            );
-            let v = ((cursor - my_guy.state.pos) / my_guy.state.radius).clamp_len(..=1.0);
-            let dir = vec2(0.0, 1.0).rotate(my_guy.state.rot);
-            new_input.roll_left = vec2::skew(dir, v);
-            new_input.roll_right = -new_input.roll_left;
+            if let Some(cursor_pos) = self.geng.window().cursor_position() {
+                let cursor = self
+                    .camera
+                    .screen_to_world(self.framebuffer_size, cursor_pos.map(|x| x as f32));
+                let v = ((cursor - my_guy.state.pos) / my_guy.state.radius).clamp_len(..=1.0);
+                let dir = vec2(0.0, 1.0).rotate(my_guy.state.rot);
+                new_input.roll_left = vec2::skew(dir, v);
+                new_input.roll_right = -new_input.roll_left;
+            }
         }
 
         new_input.roll_left = new_input.roll_left.clamp(0.0, 1.0);

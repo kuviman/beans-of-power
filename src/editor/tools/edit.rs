@@ -171,7 +171,7 @@ impl EditorTool for EditTool {
         selected_layer: usize,
     ) {
         match event {
-            geng::Event::MouseDown { button, .. } => match self.state {
+            geng::Event::MousePress { button, .. } => match self.state {
                 State::Idle => {
                     if *button == geng::MouseButton::Left {
                         self.state = State::DragSelection {
@@ -239,13 +239,13 @@ impl EditorTool for EditTool {
                     self.state = State::Idle;
                 }
             },
-            geng::Event::MouseUp {
+            geng::Event::MouseRelease {
                 button: geng::MouseButton::Left,
                 ..
             } => {
                 if let State::DragSelection { start } = self.state {
                     self.state = State::Idle;
-                    if !self.geng.window().is_key_pressed(geng::Key::LShift) {
+                    if !self.geng.window().is_key_pressed(geng::Key::ShiftLeft) {
                         self.clear_selection();
                     }
                     let aabb = Aabb2::from_corners(start, cursor.snapped_world_pos);
@@ -312,29 +312,29 @@ impl EditorTool for EditTool {
                     // }
                 }
             }
-            geng::Event::KeyDown { key: geng::Key::G } => {
+            geng::Event::KeyPress { key: geng::Key::G } => {
                 self.state = State::Grab {
                     start: cursor.snapped_world_pos,
                 };
             }
-            geng::Event::KeyDown { key: geng::Key::C }
-                if self.geng.window().is_key_pressed(geng::Key::LCtrl) =>
+            geng::Event::KeyPress { key: geng::Key::C }
+                if self.geng.window().is_key_pressed(geng::Key::ControlLeft) =>
             {
                 self.state = State::Copy {
                     start: cursor.snapped_world_pos,
                 };
             }
-            geng::Event::KeyDown { key: geng::Key::S } => {
+            geng::Event::KeyPress { key: geng::Key::S } => {
                 self.state = State::Scale {
                     start: cursor.snapped_world_pos,
                 };
             }
-            geng::Event::KeyDown { key: geng::Key::R } => {
+            geng::Event::KeyPress { key: geng::Key::R } => {
                 self.state = State::Rotate {
                     start: cursor.snapped_world_pos,
                 };
             }
-            geng::Event::KeyDown {
+            geng::Event::KeyPress {
                 key: geng::Key::Delete,
             } => {
                 if let State::Idle = self.state {

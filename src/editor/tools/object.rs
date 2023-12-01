@@ -75,14 +75,14 @@ impl EditorTool for ObjectTool {
         selected_layer: usize,
     ) {
         match event {
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Left,
                 ..
             } => level.modify().layers[selected_layer].objects.push(Object {
                 type_name: self.config.selected_type.clone(),
                 pos: cursor.world_pos,
             }),
-            geng::Event::MouseDown {
+            geng::Event::MousePress {
                 button: geng::MouseButton::Right,
                 ..
             } => {
