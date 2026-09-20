@@ -68,7 +68,7 @@ pub struct Opt {
 
 fn main() {
     geng::setup_panic_handler();
-    let mut opt: Opt = cli::parse();
+    let mut opt: Opt = clap::Parser::parse_from(Vec::<String>::new()); // TODO cli::parse();
 
     let assets_dir = opt.assets.clone().unwrap_or(run_dir().join("assets"));
 
