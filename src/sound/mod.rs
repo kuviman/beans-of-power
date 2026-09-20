@@ -19,18 +19,17 @@ impl System {
         }
     }
     pub fn play(&self, sound: &geng::Sound, volume: f32, pos: vec2<f32>) {
-        let mut effect = sound.effect();
+        let mut effect = sound.effect(self.geng.audio().default_type());
         // TODO check formula
         effect.set_volume(
-            (self.volume * volume * (1.0 - (pos - self.pos).len() / self.fov)).clamp(0.0, 1.0)
-                as f64,
+            (self.volume * volume * (1.0 - (pos - self.pos).len() / self.fov)).clamp(0.0, 1.0),
         );
-        effect.set_speed(self.speed as f64); // TODO may change over time
+        effect.set_speed(self.speed); // TODO may change over time
         effect.play();
     }
 
     pub fn sync_with_camera(&mut self, camera: &Camera2d) {
         self.pos = camera.center;
-        self.fov = camera.fov;
+        self.fov = camera.fov.value();
     }
 }

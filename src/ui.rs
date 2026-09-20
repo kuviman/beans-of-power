@@ -41,7 +41,7 @@ impl Controller {
             camera: geng::Camera2d {
                 center: vec2(0.0, 0.0),
                 rotation: Angle::ZERO,
-                fov: 1.0,
+                fov: geng::Camera2dFov::Vertical(1.0),
             },
             framebuffer_size: vec2(1.0, 1.0),
         }

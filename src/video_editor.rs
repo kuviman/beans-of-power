@@ -53,7 +53,7 @@ impl Save {
                         camera_info: CameraInfo::Static(geng::Camera2d {
                             center: vec2::ZERO,
                             rotation: Angle::ZERO,
-                            fov: 10.0,
+                            fov: geng::Camera2dFov::Vertical(10.0),
                         }),
                     },
                     replays: vec![],
@@ -174,7 +174,7 @@ impl VideoEditor {
         }
         if true && segment_index == 0 {
             game.music.stop();
-            game.music = editor.music.effect();
+            game.music = editor.music.effect(game.geng.audio().default_type());
             game.music
                 .play_from(time::Duration::from_secs_f64(editor.time as f64));
         }

@@ -87,7 +87,7 @@ impl EditorTool for ProgressTool {
                 &geng::Camera2d {
                     center: vec2::ZERO,
                     rotation: Angle::ZERO,
-                    fov: 15.0,
+                    fov: geng::Camera2dFov::Vertical(15.0),
                 },
                 &draw2d::Text::unit(
                     &**self.geng.default_font(),

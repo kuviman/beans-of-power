@@ -41,6 +41,7 @@ impl Game {
         }
 
         // Gamepad
+        #[cfg(false)]
         if let Some(gamepad) = self.active_gamepad {
             if let Some(gilrs) = self.geng.gilrs() {
                 let gamepad = gilrs.gamepad(gamepad);
@@ -145,7 +146,7 @@ impl Game {
             let sfx_speed =
                 (self.time_scale as f64 * time_scale as f64).powf(self.config.sfx_time_scale_power);
             if self.my_guy == Some(guy.id) {
-                self.music.set_speed(sfx_speed);
+                self.music.set_speed(sfx_speed as f32);
             }
 
             let prev_state = guy.state.clone();
@@ -308,22 +309,23 @@ impl Game {
                         sfx.sfx.set_volume(
                             (self.sound.volume
                                 * (1.0
-                                    - (guy.state.pos - self.camera.center).len() / self.camera.fov))
-                                .clamp(0.0, 1.0) as f64
-                                * (1.0 - fadeout) as f64,
+                                    - (guy.state.pos - self.camera.center).len()
+                                        / self.camera.fov.value()))
+                            .clamp(0.0, 1.0)
+                                * (1.0 - fadeout),
                         );
                     }
                 }
             } else if let Some(sfx) = self.long_fart_sfx.get_mut(&guy.id) {
                 let volume = (self.sound.volume
-                    * (1.0 - (guy.state.pos - self.camera.center).len() / self.camera.fov))
-                    .clamp(0.0, 1.0) as f64;
+                    * (1.0 - (guy.state.pos - self.camera.center).len() / self.camera.fov.value()))
+                .clamp(0.0, 1.0);
                 if fart_type != sfx.type_name {
                     // TODO: this is copypasta
                     if let Some(sound) = &fart_assets.long_sfx {
-                        let mut sfx = sound.effect();
+                        let mut sfx = sound.effect(self.geng.audio().default_type());
                         sfx.set_volume(volume);
-                        sfx.set_speed(sfx_speed);
+                        sfx.set_speed(sfx_speed as f32);
                         sfx.play();
                         if let Some(mut sfx) = self.long_fart_sfx.insert(
                             guy.id,
@@ -338,7 +340,7 @@ impl Game {
                     }
                 } else {
                     sfx.sfx.set_volume(volume);
-                    sfx.sfx.set_speed(sfx_speed);
+                    sfx.sfx.set_speed(sfx_speed as f32);
                 }
             } else {
                 log::warn!("No sfx for long fart?");
@@ -369,9 +371,9 @@ impl Game {
                 guy.state.long_farting = true;
                 if let Some(sound) = &fart_assets.long_sfx {
                     // TODO: copypasta??
-                    let mut sfx = sound.effect();
+                    let mut sfx = sound.effect(self.geng.audio().default_type());
                     sfx.set_volume(0.0);
-                    sfx.set_speed(sfx_speed);
+                    sfx.set_speed(sfx_speed as f32);
                     sfx.play();
                     if let Some(mut sfx) = self.long_fart_sfx.insert(
                         guy.id,
@@ -387,19 +389,28 @@ impl Game {
                 self.farticles.spawn(fart_assets, butt, guy.state.vel);
                 guy.state.vel += vec2(0.0, self.config.fart_strength).rotate(guy.state.rot)
                     / guy.mass(&self.config);
-                let mut effect = fart_assets.sfx.choose(&mut thread_rng()).unwrap().effect();
+                let mut effect = fart_assets
+                    .sfx
+                    .choose(&mut thread_rng())
+                    .unwrap()
+                    .effect(self.geng.audio().default_type());
                 effect.set_volume(
                     (self.sound.volume
-                        * (1.0 - (guy.state.pos - self.camera.center).len() / self.camera.fov))
-                        .clamp(0.0, 1.0) as f64,
+                        * (1.0
+                            - (guy.state.pos - self.camera.center).len()
+                                / self.camera.fov.value()))
+                    .clamp(0.0, 1.0),
                 );
-                effect.set_speed(sfx_speed);
+                effect.set_speed(sfx_speed as f32);
                 effect.play();
             } else if !could_fart && guy.state.fart_pressure >= self.config.fart_pressure_released {
                 // Growling stomach recharge
                 if Some(guy.id) == self.my_guy {
-                    let mut effect = assets.sfx.fart_recharge.effect();
-                    effect.set_volume(self.sound.volume as f64 * 0.5);
+                    let mut effect = assets
+                        .sfx
+                        .fart_recharge
+                        .effect(self.geng.audio().default_type());
+                    effect.set_volume(self.sound.volume * 0.5);
                     effect.play();
                 }
                 guy.animation.growl_progress = Some(0.0);

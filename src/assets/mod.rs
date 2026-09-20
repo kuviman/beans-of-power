@@ -97,7 +97,7 @@ pub struct SfxAssets {
 }
 
 fn make_looped(sound: &mut geng::Sound) {
-    sound.set_looped(true);
+    sound.looped = true;
 }
 
 fn load_font(

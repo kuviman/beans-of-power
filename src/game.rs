@@ -83,7 +83,7 @@ impl Game {
             camera: geng::Camera2d {
                 center: level.spawn_point,
                 rotation: Angle::ZERO,
-                fov: assets.get().config.camera_fov,
+                fov: geng::Camera2dFov::Vertical(assets.get().config.camera_fov),
             },
             framebuffer_size: vec2(1.0, 1.0),
             editor: if opt.editor {
@@ -173,7 +173,7 @@ impl Game {
             let camera = geng::Camera2d {
                 center: vec2::ZERO,
                 rotation: Angle::ZERO,
-                fov: 10.0,
+                fov: geng::Camera2dFov::Vertical(10.0),
             };
             let guy = self.guys.get_mut(&id).unwrap();
             let text_color = if guy.progress.finished {
@@ -395,7 +395,7 @@ impl geng::State for Game {
         if self.mute_music {
             self.music.set_volume(0.0);
         } else {
-            self.music.set_volume(self.sound.volume as f64);
+            self.music.set_volume(self.sound.volume);
         }
 
         self.emotes.retain(|&(t, ..)| t >= self.real_time - 1.0);
@@ -495,7 +495,9 @@ impl geng::State for Game {
                 self.follow = None;
             }
             geng::Event::Wheel { delta } if self.opt.editor => {
-                self.camera.fov = (self.camera.fov * 1.01f32.powf(-delta as f32)).clamp(1.0, 200.0);
+                self.camera.fov = geng::Camera2dFov::Vertical(
+                    (self.camera.fov.value() * 1.01f32.powf(-delta as f32)).clamp(1.0, 200.0),
+                );
             }
             geng::Event::KeyPress { key: geng::Key::R }
                 if self.geng.window().is_key_pressed(geng::Key::ControlLeft) =>
@@ -547,7 +549,7 @@ impl geng::State for Game {
                 }
             }
             geng::Event::KeyPress { key: geng::Key::I } => {
-                self.camera.fov = self.assets.get().config.camera_fov;
+                self.camera.fov = geng::Camera2dFov::Vertical(self.assets.get().config.camera_fov);
             }
             geng::Event::KeyPress { key: geng::Key::F5 } if self.opt.editor => {
                 self.quicksave = self.my_guy.and_then(|id| self.guys.get(&id)).cloned();

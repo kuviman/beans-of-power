@@ -20,9 +20,10 @@ impl Game {
         let mut camera = geng::Camera2d {
             center: vec2::ZERO,
             rotation: Angle::ZERO,
-            fov: 40.0,
+            fov: geng::Camera2dFov::Vertical(40.0),
         };
-        camera.center.x += camera.fov * self.framebuffer_size.x / self.framebuffer_size.y / 2.0;
+        camera.center.x +=
+            camera.fov.value() * self.framebuffer_size.x / self.framebuffer_size.y / 2.0;
         for (place, guy) in guys.into_iter().enumerate() {
             let place = place + 1;
             let name = &guy.customization.name;
@@ -52,7 +53,7 @@ impl Game {
                 &camera,
                 &text,
                 vec2::splat(geng::TextAlign::LEFT),
-                mat3::translate(vec2(1.0, camera.fov / 2.0 - place as f32)),
+                mat3::translate(vec2(1.0, camera.fov.value() / 2.0 - place as f32)),
                 Rgba::BLACK,
             );
         }

@@ -14,7 +14,7 @@ impl Game {
         let camera = geng::Camera2d {
             center: vec2::ZERO,
             rotation: Angle::ZERO,
-            fov: 10.0,
+            fov: geng::Camera2dFov::Vertical(10.0),
         };
         self.ui_controller
             .draw(framebuffer, &camera, self.buttons.clone());
