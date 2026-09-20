@@ -57,7 +57,7 @@ jobs:
       - build
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
       - name: Upload itch.io (Web)
         uses: josephbmanley/butler-publish-itchio-action@master
         env:
@@ -96,7 +96,7 @@ jobs:
       - build
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
       - name: Deploy GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
