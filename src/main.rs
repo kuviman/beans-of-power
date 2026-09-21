@@ -68,7 +68,11 @@ pub struct Opt {
 
 fn main() {
     geng::setup_panic_handler();
-    let mut opt: Opt = clap::Parser::parse_from(Vec::<String>::new()); // TODO cli::parse();
+    let mut opt: Opt = if cfg!(target_arch = "wasm32") {
+        clap::Parser::parse_from(Vec::<String>::new())
+    } else {
+        cli::parse()
+    };
 
     let assets_dir = opt.assets.clone().unwrap_or(run_dir().join("assets"));
 
